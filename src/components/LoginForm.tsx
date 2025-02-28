@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { loginUser } from "@/lib/auth";
 
 interface DataProps {
   email: string;
@@ -20,25 +21,22 @@ export default function LoginForm() {
   const router = useRouter();
 
   const handleLogin = async (data: DataProps) => {
-    const res = await fetch("/api/auth/login", {
-      method: "POST",
-      body: JSON.stringify(data),
-      headers: { "Content-Type": "application/json" },
-    });
-
-    if (res.ok) {
-      router.push("/dashboard"); // Redirige tras login
-    } else {
-      setError('Credenciales incorrectas');	
+    try {
+      await loginUser(data.email, data.password);
+      router.push('/dashboard');
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError("Ocurrió un error desconocido al iniciar sesión.");
+      }
     }
   };
 
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log('Form submitted');
-    console.log(data);
+    setError('');
     handleLogin(data);
-    setError('Tu usuario aún no ha sido activado');	
   }
 
   const onChange = (e: FormEvent<HTMLInputElement>) => {
@@ -53,7 +51,7 @@ export default function LoginForm() {
   return (
     <form onSubmit={(e) => onSubmit(e)} className="w-full flex flex-col gap-4">
       <div>
-        <Label htmlFor="email">Correo electrónico</Label>
+        <Label className="block mb-2" htmlFor="email">Correo electrónico</Label>
         <TextInput
           type="email"
           color="blue"
@@ -63,10 +61,17 @@ export default function LoginForm() {
           required
           value={data.email}
           onChange={(e) => onChange(e)}
+          theme={{
+            field:{
+              input:{
+                base: "border-slate-200 focus:border-blue-600 w-full",
+              }
+            }
+          }}
         />
       </div>
       <div>
-        <Label htmlFor="password">Contraseña</Label>
+        <Label className="block mb-2" htmlFor="password">Contraseña</Label>
         <TextInput
           type="password"
           color="blue"
@@ -76,6 +81,13 @@ export default function LoginForm() {
           required
           value={data.password}
           onChange={(e) => onChange(e)}
+          theme={{
+            field:{
+              input:{
+                base: "border-slate-200 focus:border-blue-600 w-full",
+              }
+            }
+          }}
         />
       </div>
 
