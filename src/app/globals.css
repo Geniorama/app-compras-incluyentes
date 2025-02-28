@@ -5,3 +5,7 @@
 body{
     font-family: 'Poppins', sans-serif;
 }
+
+.custom-dropdown-width ul {
+    width: 300px;
+}

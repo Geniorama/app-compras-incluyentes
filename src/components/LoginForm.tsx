@@ -6,7 +6,6 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { loginUser } from "@/lib/auth";
-
 interface DataProps {
   email: string;
   password: string;
