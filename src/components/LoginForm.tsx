@@ -6,9 +6,16 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { loginUser } from "@/lib/auth";
+import { UserCredential } from "firebase/auth";
 interface DataProps {
   email: string;
   password: string;
+}
+
+type User = UserCredential['user'];
+
+interface UserCredentialExtends extends User {
+  accessToken?: string;
 }
 
 export default function LoginForm() {
@@ -17,11 +24,29 @@ export default function LoginForm() {
     email: '',
     password: '',
   });
+  const [rememberMe, setRememberMe] = useState(false);
   const router = useRouter();
+
+  const onCheckboxChange = (e: FormEvent<HTMLInputElement>) => {
+    setRememberMe(e.currentTarget.checked);
+  };
 
   const handleLogin = async (data: DataProps) => {
     try {
-      await loginUser(data.email, data.password);
+      const response:UserCredentialExtends = await loginUser(data.email, data.password);
+      const token = response.accessToken;
+
+      if (!token) {
+        setError("No se pudo obtener el token de acceso.");
+        return;
+      }
+
+      if (rememberMe) {
+        localStorage.setItem('authToken', token);
+      } else {
+        sessionStorage.setItem('authToken', token);
+      }
+     
       router.push('/dashboard');
     } catch (error: unknown) {
       if (error instanceof Error) {
@@ -92,10 +117,10 @@ export default function LoginForm() {
 
       <div className="flex items-center justify-between">
         <div>
-          <Checkbox color="blue" className="mr-1" id="remember" name="remember" />
-          <Label htmlFor="remember">Recuérdame</Label>
+          <Checkbox onChange={(e) => onCheckboxChange(e)} color="blue" className="mr-1" id="remember" name="remember" />
+          <Label htmlFor="remember">Recordarme</Label>
         </div>
-        <Link className="text-sm" href="/forgot-password">
+        <Link className="text-sm underline hover:opacity-60" href="/forgot-password">
           ¿Olvidaste tu contraseña?
         </Link>
       </div>
@@ -104,7 +129,7 @@ export default function LoginForm() {
 
       <Button type="submit">Inicia sesión</Button>
 
-      <p className="text-sm text-center mt-5">Si no tienes una cuenta <Link className="text-blue-600 underline" href={'/register'}>Regístrate aquí</Link></p>
+      <p className="text-sm text-center mt-5">Si no tienes una cuenta <Link className="text-blue-600 underline hover:opacity-60 font-bold" href={'/register'}>Regístrate aquí</Link></p>
     </form>
   );
 }
