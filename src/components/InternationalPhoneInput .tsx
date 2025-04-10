@@ -5,7 +5,7 @@ import countryCodes from "@/utils/countryCodes";
 
 export default function InternationalPhoneInput() {
   // Estado para almacenar el código del país seleccionado
-  const [selectedCountry, setSelectedCountry] = useState("US");
+  const [selectedCountry, setSelectedCountry] = useState("CO");
 
   // Función para obtener el código de teléfono basado en el país seleccionado
   const getCountryCode = (countryCode: string) => {
@@ -21,6 +21,7 @@ export default function InternationalPhoneInput() {
           onSelect={(code) => setSelectedCountry(code)}
           className="w-20 custom-dropdown-width"
           searchable
+          searchPlaceholder="Buscar"
           showOptionLabel={true}
           showSelectedLabel={false}
           placeholder="Selecciona un país"
