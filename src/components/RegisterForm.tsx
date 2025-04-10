@@ -1,7 +1,9 @@
 "use client";
 
 import { Label, TextInput, Button } from "flowbite-react";
-import InternationalPhoneInput from "./InternationalPhoneInput ";
+import { SlSocialLinkedin, SlSocialFacebook, SlSocialInstagram, SlSocialPintarest } from "react-icons/sl";
+import { RiTwitterXFill, RiTiktokLine  } from "react-icons/ri";
+// import InternationalPhoneInput from "./InternationalPhoneInput ";
 import {
   Accordion,
   AccordionContent,
@@ -66,6 +68,8 @@ export default function RegisterForm() {
                         <Button className="font-bold" color="light">
                           Subir logo
                         </Button>
+                      </div>
+                      <div>
                         <ul className="text-xs md:text-sm mt-2">
                           <li>Se recomienda al menos 800px * 800px</li>
                           <li>Formato WebP, JPG o PNG</li>
@@ -81,7 +85,7 @@ export default function RegisterForm() {
                   </div>
 
                   <div className="flex flex-col md:flex-row flex-wrap mt-5 gap-y-4 -mx-2">
-                    <div className="w-full md:w-1/2 px-2">
+                    <div className="w-full md:w-1/2 px-2 space-y-1">
                       <Label htmlFor="name">Nombre de la marca</Label>
                       <TextInput
                         required
@@ -97,7 +101,7 @@ export default function RegisterForm() {
                         }}
                       />
                     </div>
-                    <div className="w-full md:w-1/2 px-2">
+                    <div className="w-full md:w-1/2 px-2 space-y-1">
                       <Label htmlFor="email">Razón social</Label>
                       <TextInput
                         required
@@ -113,13 +117,14 @@ export default function RegisterForm() {
                         }}
                       />
                     </div>
-                    <div className="w-full md:w-1/2 px-2">
-                      <Label htmlFor="email">Documento</Label>
-                      <div className="flex items-center space-x-1 mt-2">
+                    <div className="w-full md:w-1/2 px-2 space-y-1">
+                      <Label htmlFor="tipo-documento">Documento</Label>
+                      <div className="flex items-center space-x-1">
                         <Select
                           id="tipo-documento"
                           name="tipo-documento"
-                          className="w-[70px]"
+                          className="w-[100px]"
+                          color="blue"
                           required
                           theme={{
                             field: {
@@ -128,13 +133,17 @@ export default function RegisterForm() {
                               },
                             },
                           }}
-                        />
+                        >
+                          <option value="nit">NIT</option>
+                          <option value="cc">CC</option>
+                          <option value="ce">CE</option>
+                        </Select>
                         <TextInput
                           className="w-auto flex-grow"
                           required
                           color="blue"
                           id="num-documento"
-                          placeholder="Correo"
+                          placeholder="Número de documento"
                           name="num-documento"
                           theme={{
                             field: {
@@ -145,11 +154,194 @@ export default function RegisterForm() {
                           }}
                         />
                       </div>
-                      
                     </div>
-                    <div className="w-full md:w-1/2 lg:w-1/3 px-2">
-                      <Label htmlFor="email">Número de teléfono</Label>
-                      <InternationalPhoneInput />
+                    <div className="w-full md:w-1/2 lg:w-1/2 px-2 space-y-1">
+                      <Label htmlFor="ciiu">Código CIIU</Label>
+                      <TextInput
+                        required
+                        color="blue"
+                        id="ciiu"
+                        placeholder="Código CIIU"
+                        theme={{
+                          field: {
+                            input: {
+                              base: "border-slate-200 focus:border-blue-600 w-full",
+                            },
+                          },
+                        }}
+                      />
+                    </div>
+
+                    <div className="w-full md:w-1/2 lg:w-1/2 px-2 space-y-1">
+                      <Label htmlFor="ciiu">Página Web</Label>
+                      <TextInput
+                        required
+                        color="blue"
+                        id="pagina-web"
+                        placeholder="misitio.com"
+                        theme={{
+                          field: {
+                            input: {
+                              base: "border-slate-200 focus:border-blue-600 w-full",
+                            },
+                          },
+                        }}
+                      />
+                    </div>
+                    <div className="w-full md:w-1/2 lg:w-1/2 px-2 space-y-1">
+                      <Label htmlFor="ciiu">Dirección</Label>
+                      <TextInput
+                        required
+                        color="blue"
+                        id="direccion"
+                        placeholder="Calle 123 # 45-67"
+                        theme={{
+                          field: {
+                            input: {
+                              base: "border-slate-200 focus:border-blue-600 w-full",
+                            },
+                          },
+                        }}
+                      />
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionPanel>
+
+              <AccordionPanel>
+                <AccordionTitle className="text-blue-600 font-bold">
+                  Redes Sociales (opcional)
+                </AccordionTitle>
+                <AccordionContent>
+                  <div className="flex flex-col md:flex-row flex-wrap gap-y-4 -mx-2">
+                    <div className="w-full md:w-1/2 lg:w-1/2 px-2 space-y-1">
+                      <Label className="flex items-center" htmlFor="facebook">
+                        <span className="inline-block mr-1">
+                          <SlSocialFacebook />
+                        </span>
+                        Facebook
+                      </Label>
+                      <TextInput
+                        required
+                        color="blue"
+                        id="facebook"
+                        placeholder="Añadir enlace"
+                        theme={{
+                          field: {
+                            input: {
+                              base: "border-slate-200 focus:border-blue-600 w-full",
+                            },
+                          },
+                        }}
+                      />
+                    </div>
+                    <div className="w-full md:w-1/2 lg:w-1/2 px-2 space-y-1">
+                      <Label className="flex items-center" htmlFor="instagram">
+                        <span className="inline-block mr-1">
+                          <SlSocialInstagram />
+                        </span>
+                        Instagram
+                        </Label>
+                      <TextInput
+                        required
+                        color="blue"
+                        id="instagram"
+                        placeholder="Añadir enlace"
+                        theme={{
+                          field: {
+                            input: {
+                              base: "border-slate-200 focus:border-blue-600 w-full",
+                            },
+                          },
+                        }}
+                      />
+                    </div>
+
+                    <div className="w-full md:w-1/2 lg:w-1/2 px-2 space-y-1">
+                      <Label className="flex items-center" htmlFor="tiktok">
+                        <span className="inline-block mr-1">
+                          <RiTiktokLine />
+                        </span>
+                        Tik Tok
+                      </Label>
+                      <TextInput
+                        required
+                        color="blue"
+                        id="tiktok"
+                        placeholder="Añadir enlace"
+                        theme={{
+                          field: {
+                            input: {
+                              base: "border-slate-200 focus:border-blue-600 w-full",
+                            },
+                          },
+                        }}
+                      />
+                    </div>
+                    <div className="w-full md:w-1/2 lg:w-1/2 px-2 space-y-1">
+                      <Label className="flex items-center" htmlFor="pinterest">
+                        <span className="inline-block mr-1">
+                          <SlSocialPintarest />
+                        </span>
+                        Pinterest
+                      </Label>
+                      <TextInput
+                        required
+                        color="blue"
+                        id="pinterest"
+                        placeholder="Añadir enlace"
+                        theme={{
+                          field: {
+                            input: {
+                              base: "border-slate-200 focus:border-blue-600 w-full",
+                            },
+                          },
+                        }}
+                      />
+                    </div>
+
+                    <div className="w-full md:w-1/2 lg:w-1/2 px-2 space-y-1">
+                      <Label className="flex items-center" htmlFor="linkedin">
+                        <span className="inline-block mr-1">
+                          <SlSocialLinkedin />
+                        </span>
+                        Linked In 
+                      </Label>
+                      <TextInput
+                        required
+                        color="blue"
+                        id="linkedin"
+                        placeholder="Añadir enlace"
+                        theme={{
+                          field: {
+                            input: {
+                              base: "border-slate-200 focus:border-blue-600 w-full",
+                            },
+                          },
+                        }}
+                      />
+                    </div>
+
+                    <div className="w-full md:w-1/2 lg:w-1/2 px-2 space-y-1">
+                      <Label className="flex items-center" htmlFor="xtwitter">
+                        <span className="inline-block mr-1">
+                          <RiTwitterXFill />
+                        </span>
+                        Twitter
+                      </Label>
+                      <TextInput
+                        required
+                        color="blue"
+                        id="xtwitter"
+                        placeholder="Añadir enlace"
+                        theme={{
+                          field: {
+                            input: {
+                              base: "border-slate-200 focus:border-blue-600 w-full",
+                            },
+                          },
+                        }}
+                      />
                     </div>
                   </div>
                 </AccordionContent>
