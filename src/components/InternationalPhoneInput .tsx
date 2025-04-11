@@ -2,14 +2,35 @@ import { TextInput } from "flowbite-react";
 import ReactFlagsSelect from "react-flags-select";
 import { useState } from "react";
 import countryCodes from "@/utils/countryCodes";
+import { TextInputProps } from "flowbite-react";
+import { ChangeHandler } from "react-hook-form";
 
-export default function InternationalPhoneInput() {
-  // Estado para almacenar el código del país seleccionado
+interface InternationalPhoneInputProps extends Omit<TextInputProps, "onChange"> {
+  onChange?: ChangeHandler; // Acepta un ChangeHandler de react-hook-form
+  value?: string; // Prop para manejar el valor inicial
+}
+
+export default function InternationalPhoneInput(props: InternationalPhoneInputProps) {
   const [selectedCountry, setSelectedCountry] = useState("CO");
+  const [phoneNumber, setPhoneNumber] = useState(props.value || "");
 
-  // Función para obtener el código de teléfono basado en el país seleccionado
   const getCountryCode = (countryCode: string) => {
-    return countryCodes[countryCode] // Valor por defecto si no se encuentra el código
+    return countryCodes[countryCode] || "+00"; // Valor predeterminado
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const phoneNumber = e.target.value;
+    setPhoneNumber(phoneNumber);
+
+    // Llama al ChangeHandler proporcionado por react-hook-form
+    if (props.onChange) {
+      props.onChange({
+        target: {
+          value: `${getCountryCode(selectedCountry)}${phoneNumber}`,
+        },
+        type: "change",
+      });
+    }
   };
 
   return (
@@ -26,7 +47,7 @@ export default function InternationalPhoneInput() {
           showSelectedLabel={false}
           placeholder="Selecciona un país"
           optionsSize={12}
-          
+          aria-label="Selecciona un país"
         />
         <span className="ml-2 text-gray-600">
           {getCountryCode(selectedCountry)}
@@ -35,18 +56,10 @@ export default function InternationalPhoneInput() {
 
       {/* Campo de número de teléfono */}
       <TextInput
-        id="phone-number"
-        placeholder="Número de teléfono"
-        required
-        color="blue"
+        {...props}
         className="flex-grow"
-        theme={{
-          field: {
-            input: {
-              base: "border-slate-200 focus:border-blue-600 w-full",
-            },
-          },
-        }}
+        value={phoneNumber}
+        onChange={handlePhoneChange}
       />
     </div>
   );

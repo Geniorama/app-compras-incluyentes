@@ -28,6 +28,8 @@ import { useRef, useEffect } from "react";
 export default function RegisterForm() {
   const [stepActive, setStepActive] = useState(1);
   const [activeNextButton, setActiveNextButton] = useState(false);
+  const [logo, setLogo] = useState<File | null>(null); // Estado para almacenar el archivo seleccionado
+  const [logoPreview, setLogoPreview] = useState<string | null>(null); // Estado para la vista previa del logo
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const {
@@ -51,10 +53,17 @@ export default function RegisterForm() {
   const lastName = watch("lastName");
   const email = watch("email");
   const phone = watch("phone");
+  const typeDocument = watch("typeDocument");
+  const numDocument = watch("numDocument");
+  const pronoun = watch("pronoun");
+  const position = watch("position");
 
+
+ 
   // Fields Step 3
   const password = watch("password");
   const confirmPassword = watch("confirmPassword");
+
 
   const validateStep = () => {
     if (stepActive === 1) {
@@ -68,7 +77,16 @@ export default function RegisterForm() {
         addressCompany
       );
     } else if (stepActive === 2) {
-      return firstName && lastName && email && phone;
+      return (
+        firstName &&
+        lastName &&
+        email &&
+        phone &&
+        typeDocument &&
+        numDocument &&
+        pronoun &&
+        position
+      );
     } else if (stepActive === 3) {
       return password && confirmPassword && password === confirmPassword;
     }
@@ -92,8 +110,19 @@ export default function RegisterForm() {
     password,
     confirmPassword,
     stepActive,
+    typeDocument,
+    numDocument,
+    pronoun,
+    position,
   ]);
 
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]; // Obtiene el archivo seleccionado
+    if (file) {
+      setLogo(file); // Guarda el archivo en el estado
+      setLogoPreview(URL.createObjectURL(file)); // Genera una URL para la vista previa
+    }
+  };
 
   const handleUploadClick = () => {
     if (fileInputRef.current) {
@@ -136,15 +165,35 @@ export default function RegisterForm() {
               <span>Información Empresarial</span>
             </div>
 
-            <div className={`${stepActive >= 2 ? "text-blue-600":"text-gray-400"} relative `}>
-              <span className={`inline-flex w-8 h-8 justify-center items-center border ${stepActive >= 2 ? "border-blue-600 bg-blue-200":"border-gray-400 bg-white"} rounded-full mr-2`}>
+            <div
+              className={`${
+                stepActive >= 2 ? "text-blue-600" : "text-gray-400"
+              } relative `}
+            >
+              <span
+                className={`inline-flex w-8 h-8 justify-center items-center border ${
+                  stepActive >= 2
+                    ? "border-blue-600 bg-blue-200"
+                    : "border-gray-400 bg-white"
+                } rounded-full mr-2`}
+              >
                 2
               </span>
               <span>Información Personal</span>
             </div>
 
-            <div className={`${stepActive >= 3 ? "text-blue-600":"text-gray-400"} relative`}>
-              <span className={`inline-flex w-8 h-8 justify-center items-center border ${stepActive >= 3 ? "border-blue-600 bg-blue-200":"border-gray-400 bg-white"} rounded-full mr-2`}>
+            <div
+              className={`${
+                stepActive >= 3 ? "text-blue-600" : "text-gray-400"
+              } relative`}
+            >
+              <span
+                className={`inline-flex w-8 h-8 justify-center items-center border ${
+                  stepActive >= 3
+                    ? "border-blue-600 bg-blue-200"
+                    : "border-gray-400 bg-white"
+                } rounded-full mr-2`}
+              >
                 3
               </span>
               <span>Seguridad</span>
@@ -178,11 +227,17 @@ export default function RegisterForm() {
                       <div className="flex items-center space-x-4 mt-2">
                         <div
                           onClick={handleUploadClick}
-                          className="bg-red-500 w-[100px] h-[100px] flex items-center justify-center rounded-full min-w-[100px] cursor-pointer"
+                          className={`${logoPreview ? "bg-white border-slate-200" : "bg-red-500 border-red-500"} border  w-[100px] h-[100px] flex items-center justify-center rounded-full min-w-[100px] cursor-pointer`}
                         >
-                          <span className="text-xl font-bold text-white">
-                            Logo
-                          </span>
+                          {logoPreview ? (
+                            <img
+                              src={logoPreview}
+                              alt="Vista previa del logo"
+                              className="w-full h-full object-cover rounded-full"
+                            />
+                          ) : (
+                            <span className="text-xl font-bold text-white">Logo</span>
+                          )}
                         </div>
                         <div>
                           <Button
@@ -202,11 +257,11 @@ export default function RegisterForm() {
                       </div>
                       <input
                         ref={fileInputRef}
-                        onChange={(e) => console.log(e.target.files)}
                         className="hidden"
                         type="file"
                         name="logo"
                         id="logo"
+                        onChange={handleLogoChange}
                       />
                     </div>
 
@@ -580,11 +635,13 @@ export default function RegisterForm() {
                   />
                 </div>
                 <div className="w-full md:w-1/2 px-2 space-y-1">
-                  <Label htmlFor="cargo">Cargo</Label>
+                  <Label htmlFor="position">Cargo</Label>
                   <TextInput
-                    required
+                    {...register("position", {
+                      required: "El cargo es obligatorio",
+                    })}
                     color="blue"
-                    id="cargo"
+                    id="position"
                     placeholder="CEO"
                     theme={{
                       field: {
@@ -599,7 +656,15 @@ export default function RegisterForm() {
                 <div className="w-full md:w-1/2 px-2 space-y-1">
                   <Label htmlFor="email">Correo electrónico</Label>
                   <TextInput
-                    required
+                    {...register("email", {
+                      required: "El correo electrónico es obligatorio",
+                      pattern: {
+                        value:
+                          /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+                        message: "El correo electrónico no es válido",
+                      },
+                    })}
+                    type="email"
                     color="blue"
                     id="email"
                     placeholder="email@miempresa.com"
@@ -613,19 +678,34 @@ export default function RegisterForm() {
                   />
                 </div>
                 <div className="w-full md:w-1/2 px-2 space-y-1">
-                  <Label htmlFor="telefono">Número de teléfono</Label>
-                  <InternationalPhoneInput />
+                  <Label htmlFor="phone">Número de teléfono</Label>
+                  <InternationalPhoneInput
+                    {...register("phone", {
+                      required: "El número de teléfono es obligatorio",
+                    })}
+                    id="phone"
+                    placeholder="Número de teléfono"
+                    color="blue"
+                    theme={{
+                      field: {
+                        input: {
+                          base: "border-slate-200 focus:border-blue-600 w-full",
+                        },
+                      },
+                    }}
+                  />
                 </div>
 
                 <div className="w-full md:w-1/2 px-2 space-y-1">
-                  <Label htmlFor="tipo-documento-personal">Documento</Label>
+                  <Label htmlFor="typeDocument">Documento</Label>
                   <div className="flex items-center space-x-1">
                     <Select
-                      id="tipo-documento-personal"
-                      name="tipo-documento-personal"
+                      {...register("typeDocument", {
+                        required: "El tipo de documento es obligatorio",
+                      })}
+                      id="typeDocument"
                       className="w-[100px]"
                       color="blue"
-                      required
                       theme={{
                         field: {
                           select: {
@@ -638,12 +718,13 @@ export default function RegisterForm() {
                       <option value="ce">CE</option>
                     </Select>
                     <TextInput
+                      {...register("numDocument", {
+                        required: "El número de documento es obligatorio",
+                      })}
                       className="w-auto flex-grow"
-                      required
                       color="blue"
-                      id="num-documento"
+                      id="numDocument"
                       placeholder="Número de documento"
-                      name="num-documento"
                       theme={{
                         field: {
                           input: {
@@ -725,12 +806,22 @@ export default function RegisterForm() {
             </div>
             <div className="flex gap-2">
               {stepActive > 1 && (
-                <Button onClick={handlePrevStep} className="min-w-32" type="button" color="light">
+                <Button
+                  onClick={handlePrevStep}
+                  className="min-w-32"
+                  type="button"
+                  color="light"
+                >
                   Regresar
                 </Button>
               )}
               {stepActive < 3 ? (
-                <Button disabled={!activeNextButton} onClick={handleNextStep} className="min-w-32" type="button">
+                <Button
+                  disabled={!activeNextButton}
+                  onClick={handleNextStep}
+                  className="min-w-32"
+                  type="button"
+                >
                   Siguiente
                 </Button>
               ) : (
