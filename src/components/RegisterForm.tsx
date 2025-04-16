@@ -25,21 +25,54 @@ import LogoColor from "@/assets/img/logo-color.webp";
 import { useForm } from "react-hook-form";
 import { useRef, useEffect } from "react";
 import dataCIIU from "@/data/ciiu";
+import { useRouter } from "next/navigation";
+import { registerUser } from "@/lib/auth";
+
+interface FormData {
+  nameCompany: string;
+  businessName: string;
+  typeDocumentCompany: string;
+  numDocumentCompany: string;
+  ciiu: string;
+  webSite: string;
+  addressCompany: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  typeDocument: string;
+  numDocument: string;
+  pronoun: string;
+  position: string;
+  password: string;
+  confirmPassword: string;
+  facebook?: string;
+  instagram?: string;
+  tiktok?: string;
+  pinterest?: string;
+  linkedin?: string;
+  xtwitter?: string;
+}
 
 export default function RegisterForm() {
   const [stepActive, setStepActive] = useState(1);
   const [activeNextButton, setActiveNextButton] = useState(false);
-  const [logo, setLogo] = useState<File | null>(null); // Estado para almacenar el archivo seleccionado
-  const [logoPreview, setLogoPreview] = useState<string | null>(null); // Estado para la vista previa del logo
-  const [optionsCIIU, setOptionsCIIU] = useState<{value: string, label: string}[]>([]); // Estado para almacenar las opciones de CIIU
+  const [logo, setLogo] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [optionsCIIU, setOptionsCIIU] = useState<{value: string, label: string}[]>([]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
+
   const {
     register,
     handleSubmit,
     watch,
     formState: { errors },
-  } = useForm();
+  } = useForm<FormData>();
 
   // Fields Step 1
   const nameCompany = watch("nameCompany");
@@ -69,7 +102,7 @@ export default function RegisterForm() {
 
   const validateStep = () => {
     if (stepActive === 1) {
-      return (
+      return Boolean(
         nameCompany &&
         businessName &&
         typeDocumentCompany &&
@@ -80,7 +113,7 @@ export default function RegisterForm() {
         logo
       );
     } else if (stepActive === 2) {
-      return (
+      return Boolean(
         firstName &&
         lastName &&
         email &&
@@ -88,10 +121,11 @@ export default function RegisterForm() {
         typeDocument &&
         numDocument &&
         pronoun &&
-        position
+        position &&
+        photo
       );
     } else if (stepActive === 3) {
-      return password && confirmPassword && password === confirmPassword;
+      return Boolean(password && confirmPassword && (password === confirmPassword));
     }
     return false;
   };
@@ -118,6 +152,7 @@ export default function RegisterForm() {
     pronoun,
     position,
     logo,
+    photo
   ]);
 
   interface CIIUData {
@@ -146,11 +181,31 @@ export default function RegisterForm() {
     }
   },[dataCIIU])
 
+  const handleRegister = async (data: FormData) => {
+    try {
+      const response = await registerUser(data.email, data.password);
+      console.log(response);
+      if (response) {
+        router.push("/dashboard");
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; // Obtiene el archivo seleccionado
     if (file) {
       setLogo(file); // Guarda el archivo en el estado
       setLogoPreview(URL.createObjectURL(file)); // Genera una URL para la vista previa
+    }
+  };
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPhoto(file);
+      setPhotoPreview(URL.createObjectURL(file));
     }
   };
 
@@ -160,8 +215,14 @@ export default function RegisterForm() {
     }
   };
 
-  const onSubmit = (data: any) => {
-    console.log(data); // Aquí puedes manejar los datos del formulario
+  const handlePhotoUploadClick = () => {
+    if (photoInputRef.current) {
+      photoInputRef.current.click();
+    }
+  };
+
+  const onSubmit = (data: FormData) => {
+    handleRegister(data);
   };
 
   const handleNextStep = () => {
@@ -177,17 +238,17 @@ export default function RegisterForm() {
   };
 
   return (
-    <div className="flex flex-col xl:flex-row gap-10">
-      <div className="border-r border-slate-200 p-5 w-full xl:w-1/4 bg-white relative">
+    <div className="flex flex-col xl:flex-row xl:gap-10">
+      <div className="lg:border-r border-slate-200 p-5 w-full xl:w-1/4 bg-white relative">
         <div>
-          <Button className="mb-8 flex flex-wrap gap-2" outline color="blue">
+          <Button onClick={() => router.push("/")} className="mb-8 flex flex-wrap gap-2" outline color="blue">
             <RiArrowLeftLine className="mr-2 h-5 w-5" />
             <span>Ir al inicio</span>
           </Button>
           <h2 className="text-3xl font-bold mb-8">Crea tu cuenta</h2>
 
-          <div className="flex flex-col gap-14 mb-10 relative">
-            <span className="h-48 w-[1px] bg-slate-400 absolute left-[16px] z-0"></span>
+          <div className="flex flex-col gap-8 lg:gap-14 xl:mb-10 relative">
+            <span className="h-32 lg:h-48 w-[1px] bg-slate-400 absolute left-[16px] z-0"></span>
             <div className="text-blue-600 relative">
               <span className="inline-flex w-8 h-8 justify-center items-center border border-blue-600 rounded-full bg-blue-200 mr-2">
                 1
@@ -230,8 +291,8 @@ export default function RegisterForm() {
             </div>
           </div>
         </div>
-        <div className="mt-60"></div>
-        <div className="text-center lg:absolute left-0 right-0 bottom-0">
+        <div className="hidden lg:block mt-60"></div>
+        <div className="hidden lg:block text-center lg:absolute left-0 right-0 bottom-0">
           <img
             className="w-full max-w-max mx-auto"
             src={LogoColor.src}
@@ -240,7 +301,7 @@ export default function RegisterForm() {
         </div>
       </div>
 
-      <div className="p-5 w-full xl:w-3/4 bg-white">
+      <div className="xl:p-5 w-full xl:w-3/4 bg-white">
         <form onSubmit={handleSubmit(onSubmit)} className="mt-5" action="">
           {/* Información Empresarial */}
           {stepActive === 1 && (
@@ -254,7 +315,7 @@ export default function RegisterForm() {
                   <AccordionContent>
                     <div>
                       <Label htmlFor="logo">Logo de la marca</Label>
-                      <div className="flex items-center space-x-4 mt-2">
+                      <div className="flex flex-col md:flex-row md:items-center md:space-x-4 space-y-3 md:space-y-0 mt-2">
                         <div
                           onClick={handleUploadClick}
                           className={`${logoPreview ? "bg-white border-slate-200" : "bg-red-500 border-red-500"} border  w-[100px] h-[100px] flex items-center justify-center rounded-full min-w-[100px] cursor-pointer`}
@@ -475,6 +536,7 @@ export default function RegisterForm() {
                           color="blue"
                           id="facebook"
                           placeholder="Añadir enlace"
+                          type="url"
                           theme={{
                             field: {
                               input: {
@@ -498,6 +560,7 @@ export default function RegisterForm() {
                           {...register("instagram")}
                           color="blue"
                           id="instagram"
+                          type="url"
                           placeholder="Añadir enlace"
                           theme={{
                             field: {
@@ -520,6 +583,7 @@ export default function RegisterForm() {
                           {...register("tiktok")}
                           color="blue"
                           id="tiktok"
+                          type="url"
                           placeholder="Añadir enlace"
                           theme={{
                             field: {
@@ -544,6 +608,7 @@ export default function RegisterForm() {
                           {...register("pinterest")}
                           color="blue"
                           id="pinterest"
+                          type="url"
                           placeholder="Añadir enlace"
                           theme={{
                             field: {
@@ -566,6 +631,7 @@ export default function RegisterForm() {
                           {...register("linkedin")}
                           color="blue"
                           id="linkedin"
+                          type="url"
                           placeholder="Añadir enlace"
                           theme={{
                             field: {
@@ -588,6 +654,7 @@ export default function RegisterForm() {
                           {...register("xtwitter")}
                           color="blue"
                           id="xtwitter"
+                          type="url"
                           placeholder="Añadir enlace"
                           theme={{
                             field: {
@@ -611,11 +678,15 @@ export default function RegisterForm() {
               <div>
                 <Label htmlFor="foto-perfil">Foto de perfil</Label>
                 <div className="flex items-center space-x-4 mt-2">
-                  <div className="bg-red-500 w-[80px] h-[80px] flex items-center justify-center rounded-full min-w-[80px]">
-                    <span className="text-xl font-bold text-white">Foto</span>
+                  <div onClick={handlePhotoUploadClick} className={`${photoPreview ? 'bg-white' : 'bg-red-500'} w-[80px] h-[80px] flex items-center justify-center rounded-full min-w-[80px] cursor-pointer`}>
+                    {photoPreview ? (
+                      <img src={photoPreview} alt="Foto de perfil" className="w-full h-full object-cover rounded-full" />
+                    ) : (
+                      <span className="text-xl font-bold text-white">Foto</span>
+                    )}
                   </div>
                   <div>
-                    <Button className="font-bold" color="light">
+                    <Button onClick={handlePhotoUploadClick} className="font-bold" color="light">
                       Subir foto
                     </Button>
                   </div>
@@ -627,10 +698,13 @@ export default function RegisterForm() {
                   </div>
                 </div>
                 <input
+                  accept="image/*"
+                  ref={photoInputRef}
                   className="hidden"
                   type="file"
                   name="fotoPerfil"
                   id="foto-perfil"
+                  onChange={handlePhotoChange}
                 />
               </div>
 
@@ -779,6 +853,7 @@ export default function RegisterForm() {
                       color="blue"
                       id="numDocument"
                       placeholder="Número de documento"
+                      type="number"
                       theme={{
                         field: {
                           input: {
@@ -800,6 +875,13 @@ export default function RegisterForm() {
                 <div className="w-full md:w-1/2 px-2 space-y-1">
                   <Label htmlFor="password">Contraseña</Label>
                   <TextInput
+                    {...register("password", {
+                      required: "La contraseña es obligatoria",
+                      minLength: {
+                        value: 10,
+                        message: "La contraseña debe tener al menos 10 caracteres",
+                      },
+                    })}
                     required
                     color="blue"
                     id="password"
@@ -831,6 +913,14 @@ export default function RegisterForm() {
                 <div className="w-full md:w-1/2 px-2 space-y-1">
                   <Label htmlFor="confirm-password">Confirmar contraseña</Label>
                   <TextInput
+                    {...register("confirmPassword", {
+                      required: "La confirmación de contraseña es obligatoria",
+                      validate: (value) => {
+                        if (password !== value) {
+                          return "Las contraseñas no coinciden";
+                        }
+                      },
+                    })}
                     required
                     color="blue"
                     id="confirm-password"
@@ -849,7 +939,7 @@ export default function RegisterForm() {
             </fieldset>
           )}
 
-          <div className="mt-5 flex gap-2 justify-between items-center">
+          <div className="mt-5 flex flex-col md:flex-row gap-4 md:gap-2 justify-between items-center">
             <div>
               <p className="text-sm">
                 Si ya tienes una cuenta{" "}
@@ -858,11 +948,11 @@ export default function RegisterForm() {
                 </Link>
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex space-x-2 w-full md:w-auto">
               {stepActive > 1 && (
                 <Button
                   onClick={handlePrevStep}
-                  className="min-w-32"
+                  className="w-full md:w-auto min-w-32"
                   type="button"
                   color="light"
                 >
@@ -873,13 +963,17 @@ export default function RegisterForm() {
                 <Button
                   disabled={!activeNextButton}
                   onClick={handleNextStep}
-                  className="min-w-32"
+                  className="w-full md:w-auto min-w-32"
                   type="button"
                 >
                   Siguiente
                 </Button>
               ) : (
-                <Button className="min-w-32" type="submit">
+                <Button 
+                  className="w-full md:w-auto min-w-32" 
+                  type="submit"
+                  disabled={!activeNextButton}
+                >
                   Crear cuenta
                 </Button>
               )}

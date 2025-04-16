@@ -60,6 +60,7 @@ export default function InternationalPhoneInput(props: InternationalPhoneInputPr
         className="flex-grow"
         value={phoneNumber}
         onChange={handlePhoneChange}
+        type="number"
       />
     </div>
   );
