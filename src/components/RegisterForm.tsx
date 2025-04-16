@@ -24,12 +24,14 @@ import { RiCloseCircleFill } from "react-icons/ri";
 import LogoColor from "@/assets/img/logo-color.webp";
 import { useForm } from "react-hook-form";
 import { useRef, useEffect } from "react";
+import dataCIIU from "@/data/ciiu";
 
 export default function RegisterForm() {
   const [stepActive, setStepActive] = useState(1);
   const [activeNextButton, setActiveNextButton] = useState(false);
   const [logo, setLogo] = useState<File | null>(null); // Estado para almacenar el archivo seleccionado
   const [logoPreview, setLogoPreview] = useState<string | null>(null); // Estado para la vista previa del logo
+  const [optionsCIIU, setOptionsCIIU] = useState<{value: string, label: string}[]>([]); // Estado para almacenar las opciones de CIIU
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const {
@@ -74,7 +76,8 @@ export default function RegisterForm() {
         numDocumentCompany &&
         ciiu &&
         webSite &&
-        addressCompany
+        addressCompany && 
+        logo
       );
     } else if (stepActive === 2) {
       return (
@@ -114,7 +117,34 @@ export default function RegisterForm() {
     numDocument,
     pronoun,
     position,
+    logo,
   ]);
+
+  interface CIIUData {
+    clasificacion_ciiu: string;
+    agencia: string;
+    empresas_asociativas_de: string;
+    empresas_de_economia_solidaria: string;
+    empresas_unipersonales: string;
+    entidades_sin_animo_de_lucro: string;
+    establecimientos: string;
+    personas_naturales: string;
+    sociedad_anonima: string;
+    sociedad_limitada: string;
+    sociedad_por_acciones: string;
+    sociedades_en_comandita_simple: string;
+    sucursal: string;
+  }
+
+  useEffect(() => {
+    if(dataCIIU) {
+      const options = dataCIIU.map((item: CIIUData) => ({
+        value: item.clasificacion_ciiu,
+        label: item.clasificacion_ciiu,
+      }));
+      setOptionsCIIU(options);
+    }
+  },[dataCIIU])
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; // Obtiene el archivo seleccionado
@@ -256,6 +286,7 @@ export default function RegisterForm() {
                         </div>
                       </div>
                       <input
+                        accept="image/*"
                         ref={fileInputRef}
                         className="hidden"
                         type="file"
@@ -332,6 +363,7 @@ export default function RegisterForm() {
                             color="blue"
                             id="numDocumentCompany"
                             placeholder="Número de documento"
+                            type="number"
                             theme={{
                               field: {
                                 input: {
@@ -343,8 +375,30 @@ export default function RegisterForm() {
                         </div>
                       </div>
                       <div className="w-full md:w-1/2 lg:w-1/2 px-2 space-y-1">
-                        <Label htmlFor="ciiu">Código CIIU</Label>
-                        <TextInput
+                        <Label htmlFor="ciiu">Código CIIU (actividad principal)</Label>
+                        <Select
+                          {...register("ciiu", {
+                            required: "El código CIIU es obligatorio",
+                          })}
+                          id="ciiu"
+                          className="w-auto flex-grow"
+                          color="blue"
+                          theme={{
+                            field: {
+                              select: {
+                                base: "border-slate-200 focus:border-blue-600 w-full",
+                              },
+                            },
+                          }}
+                        >
+                          <option value="">Selecciona un código CIIU</option>
+                          {optionsCIIU.map((option: {value: string, label: string}, index: number) => (
+                            <option key={index} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </Select>
+                        {/* <TextInput
                           {...register("ciiu", {
                             required: "El código CIIU es obligatorio",
                           })}
@@ -358,7 +412,7 @@ export default function RegisterForm() {
                               },
                             },
                           }}
-                        />
+                        /> */}
                       </div>
 
                       <div className="w-full md:w-1/2 lg:w-1/2 px-2 space-y-1">
