@@ -1,6 +1,6 @@
 "use client";
 
-import { Label, TextInput, Button } from "flowbite-react";
+import { Label, TextInput, Button, Spinner } from "flowbite-react";
 import {
   SlSocialLinkedin,
   SlSocialFacebook,
@@ -20,13 +20,14 @@ import {
 import { Select } from "flowbite-react";
 import { useState } from "react";
 import { RiCheckboxCircleFill } from "react-icons/ri";
-import { RiCloseCircleFill } from "react-icons/ri";
 import LogoColor from "@/assets/img/logo-color.webp";
 import { useForm } from "react-hook-form";
 import { useRef, useEffect } from "react";
 import dataCIIU from "@/data/ciiu";
 import { useRouter } from "next/navigation";
 import { registerUser } from "@/lib/auth";
+import { RiEyeLine } from "react-icons/ri";
+import { RiEyeOffLine } from "react-icons/ri";
 
 interface FormData {
   nameCompany: string;
@@ -57,11 +58,14 @@ interface FormData {
 export default function RegisterForm() {
   const [stepActive, setStepActive] = useState(1);
   const [activeNextButton, setActiveNextButton] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [logo, setLogo] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [optionsCIIU, setOptionsCIIU] = useState<{value: string, label: string}[]>([]);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -99,6 +103,13 @@ export default function RegisterForm() {
   const password = watch("password");
   const confirmPassword = watch("confirmPassword");
 
+  const isPasswordValid = (password: string) => {
+    return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(password);
+  }
+
+  const isValidEmail = (email: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
 
   const validateStep = () => {
     if (stepActive === 1) {
@@ -122,10 +133,11 @@ export default function RegisterForm() {
         numDocument &&
         pronoun &&
         position &&
-        photo
+        photo &&
+        isValidEmail(email)
       );
     } else if (stepActive === 3) {
-      return Boolean(password && confirmPassword && (password === confirmPassword));
+      return Boolean(password && confirmPassword && (password === confirmPassword) && isPasswordValid(password));
     }
     return false;
   };
@@ -183,15 +195,86 @@ export default function RegisterForm() {
 
   const handleRegister = async (data: FormData) => {
     try {
-      const response = await registerUser(data.email, data.password);
-      console.log(response);
-      if (response) {
-        router.push("/dashboard");
+      setIsLoading(true); // Iniciamos el estado de carga
+      
+      // 1. Registrar usuario en Firebase
+      const firebaseUser = await registerUser(data.email, data.password);
+      
+      if (firebaseUser) {
+        // 2. Subir imágenes a Sanity primero
+        let logoSanity = null;
+        let photoSanity = null;
+
+        if (logo) {
+          logoSanity = await uploadImageToSanity(logo);
+        }
+        if (photo) {
+          photoSanity = await uploadImageToSanity(photo);
+        }
+
+        // 3. Crear usuario en Sanity con las referencias de las imágenes
+        const response = await fetch('/api/create-sanity-user', {
+          method: 'POST',
+          body: JSON.stringify({
+            ...data,
+            firebaseUid: firebaseUser.uid,
+            logo: logoSanity,
+            photo: photoSanity,
+          }),
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (response.ok) {
+          router.push("/dashboard");
+        } else {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Error al crear usuario en Sanity');
+        }
       }
     } catch (error) {
-      console.error(error);
+      console.error('Error en el proceso de registro:', error);
+      // Aquí podrías mostrar un mensaje de error al usuario
+    } finally {
+      setIsLoading(false); // Finalizamos el estado de carga independientemente del resultado
     }
   }
+
+  // Función auxiliar para subir imágenes a Sanity
+  const uploadImageToSanity = async (file: File) => {
+    try {
+      // Convertir archivo a base64
+      const reader = new FileReader();
+      const base64Promise = new Promise((resolve) => {
+        reader.onload = () => resolve(reader.result);
+        reader.readAsDataURL(file);
+      });
+
+      const base64 = await base64Promise;
+      const fileType = file.type.split('/')[1];
+
+      const response = await fetch('/api/upload-image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          file: base64,
+          fileType,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al subir la imagen');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error al subir imagen:', error);
+      throw error;
+    }
+  };
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; // Obtiene el archivo seleccionado
@@ -677,7 +760,7 @@ export default function RegisterForm() {
             <fieldset>
               <div>
                 <Label htmlFor="foto-perfil">Foto de perfil</Label>
-                <div className="flex items-center space-x-4 mt-2">
+                <div className="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-4 mt-2">
                   <div onClick={handlePhotoUploadClick} className={`${photoPreview ? 'bg-white' : 'bg-red-500'} w-[80px] h-[80px] flex items-center justify-center rounded-full min-w-[80px] cursor-pointer`}>
                     {photoPreview ? (
                       <img src={photoPreview} alt="Foto de perfil" className="w-full h-full object-cover rounded-full" />
@@ -691,7 +774,7 @@ export default function RegisterForm() {
                     </Button>
                   </div>
                   <div>
-                    <ul className="text-xs md:text-sm mt-2 lg:mt-0">
+                    <ul className="text-xs md:text-sm md:mt-2 lg:mt-0">
                       <li>Se recomienda al menos 800px * 800px</li>
                       <li>Formato WebP, JPG o PNG</li>
                     </ul>
@@ -810,7 +893,15 @@ export default function RegisterForm() {
                   <InternationalPhoneInput
                     {...register("phone", {
                       required: "El número de teléfono es obligatorio",
+                      setValueAs: (value) => {
+                        // Asegurarnos de que el valor incluya el código del país
+                        if (!value.startsWith('+')) {
+                          return `+57${value}`; // Código por defecto de Colombia
+                        }
+                        return value;
+                      }
                     })}
+                    name="phone"
                     id="phone"
                     placeholder="Número de teléfono"
                     color="blue"
@@ -874,66 +965,95 @@ export default function RegisterForm() {
               <div className="flex flex-col md:flex-row flex-wrap mt-5 gap-y-4 -mx-2">
                 <div className="w-full md:w-1/2 px-2 space-y-1">
                   <Label htmlFor="password">Contraseña</Label>
-                  <TextInput
-                    {...register("password", {
-                      required: "La contraseña es obligatoria",
-                      minLength: {
-                        value: 10,
-                        message: "La contraseña debe tener al menos 10 caracteres",
-                      },
-                    })}
-                    required
-                    color="blue"
-                    id="password"
-                    placeholder="**********"
-                    type="password"
-                    theme={{
-                      field: {
-                        input: {
-                          base: "border-slate-200 focus:border-blue-600 w-full",
+                  <div className="relative">
+                    <TextInput
+                      {...register("password", {
+                        required: "La contraseña es obligatoria",
+                        minLength: {
+                          value: 10,
+                          message: "La contraseña debe tener al menos 10 caracteres",
                         },
-                      },
-                    }}
-                  />
+                        validate: {
+                          isValid: (value) => isPasswordValid(value) || "La contraseña debe contener al menos una mayúscula, una minúscula, un número y un carácter especial"
+                        }
+                      })}
+                      required
+                      color="blue"
+                      id="password"
+                      placeholder="**********"
+                      type={showPassword ? "text" : "password"}
+                      autoComplete="off"
+                      theme={{
+                        field: {
+                          input: {
+                            base: "border-slate-200 focus:border-blue-600 w-full pr-10",
+                          },
+                        },
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? <RiEyeOffLine /> : <RiEyeLine />}
+                    </button>
+                  </div>
+                  {errors.password && (
+                    <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>
+                  )}
                   <ul className="text-xs text-slate-500 md:text-sm mt-2 lg:mt-0 space-y-1">
                     <li className="text-xs">
-                      <RiCheckboxCircleFill className="text-sm inline-block text-blue-600" />{" "}
+                      <RiCheckboxCircleFill className={`text-sm inline-block ${password?.length >= 10 ? 'text-blue-600' : 'text-slate-500'}`} />{" "}
                       Al menos 10 carácteres
                     </li>
                     <li className="text-xs">
-                      <RiCloseCircleFill className="text-sm inline-block text-slate-500" />{" "}
+                      <RiCheckboxCircleFill className={`text-sm inline-block ${password?.match(/[A-Z]/) ? 'text-blue-600' : 'text-slate-500'}`} />{" "}
                       1 letra mayúscula
                     </li>
                     <li className="text-xs">
-                      <RiCloseCircleFill className="text-sm inline-block text-slate-500" />{" "}
+                      <RiCheckboxCircleFill className={`text-sm inline-block ${password?.match(/[!@#$%^&*(),.?":{}|<>]/) ? 'text-blue-600' : 'text-slate-500'}`} />{" "}
                       1 carácter especial como .,#@?*
                     </li>
                   </ul>
                 </div>
                 <div className="w-full md:w-1/2 px-2 space-y-1">
                   <Label htmlFor="confirm-password">Confirmar contraseña</Label>
-                  <TextInput
-                    {...register("confirmPassword", {
-                      required: "La confirmación de contraseña es obligatoria",
-                      validate: (value) => {
-                        if (password !== value) {
-                          return "Las contraseñas no coinciden";
-                        }
-                      },
-                    })}
-                    required
-                    color="blue"
-                    id="confirm-password"
-                    placeholder="**********"
-                    type="password"
-                    theme={{
-                      field: {
-                        input: {
-                          base: "border-slate-200 focus:border-blue-600 w-full",
+                  <div className="relative">
+                    <TextInput
+                      {...register("confirmPassword", {
+                        required: "La confirmación de contraseña es obligatoria",
+                        validate: (value) => {
+                          if (password !== value) {
+                            return "Las contraseñas no coinciden";
+                          }
                         },
-                      },
-                    }}
-                  />
+                      })}
+                      required
+                      color="blue"
+                      id="confirm-password"
+                      placeholder="**********"
+                      type={showConfirmPassword ? "text" : "password"}
+                      autoComplete="off"
+                      theme={{
+                        field: {
+                          input: {
+                            base: "border-slate-200 focus:border-blue-600 w-full pr-10",
+                          },
+                        },
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    >
+                      {showConfirmPassword ? <RiEyeOffLine /> : <RiEyeLine />}
+                    </button>
+                  </div>
+                  {errors.confirmPassword && (
+                    <p className="text-red-500 text-sm mt-1">{errors.confirmPassword.message}</p>
+                  )}
                 </div>
               </div>
             </fieldset>
@@ -972,9 +1092,16 @@ export default function RegisterForm() {
                 <Button 
                   className="w-full md:w-auto min-w-32" 
                   type="submit"
-                  disabled={!activeNextButton}
+                  disabled={!activeNextButton || isLoading}
                 >
-                  Crear cuenta
+                  {isLoading ? (
+                    <>
+                      <Spinner size="sm" className="mr-3" />
+                      <span>Creando cuenta...</span>
+                    </>
+                  ) : (
+                    'Crear cuenta'
+                  )}
                 </Button>
               )}
             </div>
