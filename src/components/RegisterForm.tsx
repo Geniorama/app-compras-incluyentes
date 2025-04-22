@@ -1,5 +1,17 @@
 "use client";
 
+/**
+ * TODO:
+ * - Validar que el correo electrónico no esté en uso
+ * - Validar que el número de teléfono no esté en uso
+ * - Validar que el número de documento no esté en uso
+ * - Validar que el nombre de la empresa no esté en uso
+ * - Validar que el nombre de la empresa no sea demasiado largo
+ * - Validar que el nombre de la empresa no contenga caracteres especiales
+ * - Manejar los errores de la API de Firebase
+ * - Manejar los errores de la API de Sanity
+ */
+
 import { Label, TextInput, Button, Spinner } from "flowbite-react";
 import {
   SlSocialLinkedin,
