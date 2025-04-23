@@ -5,7 +5,7 @@ import { HiOutlineUserCircle, HiOutlineFolder, HiOutlineBell, HiOutlineLockClose
 import { Label, TextInput, Button, Select, Spinner } from "flowbite-react";
 import { Tabs } from "flowbite-react";
 import InternationalPhoneInput from "@/components/InternationalPhoneInput ";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 
 interface SanityImage {
     _type: string;
@@ -41,10 +41,12 @@ interface ProfileViewProps {
 
 export default function ProfileView({ initialProfile, error: initialError }: ProfileViewProps) {
     const [profile, setProfile] = useState<UserProfile | null>(null);
+    const [originalProfile, setOriginalProfile] = useState<UserProfile | null>(null);
 
     useEffect(() => {
         if (initialProfile) {
             setProfile(initialProfile);
+            setOriginalProfile(initialProfile);
         }
     }, [initialProfile]);
 
@@ -52,6 +54,37 @@ export default function ProfileView({ initialProfile, error: initialError }: Pro
         if (profile) {
             setProfile({ ...profile, [field]: value });
         }
+    };
+
+    // Función para detectar si hay cambios en el perfil
+    const hasChanges = useMemo(() => {
+        if (!profile || !originalProfile) return false;
+        
+        const fieldsToCompare: (keyof UserProfile)[] = [
+            'firstName',
+            'lastName',
+            'email',
+            'phone',
+            'pronoun',
+            'position',
+            'typeDocument',
+            'numDocument',
+            'nameCompany',
+            'businessName',
+            'typeDocumentCompany',
+            'numDocumentCompany',
+            'webSite',
+            'addressCompany'
+        ];
+
+        return fieldsToCompare.some(field => profile[field] !== originalProfile[field]);
+    }, [profile, originalProfile]);
+
+    // Función para manejar el guardado
+    const handleSave = () => {
+        if (!hasChanges) return;
+        // Aquí irá la lógica para guardar los cambios
+        console.log('Guardando cambios:', profile);
     };
 
     // Función auxiliar para obtener la URL de la imagen
@@ -83,6 +116,17 @@ export default function ProfileView({ initialProfile, error: initialError }: Pro
 
     const photoUrl = getImageUrl(profile.photo);
     const logoUrl = getImageUrl(profile.logo);
+
+    // Modificar los botones de guardar en ambas pestañas
+    const saveButton = (
+        <Button 
+            onClick={handleSave}
+            disabled={!hasChanges}
+            color={hasChanges ? "blue" : "gray"}
+        >
+            Guardar cambios
+        </Button>
+    );
 
     return (
         <div className="flex container mx-auto mt-10">
@@ -303,7 +347,7 @@ export default function ProfileView({ initialProfile, error: initialError }: Pro
                                 </div>
 
                                 <div className="mt-8">
-                                    <Button>Guardar cambios</Button>
+                                    {saveButton}
                                 </div>
                             </div>
                         </Tabs.Item>
@@ -448,7 +492,7 @@ export default function ProfileView({ initialProfile, error: initialError }: Pro
                                 </div>
 
                                 <div className="mt-8">
-                                    <Button>Guardar cambios</Button>
+                                    {saveButton}
                                 </div>
                             </div>
                         </Tabs.Item>
