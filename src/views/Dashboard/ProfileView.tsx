@@ -1,11 +1,16 @@
 "use client";
 
-import Link from "next/link";
-import { HiOutlineUserCircle, HiOutlineFolder, HiOutlineBell, HiOutlineLockClosed, HiOutlineArrowRight } from "react-icons/hi";
-import { Label, TextInput, Button, Select, Spinner } from "flowbite-react";
+import { HiCheckCircle, HiExclamationCircle } from "react-icons/hi";
+import { Label, TextInput, Button, Select, Spinner, Modal } from "flowbite-react";
 import { Tabs } from "flowbite-react";
 import InternationalPhoneInput from "@/components/InternationalPhoneInput ";
 import { useEffect, useState, useMemo } from "react";
+import { sanityClient } from "@/lib/sanity.client";
+import { useAuth } from "@/context/AuthContext";
+import toast from "react-hot-toast";
+import { updateEmail, sendEmailVerification } from "firebase/auth";
+import { FirebaseError } from 'firebase/app';
+import DashboardSidebar from "@/components/DashboardSidebar";
 
 interface SanityImage {
     _type: string;
@@ -42,6 +47,9 @@ interface ProfileViewProps {
 export default function ProfileView({ initialProfile, error: initialError }: ProfileViewProps) {
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [originalProfile, setOriginalProfile] = useState<UserProfile | null>(null);
+    const [isSaving, setIsSaving] = useState(false);
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const { user } = useAuth();
 
     useEffect(() => {
         if (initialProfile) {
@@ -80,17 +88,175 @@ export default function ProfileView({ initialProfile, error: initialError }: Pro
         return fieldsToCompare.some(field => profile[field] !== originalProfile[field]);
     }, [profile, originalProfile]);
 
-    // Función para manejar el guardado
-    const handleSave = () => {
-        if (!hasChanges) return;
-        // Aquí irá la lógica para guardar los cambios
-        console.log('Guardando cambios:', profile);
+    const handleSave = async () => {
+        if (!hasChanges || !profile || !user) return;
+        
+        setIsSaving(true);
+        try {
+            // Si el email ha cambiado, actualizarlo en Firebase primero
+            if (profile.email !== originalProfile?.email) {
+                if (!user.emailVerified) {
+                    throw new Error('Debes verificar tu correo actual antes de cambiarlo');
+                }
+
+                await updateEmail(user, profile.email);
+                await sendEmailVerification(user);
+                toast.success('Se ha enviado un correo de verificación a tu nueva dirección');
+            }
+
+            // Preparar los datos para actualizar en Sanity
+            const updateData = {
+                _type: 'user',
+                firebaseUid: user.uid,
+                firstName: profile.firstName,
+                lastName: profile.lastName,
+                email: profile.email,
+                phone: profile.phone,
+                pronoun: profile.pronoun,
+                position: profile.position,
+                typeDocument: profile.typeDocument,
+                numDocument: profile.numDocument,
+                nameCompany: profile.nameCompany,
+                businessName: profile.businessName,
+                typeDocumentCompany: profile.typeDocumentCompany,
+                numDocumentCompany: profile.numDocumentCompany,
+                webSite: profile.webSite,
+                addressCompany: profile.addressCompany
+            };
+
+            // Actualizar en Sanity usando una consulta para encontrar el documento
+            const existingDoc = await sanityClient.fetch(
+                `*[_type == "user" && firebaseUid == $uid][0]._id`,
+                { uid: user.uid }
+            );
+
+            if (!existingDoc) {
+                throw new Error('No se encontró el documento del usuario');
+            }
+
+            const result = await sanityClient
+                .patch(existingDoc)
+                .set(updateData)
+                .commit();
+
+            if (result) {
+                setOriginalProfile(profile);
+                toast.success(
+                    profile.email !== originalProfile?.email
+                        ? 'Perfil actualizado. Por favor, verifica tu nuevo correo electrónico'
+                        : 'Perfil actualizado correctamente'
+                );
+            }
+        } catch (error: unknown) {
+            console.error('Error al actualizar el perfil:', error);
+            
+            // Manejar errores específicos de Firebase
+            if (error && typeof error === 'object' && 'code' in error) {
+                if (error.code === 'auth/requires-recent-login') {
+                    toast.error('Por seguridad, necesitas volver a iniciar sesión para cambiar tu correo');
+                } else if (error.code === 'auth/email-already-in-use') {
+                    toast.error('Este correo electrónico ya está en uso');
+                } else {
+                    toast.error((error as { message?: string }).message || 'Error al actualizar el perfil');
+                }
+            } else {
+                toast.error('Error al actualizar el perfil');
+            }
+
+            // Si hubo un error al actualizar el email, revertir los cambios en el estado
+            if (profile.email !== originalProfile?.email) {
+                setProfile(prev => prev ? { ...prev, email: originalProfile?.email || '' } : null);
+            }
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleCancel = () => {
+        if (originalProfile) {
+            setProfile(originalProfile);
+            toast.success('Cambios descartados');
+        }
     };
 
     // Función auxiliar para obtener la URL de la imagen
     const getImageUrl = (image: SanityImage | null) => {
         if (!image || !image.asset || !image.asset._ref) return null;
         return `https://cdn.sanity.io/images/${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID}/${process.env.NEXT_PUBLIC_SANITY_DATASET}/${image.asset._ref.replace('image-', '').replace('-jpg', '.jpg').replace('-png', '.png').replace('-webp', '.webp')}`;
+    };
+
+    const renderEmailField = () => {
+        const isVerified = user?.emailVerified || false;
+        
+        const handleResendVerification = async () => {
+            try {
+                if (user) {
+                    await sendEmailVerification(user);
+                    toast.success('Se ha enviado un nuevo correo de verificación');
+                }
+            } catch (error: unknown) {
+                if (error instanceof FirebaseError) {
+                    toast.error('Error al enviar el correo de verificación: ' + (error.message || 'Error desconocido'));
+                } else {
+                    toast.error('Error al enviar el correo de verificación');
+                }
+            }
+        };
+        
+        return (
+            <div className="w-full md:w-1/2 px-2 space-y-1">
+                <Label htmlFor="email">Correo electrónico</Label>
+                <div className="space-y-1">
+                    <TextInput
+                        id="email"
+                        type="email"
+                        placeholder="email@miempresa.com"
+                        value={profile?.email || ""}
+                        onChange={(e) => handleChange('email', e.target.value)}
+                        disabled={!isVerified}
+                        color={isVerified ? "blue" : "gray"}
+                        theme={{
+                            field: {
+                                input: {
+                                    base: "border-slate-200 focus:border-blue-600 w-full",
+                                },
+                            },
+                        }}
+                    />
+                    {isVerified ? (
+                        <div className="flex items-center text-xs text-green-600">
+                            <HiCheckCircle className="w-3 h-3 mr-1" />
+                            <span>Correo electrónico verificado</span>
+                        </div>
+                    ) : (
+                        <div className="space-y-2">
+                            <div className="flex items-center text-xs text-red-600">
+                                <HiExclamationCircle className="w-3 h-3 mr-1" />
+                                <span>
+                                    Correo no verificado. Por favor, verifica tu correo electrónico para poder modificarlo.
+                                </span>
+                            </div>
+                            <Button
+                                size="xs"
+                                color="blue"
+                                onClick={handleResendVerification}
+                            >
+                                Reenviar correo de verificación
+                            </Button>
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
+    };
+
+    const handleSaveClick = () => {
+        setShowConfirmModal(true);
+    };
+
+    const handleConfirmSave = async () => {
+        setShowConfirmModal(false);
+        await handleSave();
     };
 
     if (initialError) {
@@ -119,52 +285,62 @@ export default function ProfileView({ initialProfile, error: initialError }: Pro
 
     // Modificar los botones de guardar en ambas pestañas
     const saveButton = (
-        <Button 
-            onClick={handleSave}
-            disabled={!hasChanges}
-            color={hasChanges ? "blue" : "gray"}
-        >
-            Guardar cambios
-        </Button>
+        <>
+            <div className="flex items-center gap-4">
+                <Button 
+                    onClick={handleSaveClick}
+                    disabled={!hasChanges || isSaving}
+                    color={hasChanges ? "blue" : "gray"}
+                >
+                    {isSaving ? (
+                        <>
+                            <Spinner size="sm" className="mr-3" />
+                            <span>Guardando...</span>
+                        </>
+                    ) : (
+                        'Guardar cambios'
+                    )}
+                </Button>
+                {hasChanges && (
+                    <button
+                        onClick={handleCancel}
+                        className="text-sm text-gray-500 hover:text-gray-700 hover:underline"
+                        type="button"
+                    >
+                        Descartar cambios
+                    </button>
+                )}
+            </div>
+
+            <Modal
+                show={showConfirmModal}
+                size="md"
+                onClose={() => setShowConfirmModal(false)}
+                popup
+            >
+                <Modal.Header />
+                <Modal.Body>
+                    <div className="text-center">
+                        <h3 className="mb-5 text-lg font-normal text-gray-500">
+                            ¿Estás seguro de que deseas guardar los cambios?
+                        </h3>
+                        <div className="flex justify-center gap-4">
+                            <Button color="blue" onClick={handleConfirmSave}>
+                                Sí, guardar cambios
+                            </Button>
+                            <Button color="gray" onClick={() => setShowConfirmModal(false)}>
+                                No, cancelar
+                            </Button>
+                        </div>
+                    </div>
+                </Modal.Body>
+            </Modal>
+        </>
     );
 
     return (
         <div className="flex container mx-auto mt-10">
-            <aside className="w-1/3 xl:w-1/4">
-                <ul className="flex flex-col gap-4 border border-gray-200 p-5 rounded-lg text-sm">
-                    <li>
-                        <Link href="/dashboard/profile" className="flex items-center gap-2 p-3 py-4 bg-violet-200 rounded-lg">
-                            <HiOutlineUserCircle className="w-5 h-5" />
-                            <span>Mi Perfil</span>
-                        </Link>
-                    </li>
-                    <li>
-                        <Link href="/dashboard/profile" className="flex items-center gap-2 p-3 py-4">
-                            <HiOutlineFolder className="w-5 h-5" />
-                            <span>Gestión de Servicios y Productos</span>
-                        </Link>
-                    </li>
-                    <li>
-                        <Link href="/dashboard/profile" className="flex items-center gap-2 p-3 py-4">
-                            <HiOutlineBell className="w-5 h-5" />
-                            <span>Notificaciones</span>
-                        </Link>
-                    </li>
-                    <li>
-                        <Link href="/dashboard/profile" className="flex items-center gap-2 p-3 py-4">
-                            <HiOutlineLockClosed className="w-5 h-5" />
-                            <span>Seguridad</span>
-                        </Link>
-                    </li>
-                    <hr />
-                    <li>
-                        <Link href="/dashboard/profile" className="flex items-center gap-2 p-3 py-4">
-                            <HiOutlineArrowRight className="w-5 h-5" />
-                            <span>Cerrar Sesión</span>
-                        </Link>
-                    </li>
-                </ul>
-            </aside>
+            <DashboardSidebar />
             <main className="w-3/3 xl:w-3/4 pl-10">
                 <h1 className="text-2xl font-bold">Mi perfil</h1>
                 <div className="border-b border-gray-200 mt-5">
@@ -266,24 +442,8 @@ export default function ProfileView({ initialProfile, error: initialError }: Pro
                                         />
                                     </div>
 
-                                    <div className="w-full md:w-1/2 px-2 space-y-1">
-                                        <Label htmlFor="email">Correo electrónico</Label>
-                                        <TextInput
-                                            id="email"
-                                            type="email"
-                                            placeholder="email@miempresa.com"
-                                            value={profile?.email || ""}
-                                            onChange={(e) => handleChange('email', e.target.value)}
-                                            color="blue"
-                                            theme={{
-                                                field: {
-                                                    input: {
-                                                        base: "border-slate-200 focus:border-blue-600 w-full",
-                                                    },
-                                                },
-                                            }}
-                                        />
-                                    </div>
+                                    {renderEmailField()}
+
                                     <div className="w-full md:w-1/2 px-2 space-y-1">
                                         <Label htmlFor="phone">Número de teléfono</Label>
                                         <InternationalPhoneInput
@@ -291,8 +451,8 @@ export default function ProfileView({ initialProfile, error: initialError }: Pro
                                             name="phone"
                                             placeholder="Número de teléfono"
                                             value={profile?.phone || ""}
-                                            onChange={async ({ target: { value } }) => {
-                                                handleChange('phone', value);
+                                            onChange={async ({ target }) => {
+                                                handleChange('phone', target.value);
                                                 return true;
                                             }}
                                             color="blue"

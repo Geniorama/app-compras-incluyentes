@@ -47,7 +47,7 @@ export default function LoginForm() {
         sessionStorage.setItem('authToken', token);
       }
      
-      router.push('/dashboard');
+      router.push('/dashboard/profile');
     } catch (error: unknown) {
       if (error instanceof Error) {
         setError(error.message);
