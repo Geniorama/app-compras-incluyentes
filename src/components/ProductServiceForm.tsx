@@ -1,16 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Label, TextInput, Button, Select, Textarea, FileInput } from "flowbite-react";
 import { useForm } from "react-hook-form";
 
 interface ProductServiceData {
+    _id?: string;           // ID para edición
     name: string;           // Obligatorio
     description?: string;   // Opcional
     category: string;       // Obligatorio
-    price?: string;        // Opcional
+    price?: number;        // Opcional
     status: string;        // Obligatorio
-    images: File[];        // Obligatorio (al menos 1)
+    images: any[];        // Obligatorio (al menos 1) - puede ser File[] o SanityImage[]
     imagesPreviews: string[];
     // Campos específicos para productos
     sku?: string;
@@ -25,25 +26,38 @@ interface ProductServiceFormProps {
     onSubmit: (data: ProductServiceData) => void;
     onCancel: () => void;
     isLoading?: boolean;
+    initialData?: Partial<ProductServiceData>; // Datos iniciales para editar
 }
 
-export default function ProductServiceForm({ type, onSubmit, onCancel, isLoading = false }: ProductServiceFormProps) {
+export default function ProductServiceForm({ type, onSubmit, onCancel, isLoading = false, initialData }: ProductServiceFormProps) {
     const [images, setImages] = useState<File[]>([]);
     const [imagesPreviews, setImagesPreviews] = useState<string[]>([]);
+    const [prevData, setPrevData] = useState<Partial<ProductServiceData>>({
+        name: '',
+        description: '',
+        category: '',
+        price: undefined,
+        status: 'draft',
+        sku: '',
+        duration: '',
+        modality: '',
+        availability: ''
+    });
+    const [isEditing, setIsEditing] = useState(false);
 
     const { register, handleSubmit, formState: { errors } } = useForm<ProductServiceData>({
-        defaultValues: {
-            name: '',
-            description: '',
-            category: '',
-            price: '',
-            status: 'draft',
-            sku: '',
-            duration: '',
-            modality: '',
-            availability: ''
-        }
+        defaultValues: prevData
     });
+
+    useEffect(() => {
+        if (initialData && initialData !== undefined) {
+            setImages(initialData.images || []);
+            setImagesPreviews(initialData.imagesPreviews || []);
+            setPrevData(initialData);
+            setIsEditing(true);
+            console.log('initialData', initialData);
+            console.log('isEditing', isEditing);
+        }}, [initialData, isEditing]);
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
@@ -239,4 +253,4 @@ export default function ProductServiceForm({ type, onSubmit, onCancel, isLoading
             </div>
         </form>
     );
-} 
+}
