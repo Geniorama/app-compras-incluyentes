@@ -85,7 +85,7 @@ export default function InternationalPhoneInput(props: InternationalPhoneInputPr
 
       // Encontrar el código de país correspondiente
       const countryEntry = Object.entries(countryCodes).find(
-        ([_, code]) => code === `+${parsed.countryCode}`
+        ([, code]) => code === `+${parsed.countryCode}`
       );
       if (countryEntry) {
         setSelectedCountry(countryEntry[0]);

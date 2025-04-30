@@ -1,64 +1,144 @@
-import React from 'react';
-import Link from "next/link";
-import { HiOutlineUserCircle, HiOutlineFolder, HiOutlineBell, HiOutlineLockClosed, HiOutlineArrowRight } from "react-icons/hi";
-import { usePathname } from "next/navigation";
+'use client';
 
-interface MenuItem {
-    href: string;
-    icon: React.ReactNode;
-    label: string;
-}
-
-const menuItems: MenuItem[] = [
-    {
-        href: "/dashboard/profile",
-        icon: <HiOutlineUserCircle className="w-5 h-5" />,
-        label: "Mi Perfil"
-    },
-    {
-        href: "/dashboard/products",
-        icon: <HiOutlineFolder className="w-5 h-5" />,
-        label: "Gestión de Servicios y Productos"
-    },
-    {
-        href: "/dashboard/notifications",
-        icon: <HiOutlineBell className="w-5 h-5" />,
-        label: "Notificaciones"
-    },
-    {
-        href: "/dashboard/security",
-        icon: <HiOutlineLockClosed className="w-5 h-5" />,
-        label: "Seguridad"
-    }
-];
+import { Sidebar, Button } from 'flowbite-react';
+import { usePathname, useRouter } from 'next/navigation';
+import {
+  HiChartPie,
+  HiShoppingBag,
+  HiUser,
+  HiOutlineBell,
+  HiMenu,
+  HiX
+} from 'react-icons/hi';
+import { useState, useEffect } from 'react';
 
 export default function DashboardSidebar() {
-    const pathname = usePathname();
+  const pathname = usePathname();
+  const router = useRouter();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
-    return (
-        <aside className="w-1/3 xl:w-1/4">
-            <ul className="flex flex-col gap-4 border border-gray-200 p-5 rounded-lg text-sm">
-                {menuItems.map((item) => (
-                    <li key={item.href}>
-                        <Link 
-                            href={item.href} 
-                            className={`flex items-center gap-2 p-3 py-4 rounded-lg ${
-                                pathname === item.href ? "bg-violet-200" : ""
-                            }`}
-                        >
-                            {item.icon}
-                            <span>{item.label}</span>
-                        </Link>
-                    </li>
-                ))}
-                <hr />
-                <li>
-                    <Link href="/logout" className="flex items-center gap-2 p-3 py-4">
-                        <HiOutlineArrowRight className="w-5 h-5" />
-                        <span>Cerrar Sesión</span>
-                    </Link>
-                </li>
-            </ul>
-        </aside>
-    );
+  // Detectar si estamos en móvil
+  useEffect(() => {
+    const checkIfMobile = () => {
+      setIsMobile(window.innerWidth < 768); // md breakpoint
+    };
+
+    checkIfMobile();
+    window.addEventListener('resize', checkIfMobile);
+
+    return () => {
+      window.removeEventListener('resize', checkIfMobile);
+    };
+  }, []);
+
+  // Cerrar sidebar al cambiar de ruta en móvil
+  useEffect(() => {
+    if (isMobile) {
+      setIsSidebarOpen(false);
+    }
+  }, [pathname, isMobile]);
+
+  const menuItems = [
+    {
+      href: '/dashboard',
+      icon: HiChartPie,
+      label: 'Dashboard'
+    },
+    {
+      href: '/dashboard/productos',
+      icon: HiShoppingBag,
+      label: 'Productos y Servicios'
+    },
+    {
+      href: '/dashboard/perfil',
+      icon: HiUser,
+      label: 'Perfil'
+    },
+    {
+      href: '/dashboard/notificaciones',
+      icon: HiOutlineBell,
+      label: 'Notificaciones'
+    }
+  ];
+
+  const sidebarContent = (
+    <Sidebar className="w-full md:w-64">
+      <Sidebar.Items>
+        <Sidebar.ItemGroup>
+          {menuItems.map((item) => (
+            <Sidebar.Item
+              key={item.href}
+              icon={item.icon}
+              className={`${pathname === item.href ? 'bg-gray-100' : ''} cursor-pointer`}
+              as="div"
+              onClick={() => {
+                router.push(item.href);
+                if (isMobile) {
+                  setIsSidebarOpen(false);
+                }
+              }}
+            >
+              {item.label}
+            </Sidebar.Item>
+          ))}
+        </Sidebar.ItemGroup>
+      </Sidebar.Items>
+    </Sidebar>
+  );
+
+  return (
+    <>
+      {/* Botón de menú hamburguesa para móvil */}
+      <div className="md:hidden fixed top-4 right-4 z-50">
+        <Button
+          color="gray"
+          pill
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          className="!p-2"
+        >
+          {isSidebarOpen ? (
+            <HiX className="h-6 w-6" />
+          ) : (
+            <HiMenu className="h-6 w-6" />
+          )}
+        </Button>
+      </div>
+
+      {/* Overlay para móvil */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar para móvil */}
+      <div
+        className={`fixed md:hidden top-0 left-0 h-full w-64 bg-white z-50 transform transition-transform duration-300 ease-in-out ${
+          isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <div className="p-4">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-bold">Menú</h2>
+            <Button
+              color="gray"
+              pill
+              onClick={() => setIsSidebarOpen(false)}
+              className="!p-2"
+            >
+              <HiX className="h-5 w-5" />
+            </Button>
+          </div>
+          {sidebarContent}
+        </div>
+      </div>
+
+      {/* Sidebar para desktop */}
+      <div className="hidden md:block w-64">
+        {sidebarContent}
+      </div>
+    </>
+  );
 } 

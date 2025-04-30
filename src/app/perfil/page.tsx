@@ -1,50 +1,29 @@
 'use client';
 
 import ProfileView from "@/views/Dashboard/ProfileView";
-import { sanityClient } from "@/lib/sanity.client";
 import { useAuth } from "@/context/AuthContext";
 import { useEffect, useState } from "react";
 import { Spinner } from "flowbite-react";
+import type { UserProfile } from "@/types";
 
-async function getProfile(userId: string) {
+async function getProfile(userId: string): Promise<UserProfile | null> {
   try {
-    const profile = await sanityClient.fetch(
-      `*[_type == "user" && firebaseUid == $userId][0]{
-        firstName,
-        lastName,
-        email,
-        phone,
-        pronoun,
-        position,
-        typeDocument,
-        numDocument,
-        photo,
-        nameCompany,
-        businessName,
-        typeDocumentCompany,
-        numDocumentCompany,
-        webSite,
-        addressCompany,
-        logo,
-        facebook,
-        instagram,
-        tiktok,
-        pinterest,
-        linkedin,
-        xtwitter
-      }`,
-      { userId }
-    );
-    return profile;
+    // Llamar a la API en inglés
+    const response = await fetch(`/api/profile/get?userId=${userId}`);
+    if (!response.ok) {
+      throw new Error('Error al obtener el perfil');
+    }
+    const data = await response.json();
+    return data.success ? data.data.user : null;
   } catch (error) {
     console.error("Error fetching profile:", error);
     return null;
   }
 }
 
-export default function ProfilePage() {
+export default function PerfilPage() {
   const { user } = useAuth();
-  const [profile, setProfile] = useState(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -100,5 +79,4 @@ export default function ProfilePage() {
   }
 
   return <ProfileView initialProfile={profile} />;
-}
-
+} 

@@ -5,39 +5,12 @@ import { Label, TextInput, Button, Select, Spinner, Modal } from "flowbite-react
 import { Tabs } from "flowbite-react";
 import InternationalPhoneInput from "@/components/InternationalPhoneInput ";
 import { useEffect, useState, useMemo } from "react";
-import { sanityClient } from "@/lib/sanity.client";
 import { useAuth } from "@/context/AuthContext";
 import toast from "react-hot-toast";
 import { updateEmail, sendEmailVerification } from "firebase/auth";
 import { FirebaseError } from 'firebase/app';
 import DashboardSidebar from "@/components/DashboardSidebar";
-
-interface SanityImage {
-    _type: string;
-    asset: {
-        _ref: string;
-        _type: string;
-    };
-}
-
-interface UserProfile {
-    firstName: string;
-    lastName: string;
-    email: string;
-    phone: string;
-    pronoun: string;
-    position: string;
-    typeDocument: string;
-    numDocument: string;
-    photo: SanityImage;
-    nameCompany: string;
-    businessName: string;
-    typeDocumentCompany: string;
-    numDocumentCompany: string;
-    webSite: string;
-    addressCompany: string;
-    logo: SanityImage;
-}
+import type { UserProfile, SanityImage } from "@/types";
 
 interface ProfileViewProps {
     initialProfile?: UserProfile | null;
@@ -53,8 +26,31 @@ export default function ProfileView({ initialProfile, error: initialError }: Pro
 
     useEffect(() => {
         if (initialProfile) {
-            setProfile(initialProfile);
-            setOriginalProfile(initialProfile);
+            // Si tenemos datos iniciales, combinar los datos del usuario y la empresa
+            const combinedProfile = {
+                ...initialProfile,
+                // Si existe company, usar sus valores, si no, usar valores vacíos
+                nameCompany: initialProfile.company?.nameCompany || '',
+                businessName: initialProfile.company?.businessName || '',
+                typeDocumentCompany: initialProfile.company?.typeDocumentCompany || '',
+                numDocumentCompany: initialProfile.company?.numDocumentCompany || '',
+                ciiu: initialProfile.company?.ciiu || '',
+                webSite: initialProfile.company?.webSite || '',
+                addressCompany: initialProfile.company?.addressCompany || '',
+                logo: initialProfile.company?.logo,
+                facebook: initialProfile.company?.facebook || '',
+                instagram: initialProfile.company?.instagram || '',
+                tiktok: initialProfile.company?.tiktok || '',
+                pinterest: initialProfile.company?.pinterest || '',
+                linkedin: initialProfile.company?.linkedin || '',
+                xtwitter: initialProfile.company?.xtwitter || ''
+            };
+            const typedCombinedProfile: UserProfile = {
+                ...combinedProfile,
+                logo: combinedProfile.logo as SanityImage | undefined
+            };
+            setProfile(typedCombinedProfile);
+            setOriginalProfile(typedCombinedProfile);
         }
     }, [initialProfile]);
 
@@ -93,10 +89,19 @@ export default function ProfileView({ initialProfile, error: initialError }: Pro
         
         setIsSaving(true);
         try {
+            // Verificar que el usuario esté autenticado
+            if (!user.uid) {
+                throw new Error('Usuario no autenticado');
+            }
+
             // Si el email ha cambiado, actualizarlo en Firebase primero
             if (profile.email !== originalProfile?.email) {
                 if (!user.emailVerified) {
                     throw new Error('Debes verificar tu correo actual antes de cambiarlo');
+                }
+
+                if (!profile.email) {
+                    throw new Error('El correo electrónico es requerido');
                 }
 
                 await updateEmail(user, profile.email);
@@ -104,10 +109,8 @@ export default function ProfileView({ initialProfile, error: initialError }: Pro
                 toast.success('Se ha enviado un correo de verificación a tu nueva dirección');
             }
 
-            // Preparar los datos para actualizar en Sanity
-            const updateData = {
-                _type: 'user',
-                firebaseUid: user.uid,
+            // Separar datos del usuario y la empresa
+            const userData = {
                 firstName: profile.firstName,
                 lastName: profile.lastName,
                 email: profile.email,
@@ -116,31 +119,53 @@ export default function ProfileView({ initialProfile, error: initialError }: Pro
                 position: profile.position,
                 typeDocument: profile.typeDocument,
                 numDocument: profile.numDocument,
+            };
+
+            const companyData = {
                 nameCompany: profile.nameCompany,
                 businessName: profile.businessName,
                 typeDocumentCompany: profile.typeDocumentCompany,
                 numDocumentCompany: profile.numDocumentCompany,
+                ciiu: profile.ciiu,
                 webSite: profile.webSite,
-                addressCompany: profile.addressCompany
+                addressCompany: profile.addressCompany,
+                facebook: profile.facebook,
+                instagram: profile.instagram,
+                tiktok: profile.tiktok,
+                pinterest: profile.pinterest,
+                linkedin: profile.linkedin,
+                xtwitter: profile.xtwitter
             };
 
-            // Actualizar en Sanity usando una consulta para encontrar el documento
-            const existingDoc = await sanityClient.fetch(
-                `*[_type == "user" && firebaseUid == $uid][0]._id`,
-                { uid: user.uid }
-            );
+            // Llamar al endpoint de actualización
+            const response = await fetch('/api/profile/update', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userId: user.uid,
+                    userData,
+                    companyData
+                })
+            });
 
-            if (!existingDoc) {
-                throw new Error('No se encontró el documento del usuario');
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Error al actualizar el perfil');
             }
 
-            const result = await sanityClient
-                .patch(existingDoc)
-                .set(updateData)
-                .commit();
+            const result = await response.json();
 
-            if (result) {
-                setOriginalProfile(profile);
+            if (result.success) {
+                // Actualizar el estado con los datos más recientes
+                const updatedProfile = {
+                    ...result.data.user,
+                    ...result.data.company,
+                };
+                setProfile(updatedProfile);
+                setOriginalProfile(updatedProfile);
+                
                 toast.success(
                     profile.email !== originalProfile?.email
                         ? 'Perfil actualizado. Por favor, verifica tu nuevo correo electrónico'
@@ -150,17 +175,17 @@ export default function ProfileView({ initialProfile, error: initialError }: Pro
         } catch (error: unknown) {
             console.error('Error al actualizar el perfil:', error);
             
-            // Manejar errores específicos de Firebase
-            if (error && typeof error === 'object' && 'code' in error) {
+            if (error instanceof FirebaseError) {
                 if (error.code === 'auth/requires-recent-login') {
                     toast.error('Por seguridad, necesitas volver a iniciar sesión para cambiar tu correo');
                 } else if (error.code === 'auth/email-already-in-use') {
                     toast.error('Este correo electrónico ya está en uso');
                 } else {
-                    toast.error((error as { message?: string }).message || 'Error al actualizar el perfil');
+                    toast.error(error.message || 'Error al actualizar el perfil');
                 }
             } else {
-                toast.error('Error al actualizar el perfil');
+                const errorMessage = error instanceof Error ? error.message : 'Error al actualizar el perfil';
+                toast.error(errorMessage);
             }
 
             // Si hubo un error al actualizar el email, revertir los cambios en el estado
@@ -180,8 +205,8 @@ export default function ProfileView({ initialProfile, error: initialError }: Pro
     };
 
     // Función auxiliar para obtener la URL de la imagen
-    const getImageUrl = (image: SanityImage | null) => {
-        if (!image || !image.asset || !image.asset._ref) return null;
+    const getImageUrl = (image: SanityImage | undefined | null) => {
+        if (!image || !image.asset) return null;
         return `https://cdn.sanity.io/images/${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID}/${process.env.NEXT_PUBLIC_SANITY_DATASET}/${image.asset._ref.replace('image-', '').replace('-jpg', '.jpg').replace('-png', '.png').replace('-webp', '.webp')}`;
     };
 
@@ -280,8 +305,8 @@ export default function ProfileView({ initialProfile, error: initialError }: Pro
         );
     }
 
-    const photoUrl = getImageUrl(profile.photo);
-    const logoUrl = getImageUrl(profile.logo);
+    const photoUrl = profile.photo ? getImageUrl(profile.photo as unknown as SanityImage) : null;
+    const logoUrl = profile.logo ? getImageUrl(profile.logo as unknown as SanityImage) : null;
 
     // Modificar los botones de guardar en ambas pestañas
     const saveButton = (

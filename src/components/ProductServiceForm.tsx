@@ -11,7 +11,7 @@ interface ProductServiceData {
     category: string;       // Obligatorio
     price?: number;        // Opcional
     status: string;        // Obligatorio
-    images: any[];        // Obligatorio (al menos 1) - puede ser File[] o SanityImage[]
+    images: (File | SanityImage)[];        // Obligatorio (al menos 1) - puede ser File[] o SanityImage[]
     imagesPreviews: string[];
     // Campos específicos para productos
     sku?: string;
@@ -19,6 +19,14 @@ interface ProductServiceData {
     duration?: string;
     modality?: string;
     availability?: string;
+}
+
+interface SanityImage {
+    _type: string;
+    asset: {
+        _ref: string;
+        _type: string;
+    };
 }
 
 interface ProductServiceFormProps {
@@ -30,7 +38,7 @@ interface ProductServiceFormProps {
 }
 
 export default function ProductServiceForm({ type, onSubmit, onCancel, isLoading = false, initialData }: ProductServiceFormProps) {
-    const [images, setImages] = useState<File[]>([]);
+    const [images, setImages] = useState<(File | SanityImage)[]>([]);
     const [imagesPreviews, setImagesPreviews] = useState<string[]>([]);
     const [prevData, setPrevData] = useState<Partial<ProductServiceData>>({
         name: '',
@@ -43,21 +51,89 @@ export default function ProductServiceForm({ type, onSubmit, onCancel, isLoading
         modality: '',
         availability: ''
     });
-    const [isEditing, setIsEditing] = useState(false);
 
-    const { register, handleSubmit, formState: { errors } } = useForm<ProductServiceData>({
+    const { register, handleSubmit, formState: { errors }, reset } = useForm<ProductServiceData>({
         defaultValues: prevData
     });
 
+    const handleCancel = () => {
+        // Limpiar el estado del formulario
+        setImages([]);
+        setImagesPreviews([]);
+        setPrevData({
+            name: '',
+            description: '',
+            category: '',
+            price: undefined,
+            status: 'draft',
+            sku: '',
+            duration: '',
+            modality: '',
+            availability: ''
+        });
+        reset({
+            name: '',
+            description: '',
+            category: '',
+            price: undefined,
+            status: 'draft',
+            sku: '',
+            duration: '',
+            modality: '',
+            availability: ''
+        });
+        onCancel();
+    };
+
     useEffect(() => {
-        if (initialData && initialData !== undefined) {
+        if (initialData) {
+            // Actualizar el estado de las imágenes
             setImages(initialData.images || []);
             setImagesPreviews(initialData.imagesPreviews || []);
+            
+            // Actualizar el estado previo
             setPrevData(initialData);
-            setIsEditing(true);
-            console.log('initialData', initialData);
-            console.log('isEditing', isEditing);
-        }}, [initialData, isEditing]);
+            
+            // Resetear el formulario con los nuevos valores
+            reset({
+                name: initialData.name || '',
+                description: initialData.description || '',
+                category: initialData.category || '',
+                price: initialData.price,
+                status: initialData.status || 'draft',
+                sku: initialData.sku || '',
+                duration: initialData.duration || '',
+                modality: initialData.modality || '',
+                availability: initialData.availability || ''
+            });
+        } else {
+            // Si no hay datos iniciales, resetear a valores vacíos
+            setImages([]);
+            setImagesPreviews([]);
+            setPrevData({
+                name: '',
+                description: '',
+                category: '',
+                price: undefined,
+                status: 'draft',
+                sku: '',
+                duration: '',
+                modality: '',
+                availability: ''
+            });
+            reset({
+                name: '',
+                description: '',
+                category: '',
+                price: undefined,
+                status: 'draft',
+                sku: '',
+                duration: '',
+                modality: '',
+                availability: ''
+            });
+        }
+    }, [initialData, reset]);
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
@@ -130,6 +206,7 @@ export default function ProductServiceForm({ type, onSubmit, onCancel, isLoading
                             id="name"
                             {...register("name", { required: "El nombre es obligatorio" })}
                             placeholder={`Nombre del ${type === 'product' ? 'producto' : 'servicio'}`}
+                            defaultValue={prevData.name}
                         />
                         {errors.name && <span className="text-red-500 text-sm">{errors.name.message}</span>}
                     </div>
@@ -141,6 +218,7 @@ export default function ProductServiceForm({ type, onSubmit, onCancel, isLoading
                         <Select
                             id="category"
                             {...register("category", { required: "La categoría es obligatoria" })}
+                            defaultValue={prevData.category}
                         >
                             <option value="">Seleccionar categoría</option>
                             {type === 'product' ? (
@@ -167,6 +245,7 @@ export default function ProductServiceForm({ type, onSubmit, onCancel, isLoading
                             {...register("description")}
                             placeholder={`Describe el ${type === 'product' ? 'producto' : 'servicio'}`}
                             rows={4}
+                            defaultValue={prevData.description}
                         />
                     </div>
 
@@ -177,6 +256,7 @@ export default function ProductServiceForm({ type, onSubmit, onCancel, isLoading
                             type="number"
                             {...register("price")}
                             placeholder="0.00"
+                            defaultValue={prevData.price}
                         />
                     </div>
 
@@ -187,6 +267,7 @@ export default function ProductServiceForm({ type, onSubmit, onCancel, isLoading
                         <Select
                             id="status"
                             {...register("status", { required: "El estado es obligatorio" })}
+                            defaultValue={prevData.status}
                         >
                             <option value="draft">Borrador</option>
                             <option value="active">Activo</option>
@@ -204,6 +285,7 @@ export default function ProductServiceForm({ type, onSubmit, onCancel, isLoading
                                     id="sku"
                                     {...register("sku")}
                                     placeholder="ABC123"
+                                    defaultValue={prevData.sku}
                                 />
                             </div>
                         </>
@@ -216,6 +298,7 @@ export default function ProductServiceForm({ type, onSubmit, onCancel, isLoading
                                     id="duration"
                                     {...register("duration")}
                                     placeholder="Ej: 2 horas"
+                                    defaultValue={prevData.duration}
                                 />
                             </div>
                             <div>
@@ -223,6 +306,7 @@ export default function ProductServiceForm({ type, onSubmit, onCancel, isLoading
                                 <Select
                                     id="modality"
                                     {...register("modality")}
+                                    defaultValue={prevData.modality}
                                 >
                                     <option value="">Seleccionar modalidad</option>
                                     <option value="presencial">Presencial</option>
@@ -236,6 +320,7 @@ export default function ProductServiceForm({ type, onSubmit, onCancel, isLoading
                                     id="availability"
                                     {...register("availability")}
                                     placeholder="Ej: Lunes a Viernes, 9am - 6pm"
+                                    defaultValue={prevData.availability}
                                 />
                             </div>
                         </>
@@ -244,7 +329,7 @@ export default function ProductServiceForm({ type, onSubmit, onCancel, isLoading
             </div>
 
             <div className="flex justify-end gap-4">
-                <Button color="gray" onClick={onCancel}>
+                <Button color="gray" onClick={handleCancel}>
                     Cancelar
                 </Button>
                 <Button type="submit" isProcessing={isLoading}>

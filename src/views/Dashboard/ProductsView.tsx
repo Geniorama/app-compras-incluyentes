@@ -38,7 +38,7 @@ interface ProductServiceData {
   category: string;
   price?: number;
   status: string;
-  images: File[];
+  images: (File | SanityImage)[];
   imagesPreviews: string[];
   // Campos específicos para productos
   sku?: string;
@@ -168,7 +168,7 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
       category: item.category,
       price: item.price,
       status: item.status,
-      images: item.images as any, // Pasar las imágenes de Sanity directamente
+      images: item.images as (File | SanityImage)[],
       imagesPreviews: imagesPreviews
     };
     
@@ -326,32 +326,31 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
         }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || `Error al ${isEditing ? 'actualizar' : 'crear'} el documento`);
-      }
+      const responseData = await response.json();
 
-      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(responseData.message || `Error al ${isEditing ? 'actualizar' : 'crear'} el documento`);
+      }
 
       // 3. Actualizar el estado local
       if (isEditing) {
         // Actualizar el elemento existente
         if (formType === "product") {
           setProducts(prev => 
-            prev.map(item => item._id === itemToEdit._id ? result.data : item)
+            prev.map(item => item._id === itemToEdit._id ? responseData.data : item)
           );
         } else {
           setServices(prev => 
-            prev.map(item => item._id === itemToEdit._id ? result.data : item)
+            prev.map(item => item._id === itemToEdit._id ? responseData.data : item)
           );
         }
         toast.success(`${formType === "product" ? "Producto" : "Servicio"} actualizado correctamente`);
       } else {
         // Agregar el nuevo elemento
         if (formType === "product") {
-          setProducts(prev => [...prev, result.data]);
+          setProducts(prev => [...prev, responseData.data]);
         } else {
-          setServices(prev => [...prev, result.data]);
+          setServices(prev => [...prev, responseData.data]);
         }
         toast.success(`${formType === "product" ? "Producto" : "Servicio"} creado correctamente`);
       }
@@ -589,16 +588,18 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
     <div className="w-full md:w-auto md:self-end">
       <div className="flex gap-2 justify-end">
         <Button
-          color={currentView === "grid" ? "blue" : "gray"}
+          color={currentView === "grid" ? "light" : "gray"}
           onClick={() => onChange("grid")}
           size="sm"
+          className={`hover:bg-gray-100 ${currentView === "grid" ? "bg-gray-100 text-gray-800" : "text-gray-500"}`}
         >
           <HiViewGrid className="h-5 w-5" />
         </Button>
         <Button
-          color={currentView === "list" ? "blue" : "gray"}
+          color={currentView === "list" ? "light" : "gray"}
           onClick={() => onChange("list")}
           size="sm"
+          className={`hover:bg-gray-100 ${currentView === "list" ? "bg-gray-100 text-gray-800" : "text-gray-500"}`}
         >
           <HiViewList className="h-5 w-5" />
         </Button>
@@ -748,7 +749,8 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
 
         <Modal show={showModal} size="4xl" onClose={() => {
           setShowModal(false);
-          setItemToEdit(null); // Limpiar el estado de edición al cerrar
+          setItemToEdit(null);
+          setFormType("product");
         }}>
           <Modal.Header>
             {itemToEdit 
@@ -758,8 +760,12 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
           <Modal.Body>
             <ProductServiceForm
               type={formType}
-              onSubmit={handleSubmit}
-              onCancel={() => setShowModal(false)}
+              onSubmit={handleSubmit as (data: ProductServiceData) => void}
+              onCancel={() => {
+                setShowModal(false);
+                setItemToEdit(null);
+                setFormType("product");
+              }}
               isLoading={isSubmitting}
               initialData={itemToEdit ? {
                 name: itemToEdit.name,
@@ -767,7 +773,7 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
                 category: itemToEdit.category,
                 price: itemToEdit.price,
                 status: itemToEdit.status,
-                images: itemToEdit.images,
+                images: itemToEdit.images as (File | SanityImage)[],
                 imagesPreviews: itemToEdit.images.map(img => 
                   `https://cdn.sanity.io/images/${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID}/${process.env.NEXT_PUBLIC_SANITY_DATASET}/${img.asset._ref
                     .replace("image-", "")

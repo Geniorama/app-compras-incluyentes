@@ -1,0 +1,52 @@
+import { NextResponse } from 'next/server';
+import { getAuthenticatedClient } from '@/lib/sanity.client';
+
+export async function GET(request: Request) {
+  try {
+    // Obtener el userId de los parámetros de la URL
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId');
+
+    if (!userId) {
+      return NextResponse.json({
+        success: false,
+        error: 'Se requiere el ID del usuario'
+      });
+    }
+
+    const client = getAuthenticatedClient();
+
+    // Obtener el documento del usuario con su información de empresa
+    const userDoc = await client.fetch(
+      `*[_type == "user" && firebaseUid == $userId][0]{
+        ...,
+        company->{
+          ...
+        }
+      }`,
+      { userId }
+    );
+
+    if (!userDoc) {
+      return NextResponse.json({
+        success: false,
+        error: 'Usuario no encontrado'
+      });
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        user: userDoc,
+        company: userDoc.company
+      }
+    });
+
+  } catch (error) {
+    console.error('Error al obtener el perfil:', error);
+    return NextResponse.json({
+      success: false,
+      error: 'Error al obtener el perfil'
+    });
+  }
+} 

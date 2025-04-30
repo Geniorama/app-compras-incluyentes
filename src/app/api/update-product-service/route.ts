@@ -1,92 +1,85 @@
 import { NextResponse } from 'next/server'
-import { sanityClient } from '@/lib/sanity.client'
+import { getAuthenticatedClient } from '@/lib/sanity.client'
 
 export async function POST(request: Request) {
+  const client = getAuthenticatedClient();
+
   try {
+    const body = await request.json()
     const {
-      id,
       type,
+      id,
       name,
       description,
       category,
       price,
       status,
       images,
+      userId,
+      // Campos específicos
       sku,
       duration,
       modality,
       availability,
-      userId
-    } = await request.json()
+    } = body
 
-    // Verificar que el ID esté presente
     if (!id) {
       return NextResponse.json(
-        { message: 'Se requiere el ID del documento' },
+        { message: 'ID del documento no proporcionado' },
         { status: 400 }
       )
     }
 
-    // Verificar que las imágenes estén presentes
-    if (!images || images.length === 0) {
+    // Verificar que el documento existe y pertenece al usuario
+    const existingDoc = await client.fetch(
+      `*[_type == $type && _id == $id && user._ref in *[_type == "user" && firebaseUid == $userId]._id][0]`,
+      { type, id, userId }
+    )
+
+    if (!existingDoc) {
       return NextResponse.json(
-        { message: 'Se requiere al menos una imagen' },
-        { status: 400 }
+        { message: 'Documento no encontrado o no tienes permisos para editarlo' },
+        { status: 404 }
       )
+    }
+
+    // Construir el documento base
+    const doc = {
+      name,
+      description,
+      category,
+      price: price ? Number(price) : undefined,
+      status,
+      images,
+      updatedAt: new Date().toISOString()
+    }
+
+    // Agregar campos específicos según el tipo
+    if (type === 'product') {
+      Object.assign(doc, { sku })
+    } else {
+      Object.assign(doc, { duration, modality, availability })
     }
 
     try {
-      // Verificar si el usuario existe en Sanity usando firebaseUid
-      const userExists = await sanityClient.fetch(
-        `*[_type == "user" && firebaseUid == $userId][0]`,
-        { userId }
-      )
-
-      if (!userExists) {
-        console.error('Usuario no encontrado con firebaseUid:', userId)
-        return NextResponse.json(
-          { message: 'Usuario no encontrado' },
-          { status: 400 }
-        )
-      }
-
       // Actualizar el documento en Sanity
-      const result = await sanityClient
+      const result = await client
         .patch(id)
-        .set({
-          name,
-          description,
-          category,
-          price: price ? parseFloat(price) : undefined,
-          status,
-          images,
-          // Campos específicos para productos
-          ...(type === 'product' && { sku }),
-          // Campos específicos para servicios
-          ...(type === 'service' && {
-            duration,
-            modality,
-            availability
-          }),
-          updatedAt: new Date().toISOString(),
-        })
+        .set(doc)
         .commit()
 
-      return NextResponse.json(
-        { message: `${type === 'product' ? 'Producto' : 'Servicio'} actualizado exitosamente`, data: result },
-        { status: 200 }
-      )
+      return NextResponse.json({ data: result })
     } catch (sanityError) {
       console.error('Error de Sanity:', sanityError)
       return NextResponse.json(
-        { message: 'Error al actualizar el documento en Sanity: ' + (sanityError instanceof Error ? sanityError.message : 'Error desconocido') },
+        { message: 'Error al actualizar el documento en Sanity' },
         { status: 500 }
       )
     }
   } catch (error) {
-    console.error('Error en el procesamiento de la solicitud:', error)
+    console.error('Error al actualizar:', error)
     return NextResponse.json(
-      { message: 'Error al procesar la solicitud' },
+      { message: 'Error al procesar la solicitud de actualización' },
       { status: 500 }
     )
   }

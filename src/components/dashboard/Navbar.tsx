@@ -46,8 +46,13 @@ export default function DashboardNavbar() {
             <Dropdown.Item onClick={() => router.push("/dashboard/perfil")}>
               Perfil
             </Dropdown.Item>
-            <Dropdown.Item onClick={() => router.push("/dashboard/configuracion")}>
-              Configuración
+            <Dropdown.Divider />
+            <Dropdown.Item onClick={() => router.push("/dashboard/productos")}>
+              Mis productos y servicios
+            </Dropdown.Item>
+            <Dropdown.Divider />
+            <Dropdown.Item onClick={() => router.push("/dashboard/notificaciones")}>
+              Notificaciones
             </Dropdown.Item>
             <Dropdown.Divider />
             <Dropdown.Item onClick={handleSignOut}>Cerrar sesión</Dropdown.Item>
