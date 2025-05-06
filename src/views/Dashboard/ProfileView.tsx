@@ -11,7 +11,7 @@ import {
 } from "flowbite-react";
 import { Tabs } from "flowbite-react";
 import InternationalPhoneInput from "@/components/InternationalPhoneInput ";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import toast from "react-hot-toast";
 import { updateEmail, sendEmailVerification, getAuth } from "firebase/auth";
@@ -35,6 +35,12 @@ export default function ProfileView({
   const [isSaving, setIsSaving] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const { user } = useAuth();
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (initialProfile) {
@@ -91,12 +97,41 @@ export default function ProfileView({
       "numDocumentCompany",
       "webSite",
       "addressCompany",
+      "photo",
+      "logo",
     ];
+
+    // Si hay una nueva foto o logo seleccionados, hay cambios
+    if (photoFile || logoFile) return true;
 
     return fieldsToCompare.some(
       (field) => profile[field] !== originalProfile[field]
     );
-  }, [profile, originalProfile]);
+  }, [profile, originalProfile, photoFile, logoFile]);
+
+  // Al seleccionar nueva foto
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPhotoFile(file);
+      setPhotoPreview(URL.createObjectURL(file));
+      if (profile) {
+        setProfile({ ...profile, photo: "new" }); // Valor temporal para disparar el cambio
+      }
+    }
+  };
+
+  // Al seleccionar nuevo logo
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setLogoFile(file);
+      setLogoPreview(URL.createObjectURL(file));
+      if (profile) {
+        setProfile({ ...profile, logo: "new" }); // Valor temporal para disparar el cambio
+      }
+    }
+  };
 
   const handleSave = async () => {
     if (!hasChanges || !profile || !user) return;
@@ -127,6 +162,33 @@ export default function ProfileView({
         );
       }
 
+      // Subir foto si hay nueva
+      let photoSanity = profile.photo;
+      if (photoFile) {
+        const formData = new FormData();
+        formData.append("image", photoFile);
+        const uploadRes = await fetch("/api/upload-image", {
+          method: "POST",
+          body: formData,
+        });
+        if (!uploadRes.ok) throw new Error("Error al subir la foto de perfil");
+        const uploadData = await uploadRes.json();
+        photoSanity = { _type: "image", asset: uploadData.asset };
+      }
+      // Subir logo si hay nuevo
+      let logoSanity = profile.logo;
+      if (logoFile) {
+        const formData = new FormData();
+        formData.append("image", logoFile);
+        const uploadRes = await fetch("/api/upload-image", {
+          method: "POST",
+          body: formData,
+        });
+        if (!uploadRes.ok) throw new Error("Error al subir el logo");
+        const uploadData = await uploadRes.json();
+        logoSanity = { _type: "image", asset: uploadData.asset };
+      }
+
       // Separar datos del usuario y la empresa
       const userData = {
         firstName: profile.firstName,
@@ -137,6 +199,7 @@ export default function ProfileView({
         position: profile.position,
         typeDocument: profile.typeDocument,
         numDocument: profile.numDocument,
+        photo: photoSanity,
       };
 
       const companyData = {
@@ -153,6 +216,7 @@ export default function ProfileView({
         pinterest: profile.pinterest,
         linkedin: profile.linkedin,
         xtwitter: profile.xtwitter,
+        logo: logoSanity,
       };
 
       // Llamar al endpoint de actualización
@@ -225,6 +289,10 @@ export default function ProfileView({
   const handleCancel = () => {
     if (originalProfile) {
       setProfile(originalProfile);
+      setPhotoFile(null);
+      setLogoFile(null);
+      setPhotoPreview(null);
+      setLogoPreview(null);
       toast.success("Cambios descartados");
     }
   };
@@ -337,12 +405,8 @@ export default function ProfileView({
     );
   }
 
-  const photoUrl = profile.photo
-    ? getImageUrl(profile.photo as unknown as SanityImage)
-    : null;
-  const logoUrl = profile.logo
-    ? getImageUrl(profile.logo as unknown as SanityImage)
-    : null;
+  const photoUrl = photoPreview || (profile.photo ? getImageUrl(profile.photo as unknown as SanityImage) : null);
+  const logoUrl = logoPreview || (profile.logo ? getImageUrl(profile.logo as unknown as SanityImage) : null);
 
   // Modificar los botones de guardar en ambas pestañas
   const saveButton = (
@@ -428,9 +492,16 @@ export default function ProfileView({
                       )}
                     </div>
                     <div>
-                      <Button color="light" className="font-bold">
+                      <Button color="light" className="font-bold" onClick={() => photoInputRef.current?.click()}>
                         Subir foto
                       </Button>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        ref={photoInputRef}
+                        className="hidden"
+                        onChange={handlePhotoChange}
+                      />
                     </div>
                     <div>
                       <ul className="text-xs md:text-sm">
@@ -613,9 +684,17 @@ export default function ProfileView({
                             color="light"
                             className="font-bold"
                             disabled={isUserOnly}
+                            onClick={() => logoInputRef.current?.click()}
                           >
                             Subir logo
                           </Button>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            ref={logoInputRef}
+                            className="hidden"
+                            onChange={handleLogoChange}
+                          />
                         </div>
                         <div>
                           <ul className="text-xs md:text-sm">

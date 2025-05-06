@@ -26,7 +26,6 @@ export interface UserData {
     position?: string;
     typeDocument?: string;
     numDocument?: string;
-    photo?: string;
 }
 
 export interface SanityUserDocument extends SanityResponse, UserData {
@@ -75,13 +74,14 @@ export interface UserProfile extends UserData {
     ciiu?: string;
     webSite?: string;
     addressCompany?: string;
-    logo?: SanityImage;
+    logo?: string | SanityImage;
     facebook?: string;
     instagram?: string;
     tiktok?: string;
     pinterest?: string;
     linkedin?: string;
     xtwitter?: string;
+    photo?: string | SanityImage;
 }
 
 // Asegurarnos de que el archivo es un módulo
