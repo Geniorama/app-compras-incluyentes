@@ -65,9 +65,9 @@ export default function DashboardNavbar() {
             <img alt="Logo" src={IconLogo.src} className="h-6 sm:h-9" />
         </Navbar.Brand>
         <Navbar.Collapse>
-            <Navbar.Link href="/dashboard">Empresas</Navbar.Link>
-            <Navbar.Link href="/dashboard/productos">Productos y Servicios</Navbar.Link>
-            <Navbar.Link href="/dashboard/chat">Chat</Navbar.Link>
+            <Navbar.Link href="/empresas">Empresas</Navbar.Link>
+            <Navbar.Link href="/productos">Productos y Servicios</Navbar.Link>
+            {/* <Navbar.Link href="/dashboard/chat">Chat</Navbar.Link> */}
         </Navbar.Collapse>
       </div>
     </Navbar>

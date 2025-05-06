@@ -2,21 +2,28 @@
 
 import { Sidebar, Button } from 'flowbite-react';
 import { usePathname, useRouter } from 'next/navigation';
+import { signOut } from 'firebase/auth';
+import { auth } from '@/lib/firebaseConfig';
 import {
-  HiChartPie,
-  HiShoppingBag,
+  HiOutlineShieldExclamation,
   HiUser,
   HiOutlineBell,
   HiMenu,
-  HiX
+  HiX,
+  HiShoppingBag,
+  HiOutlineLogout,
+  HiOutlineUsers
 } from 'react-icons/hi';
 import { useState, useEffect } from 'react';
+import { useAuth } from '@/context/AuthContext';
 
 export default function DashboardSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const { user } = useAuth();
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   // Detectar si estamos en móvil
   useEffect(() => {
@@ -32,6 +39,25 @@ export default function DashboardSidebar() {
     };
   }, []);
 
+  // Obtener el rol del usuario
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      if (user) {
+        try {
+          const response = await fetch(`/api/profile/get?userId=${user.uid}`);
+          const data = await response.json();
+          if (data.success) {
+            setUserRole(data.data.user.role);
+          }
+        } catch (error) {
+          console.error('Error al obtener el rol del usuario:', error);
+        }
+      }
+    };
+
+    fetchUserRole();
+  }, [user]);
+
   // Cerrar sidebar al cambiar de ruta en móvil
   useEffect(() => {
     if (isMobile) {
@@ -39,11 +65,16 @@ export default function DashboardSidebar() {
     }
   }, [pathname, isMobile]);
 
+  const handleLogout = () => {
+    signOut(auth);
+    router.push('/login');
+  };
+
   const menuItems = [
     {
-      href: '/dashboard',
-      icon: HiChartPie,
-      label: 'Dashboard'
+      href: '/dashboard/perfil',
+      icon: HiUser,
+      label: 'Mi Perfil'
     },
     {
       href: '/dashboard/productos',
@@ -51,16 +82,25 @@ export default function DashboardSidebar() {
       label: 'Productos y Servicios'
     },
     {
-      href: '/dashboard/perfil',
-      icon: HiUser,
-      label: 'Perfil'
-    },
-    {
       href: '/dashboard/notificaciones',
       icon: HiOutlineBell,
       label: 'Notificaciones'
+    },
+    {
+      href: '/dashboard/seguridad',
+      icon: HiOutlineShieldExclamation,
+      label: 'Seguridad'
     }
   ];
+
+  // Agregar la opción de Usuarios y Permisos solo si el usuario es admin
+  if (userRole === 'admin') {
+    menuItems.push({
+      href: '/dashboard/usuarios',
+      icon: HiOutlineUsers,
+      label: 'Usuarios y Permisos'
+    });
+  }
 
   const sidebarContent = (
     <Sidebar className="w-full md:w-64">
@@ -82,6 +122,16 @@ export default function DashboardSidebar() {
               {item.label}
             </Sidebar.Item>
           ))}
+        </Sidebar.ItemGroup>
+        <Sidebar.ItemGroup>
+          <Sidebar.Item
+            icon={HiOutlineLogout}
+            onClick={handleLogout}
+            className="cursor-pointer"
+            as="div"
+            >
+            Cerrar sesión
+          </Sidebar.Item>
         </Sidebar.ItemGroup>
       </Sidebar.Items>
     </Sidebar>

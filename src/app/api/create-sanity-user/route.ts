@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server'
-import { sanityClient } from '@/lib/sanity.client'
+import { getAuthenticatedClient } from '@/lib/sanity.client'
+import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(request: Request) {
   try {
+    const client = getAuthenticatedClient();
     const {
       nameCompany,
       businessName,
@@ -30,7 +32,6 @@ export async function POST(request: Request) {
       photo
     } = await request.json()
 
-    // Verificar que las imágenes estén presentes
     if (!logo || !photo) {
       return NextResponse.json(
         { message: 'Logo y foto son requeridos' },
@@ -38,8 +39,14 @@ export async function POST(request: Request) {
       )
     }
 
-    const result = await sanityClient.create({
-      _type: 'user',
+    // Generar IDs de borrador
+    const companyDraftId = `drafts.${uuidv4()}`;
+    const userDraftId = `drafts.${uuidv4()}`;
+
+    // Crear empresa como borrador
+    const companyDoc = await client.create({
+      _id: companyDraftId,
+      _type: 'company',
       nameCompany,
       businessName,
       typeDocumentCompany,
@@ -47,6 +54,21 @@ export async function POST(request: Request) {
       ciiu,
       webSite,
       addressCompany,
+      logo,
+      facebook,
+      instagram,
+      tiktok,
+      pinterest,
+      linkedin,
+      xtwitter,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    })
+
+    // Crear usuario como borrador y referencia a la empresa borrador
+    const userDoc = await client.create({
+      _id: userDraftId,
+      _type: 'user',
       firstName,
       lastName,
       email,
@@ -55,21 +77,22 @@ export async function POST(request: Request) {
       numDocument,
       pronoun,
       position,
-      facebook,
-      instagram,
-      tiktok,
-      pinterest,
-      linkedin,
-      xtwitter,
       firebaseUid,
-      logo,
       photo,
+      company: {
+        _type: 'reference',
+        _ref: companyDraftId
+      },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     })
 
     return NextResponse.json(
-      { message: 'Usuario creado exitosamente', user: result },
+      { 
+        message: 'Usuario creado exitosamente', 
+        user: userDoc,
+        company: companyDoc 
+      },
       { status: 201 }
     )
   } catch (error) {

@@ -4,7 +4,6 @@ import {
   Button,
   Tabs,
   TextInput,
-  Label,
   Select,
   Table,
   Modal,
@@ -21,16 +20,9 @@ import {
 import ProductServiceForm from "@/components/ProductServiceForm";
 import toast from "react-hot-toast";
 import { useAuth } from "@/context/AuthContext";
-import { useEffect } from "react";
-import { sanityClient } from "@/lib/sanity.client";
+import { SanityImage } from "@/types/index";
+import { SanityProductDocument, SanityServiceDocument } from "@/types/sanity";
 
-interface SanityImage {
-  _type: string;
-  asset: {
-    _ref: string;
-    _type: string;
-  };
-}
 interface ProductServiceData {
   _id?: string;
   name: string;
@@ -48,40 +40,14 @@ interface ProductServiceData {
   availability?: string;
 }
 
-interface SanityProduct {
-  _id: string;
-  name: string;
-  description?: string;
-  category: string;
-  price?: number;
-  status: string;
-  sku?: string;
-  images: SanityImage[];
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface SanityService {
-  _id: string;
-  name: string;
-  description?: string;
-  category: string;
-  price?: number;
-  status: string;
-  duration?: string;
-  modality?: string;
-  availability?: string;
-  images: SanityImage[];
-  createdAt: string;
-  updatedAt: string;
-}
-
 interface ProductsViewProps {
   initialData: {
-    products: SanityProduct[];
-    services: SanityService[];
+    products: SanityProductDocument[];
+    services: SanityServiceDocument[];
   };
 }
+
+type SanityImageWithKey = SanityImage & { _key?: string };
 
 const getStatusLabel = (status: string): string => {
   const statusMap: { [key: string]: string } = {
@@ -113,10 +79,10 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
   const [showModal, setShowModal] = useState(false);
   const [formType, setFormType] = useState<"product" | "service">("product");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [products, setProducts] = useState<SanityProduct[]>(
+  const [products, setProducts] = useState<SanityProductDocument[]>(
     initialData.products
   );
-  const [services, setServices] = useState<SanityService[]>(
+  const [services, setServices] = useState<SanityServiceDocument[]>(
     initialData.services
   );
 
@@ -132,23 +98,25 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
   // Estado para manejar la ventana de confirmación
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<
-    SanityProduct | SanityService | null
+    SanityProductDocument | SanityServiceDocument | null
   >(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Estado para manejar la edición
-  const [itemToEdit, setItemToEdit] = useState<SanityProduct | SanityService | null>(null);
+  const [itemToEdit, setItemToEdit] = useState<SanityProductDocument | SanityServiceDocument | null>(null);
 
   const handleAdd = (type: "product" | "service") => {
     setFormType(type);
+    setItemToEdit(null);
     setShowModal(true);
   };
 
-  const handleEdit = (item: SanityProduct | SanityService) => {
+  const handleEdit = (item: SanityProductDocument | SanityServiceDocument) => {
     if(!item) return;
     
-    // Preparar los datos para el formulario
-    const imagesPreviews = item.images.map(img => 
+    // Filtrar solo imágenes válidas
+    const validImages = item.images.filter(img => img && img.asset && img.asset._ref);
+    const imagesPreviews = validImages.map(img =>
       `https://cdn.sanity.io/images/${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID}/${process.env.NEXT_PUBLIC_SANITY_DATASET}/${img.asset._ref
         .replace("image-", "")
         .replace("-jpg", ".jpg")
@@ -168,7 +136,7 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
       category: item.category,
       price: item.price,
       status: item.status,
-      images: item.images as (File | SanityImage)[],
+      images: validImages as (File | SanityImage)[],
       imagesPreviews: imagesPreviews
     };
     
@@ -176,7 +144,7 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
     if (isProduct && 'sku' in item) {
       formData.sku = item.sku;
     } else if (!isProduct) {
-      const serviceItem = item as SanityService;
+      const serviceItem = item as SanityServiceDocument;
       formData.duration = serviceItem.duration;
       formData.modality = serviceItem.modality;
       formData.availability = serviceItem.availability;
@@ -186,7 +154,7 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
     setShowModal(true);
   };
 
-  const handleDeleteClick = (item: SanityProduct | SanityService) => {
+  const handleDeleteClick = (item: SanityProductDocument | SanityServiceDocument) => {
     setItemToDelete(item);
     setShowConfirmModal(true);
   };
@@ -196,25 +164,31 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
 
     setIsDeleting(true);
     try {
-      // Eliminar el elemento de Sanity
-      await sanityClient.delete(itemToDelete._id);
+      const isProduct = "sku" in itemToDelete;
+      const endpoint = isProduct ? "/api/products" : "/api/services";
 
-      // Actualizar la lista local
-      if ("sku" in itemToDelete) {
-        // Es un producto
-        setProducts((prev) =>
-          prev.filter((product) => product._id !== itemToDelete._id)
-        );
-      } else {
-        // Es un servicio
-        setServices((prev) =>
-          prev.filter((service) => service._id !== itemToDelete._id)
-        );
+      const response = await fetch(endpoint, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: itemToDelete._id
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Error al eliminar");
       }
 
-      toast.success(
-        `${"sku" in itemToDelete ? "Producto" : "Servicio"} eliminado correctamente`
-      );
+      // Actualizar el estado local
+      if (isProduct) {
+        setProducts(products.filter(p => p._id !== itemToDelete._id));
+      } else {
+        setServices(services.filter(s => s._id !== itemToDelete._id));
+      }
+
+      toast.success("Elemento eliminado correctamente");
     } catch (error) {
       console.error("Error al eliminar:", error);
       toast.error("Error al eliminar el elemento");
@@ -230,354 +204,322 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
     setItemToDelete(null);
   };
 
-  useEffect(() => {
-    if (initialData.products.length > 0 || initialData.services.length > 0) {
-      setProducts(initialData.products);
-      setServices(initialData.services);
-      console.log(
-        "Productos y servicios iniciales cargados:",
-        initialData.products,
-        initialData.services
-      );
+  // Función para limpiar los datos antes de enviar al backend
+  function cleanRequestData(data: ProductServiceData, type: "product" | "service") {
+    const commonFields = {
+      name: data.name,
+      description: data.description,
+      category: data.category,
+      price: data.price,
+      status: data.status,
+      images: data.images,
+    };
+    if (type === "product") {
+      return {
+        ...commonFields,
+        sku: data.sku,
+      };
+    } else {
+      return {
+        ...commonFields,
+        duration: data.duration,
+        modality: data.modality,
+        availability: data.availability,
+      };
     }
-  }, [initialData]);
+  }
 
   const handleSubmit = async (data: ProductServiceData) => {
-    if (!user) {
-      toast.error("Debes iniciar sesión para crear un producto o servicio");
-      return;
-    }
-
     setIsSubmitting(true);
     try {
-      // 1. Subir imágenes a Sanity
-      const uploadedImages = await Promise.all(
-        data.images.map(async (file) => {
-          // Si el archivo ya es un objeto de Sanity (tiene _type y asset), lo devolvemos tal cual
-          if (typeof file === 'object' && file !== null && '_type' in file) {
-            return file;
-          }
-          
-          return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-              try {
-                const base64Data = e.target?.result as string;
-                const fileType = file.type.split("/")[1];
+      const isProduct = formType === "product";
+      const endpoint = isProduct ? "/api/products" : "/api/services";
 
-                console.log("Intentando subir imagen:", {
-                  fileName: file.name,
-                  fileType: fileType,
-                  base64Length: base64Data.length,
-                });
-
-                const response = await fetch("/api/upload-image", {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify({
-                    file: base64Data,
-                    fileType: fileType,
-                  }),
-                });
-
-                const responseData = await response.json();
-
-                if (!response.ok) {
-                  throw new Error(
-                    responseData.message ||
-                      `Error al subir la imagen ${file.name}`
-                  );
-                }
-
-                console.log("Imagen subida exitosamente:", file.name);
-                resolve(responseData);
-              } catch (error) {
-                console.error("Error en la subida de imagen:", error);
-                reject(new Error(`Error al subir la imagen ${file.name}`));
-              }
+      // Si hay imágenes, procesarlas primero
+      let processedImages = data.images;
+      if (data.images.length > 0) {
+        const imageAssets = await Promise.all(
+          data.images.map(async (image) => {
+            if (image instanceof File) {
+              // Subir la imagen usando el endpoint de la API local
+              const formData = new FormData();
+              formData.append("image", image);
+              const uploadRes = await fetch("/api/upload-image", {
+                method: "POST",
+                body: formData,
+              });
+              if (!uploadRes.ok) throw new Error("Error al subir la imagen");
+              const uploadData = await uploadRes.json();
+              // Guardar la estructura completa de imagen y agregar _key único
+              return {
+                _type: "image",
+                asset: uploadData.asset,
+                _key: crypto.randomUUID(),
+              };
+            }
+            // Si ya es una imagen de Sanity, asegúrate de que tenga _key
+            const imgTyped = image as SanityImageWithKey;
+            return {
+              ...imgTyped,
+              _key: imgTyped._key || crypto.randomUUID(),
             };
-            reader.onerror = () => {
-              console.error("Error al leer el archivo:", file.name);
-              reject(new Error(`Error al leer el archivo ${file.name}`));
-            };
-            reader.readAsDataURL(file);
-          });
-        })
-      );
-
-      // Determinar si estamos creando o actualizando
-      const isEditing = itemToEdit !== null;
-      const endpoint = isEditing ? "/api/update-product-service" : "/api/create-product-service";
-      
-      // 2. Crear o actualizar el producto o servicio en Sanity
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          type: formType,
-          ...data,
-          images: uploadedImages,
-          userId: user.uid,
-          ...(isEditing && { id: itemToEdit._id }) // Incluir ID si estamos editando
-        }),
-      });
-
-      const responseData = await response.json();
-
-      if (!response.ok) {
-        throw new Error(responseData.message || `Error al ${isEditing ? 'actualizar' : 'crear'} el documento`);
+          })
+        );
+        processedImages = imageAssets;
       }
 
-      // 3. Actualizar el estado local
-      if (isEditing) {
-        // Actualizar el elemento existente
-        if (formType === "product") {
-          setProducts(prev => 
-            prev.map(item => item._id === itemToEdit._id ? responseData.data : item)
+      // Limpiar los datos antes de enviar
+      const requestData = cleanRequestData({
+        ...data,
+        images: processedImages,
+        price: data.price ? Number(data.price) : undefined,
+      }, formType);
+
+      if (itemToEdit) {
+        // Actualizar
+        const response = await fetch("/api/update-product-service", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            id: itemToEdit._id,
+            data: requestData,
+            userId: user?.uid
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Error al actualizar");
+        }
+
+        const result = await response.json();
+        
+        // Actualizar estado local
+        if (isProduct) {
+          setProducts(
+            products.map((p) =>
+              p._id === itemToEdit._id
+                ? result.data as SanityProductDocument
+                : p
+            )
           );
         } else {
-          setServices(prev => 
-            prev.map(item => item._id === itemToEdit._id ? responseData.data : item)
+          setServices(
+            services.map((s) =>
+              s._id === itemToEdit._id
+                ? result.data as SanityServiceDocument
+                : s
+            )
           );
         }
-        toast.success(`${formType === "product" ? "Producto" : "Servicio"} actualizado correctamente`);
+
+        toast.success("Elemento actualizado correctamente");
       } else {
-        // Agregar el nuevo elemento
-        if (formType === "product") {
-          setProducts(prev => [...prev, responseData.data]);
-        } else {
-          setServices(prev => [...prev, responseData.data]);
+        // Crear
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            data: requestData,
+            userId: user?.uid
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Error al crear");
         }
-        toast.success(`${formType === "product" ? "Producto" : "Servicio"} creado correctamente`);
+
+        const result = await response.json();
+        
+        // Actualizar estado local
+        if (isProduct) {
+          setProducts([...products, result.data as SanityProductDocument]);
+        } else {
+          setServices([...services, result.data as SanityServiceDocument]);
+        }
+
+        toast.success("Elemento creado correctamente");
       }
-      
-      // Limpiar el estado de edición y cerrar el modal
-      setItemToEdit(null);
+
       setShowModal(false);
+      setItemToEdit(null);
     } catch (error) {
       console.error("Error al guardar:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "Error al guardar los datos";
-      toast.error(errorMessage);
+      toast.error("Error al guardar el elemento");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Filtrar productos
-  const filteredProducts = products.filter((product) => {
-    const matchesSearch = product.name
-      .toLowerCase()
-      .includes(productSearch.toLowerCase());
-    const matchesCategory = productCategory
-      ? product.category === productCategory
-      : true;
-    const matchesStatus = productStatus
-      ? product.status === productStatus
-      : true;
-
-    return matchesSearch && matchesCategory && matchesStatus;
-  });
-
-  // Filtrar servicios
-  const filteredServices = services.filter((service) => {
-    const matchesSearch = service.name
-      .toLowerCase()
-      .includes(serviceSearch.toLowerCase());
-    const matchesCategory = serviceCategory
-      ? service.category === serviceCategory
-      : true;
-    const matchesStatus = serviceStatus
-      ? service.status === serviceStatus
-      : true;
-
-    return matchesSearch && matchesCategory && matchesStatus;
-  });
-
   const renderGridView = (type: "product" | "service") => {
-    const items = type === "product" ? filteredProducts : filteredServices;
+    const items = type === "product" ? products : services;
+    const search = type === "product" ? productSearch : serviceSearch;
+    const category = type === "product" ? productCategory : serviceCategory;
+    const status = type === "product" ? productStatus : serviceStatus;
+
+    const filteredItems = items.filter((item) => {
+      const matchesSearch = item.name
+        .toLowerCase()
+        .includes(search.toLowerCase());
+      const matchesCategory =
+        !category || item.category === category;
+      const matchesStatus = !status || item.status === status;
+      return matchesSearch && matchesCategory && matchesStatus;
+    });
 
     return (
-      <>
-        {/* Modal de confirmación */}
-        <Modal
-          show={showConfirmModal}
-          size="md"
-          onClose={handleCancelDelete}
-          popup
-        >
-          <Modal.Header />
-          <Modal.Body>
-            <div className="text-center">
-              <h3 className="mb-5 text-lg font-normal text-gray-500">
-                ¿Estás seguro de que deseas eliminar este{" "}
-                {itemToDelete && "sku" in itemToDelete
-                  ? "producto"
-                  : "servicio"}
-                ?
-              </h3>
-              <div className="flex justify-center gap-4">
-                <Button
-                  color="failure"
-                  onClick={handleConfirmDelete}
-                  disabled={isDeleting}
-                >
-                  {isDeleting ? (
-                    <>
-                      <Spinner size="sm" className="mr-2" />
-                      Eliminando...
-                    </>
-                  ) : (
-                    "Sí, eliminar"
-                  )}
-                </Button>
-                <Button color="gray" onClick={handleCancelDelete}>
-                  Cancelar
-                </Button>
-              </div>
-            </div>
-          </Modal.Body>
-        </Modal>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {items.map((item) => (
-            <div
-              key={item._id}
-              className="border border-gray-200 rounded-lg p-4 hover:shadow-lg transition-shadow"
-            >
-              <div className="aspect-square bg-gray-100 rounded-lg mb-4 flex items-center justify-center">
-                {item.images[0] ? (
-                  <img
-                    src={`https://cdn.sanity.io/images/${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID}/${process.env.NEXT_PUBLIC_SANITY_DATASET}/${item.images[0].asset._ref.replace("image-", "").replace("-jpg", ".jpg").replace("-png", ".png").replace("-webp", ".webp")}`}
-                    alt={item.name}
-                    className="w-full h-full object-cover rounded-lg"
-                  />
-                ) : (
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {filteredItems.map((item) => (
+          <div
+            key={item._id}
+            className="bg-white rounded-lg shadow-md overflow-hidden"
+          >
+            <div className="relative h-48">
+              {item.images && item.images.length > 0 && item.images[0].asset && item.images[0].asset._ref ? (
+                <img
+                  src={`https://cdn.sanity.io/images/${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID}/${process.env.NEXT_PUBLIC_SANITY_DATASET}/${item.images[0].asset._ref
+                    .replace("image-", "")
+                    .replace("-jpg", ".jpg")
+                    .replace("-png", ".png")
+                    .replace("-webp", ".webp")}`}
+                  alt={item.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
                   <span className="text-gray-400">Sin imagen</span>
-                )}
+                </div>
+              )}
+            </div>
+            <div className="p-4">
+              <h3 className="text-lg font-semibold mb-2">{item.name}</h3>
+              <p className="text-gray-600 text-sm mb-2">
+                {item.description || "Sin descripción"}
+              </p>
+              <div className="flex justify-between items-center">
+                <span className="text-blue-600 font-semibold">
+                  {item.price
+                    ? `$${item.price.toLocaleString()}`
+                    : "Precio no especificado"}
+                </span>
+                <span
+                  className={`px-2 py-1 rounded-full text-xs ${getStatusStyle(
+                    item.status
+                  )}`}
+                >
+                  {getStatusLabel(item.status)}
+                </span>
               </div>
-              <h3 className="font-semibold mb-2">{item.name}</h3>
-              <p className="text-sm text-gray-600 mb-2">
-                Categoría: {item.category}
-              </p>
-              <p className="text-sm text-gray-600 mb-4">
-                Estado: {getStatusLabel(item.status)}
-              </p>
-              <div className="flex justify-end gap-2">
-                <Button onClick={() => handleEdit(item)} size="xs" color="gray">
+              <div className="mt-4 flex justify-end space-x-2">
+                <Button
+                  size="xs"
+                  color="info"
+                  onClick={() => handleEdit(item)}
+                >
                   Editar
                 </Button>
                 <Button
                   size="xs"
-                  onClick={() => handleDeleteClick(item)}
                   color="failure"
+                  onClick={() => handleDeleteClick(item)}
                 >
                   Eliminar
                 </Button>
               </div>
             </div>
-          ))}
-        </div>
-      </>
+          </div>
+        ))}
+      </div>
     );
   };
 
   const renderListView = (type: "product" | "service") => {
-    const items = type === "product" ? filteredProducts : filteredServices;
+    const items = type === "product" ? products : services;
+    const search = type === "product" ? productSearch : serviceSearch;
+    const category = type === "product" ? productCategory : serviceCategory;
+    const status = type === "product" ? productStatus : serviceStatus;
+
+    const filteredItems = items.filter((item) => {
+      const matchesSearch = item.name
+        .toLowerCase()
+        .includes(search.toLowerCase());
+      const matchesCategory =
+        !category || item.category === category;
+      const matchesStatus = !status || item.status === status;
+      return matchesSearch && matchesCategory && matchesStatus;
+    });
 
     return (
-      <>
-        <Modal
-          show={showConfirmModal}
-          size="md"
-          onClose={handleCancelDelete}
-          popup
-        >
-          <Modal.Header />
-          <Modal.Body>
-            <div className="text-center">
-              <h3 className="mb-5 text-lg font-normal text-gray-500">
-                ¿Estás seguro de que deseas eliminar este{" "}
-                {itemToDelete && "sku" in itemToDelete
-                  ? "producto"
-                  : "servicio"}
-                ?
-              </h3>
-              <div className="flex justify-center gap-4">
-                <Button
-                  color="failure"
-                  onClick={handleConfirmDelete}
-                  disabled={isDeleting}
+      <Table>
+        <Table.Head>
+          <Table.HeadCell>Imagen</Table.HeadCell>
+          <Table.HeadCell>Nombre</Table.HeadCell>
+          <Table.HeadCell>Descripción</Table.HeadCell>
+          <Table.HeadCell>Precio</Table.HeadCell>
+          <Table.HeadCell>Estado</Table.HeadCell>
+          <Table.HeadCell>Acciones</Table.HeadCell>
+        </Table.Head>
+        <Table.Body>
+          {filteredItems.map((item) => (
+            <Table.Row key={item._id}>
+              <Table.Cell>
+                {item.images && item.images.length > 0 && item.images[0].asset && item.images[0].asset._ref ? (
+                  <img
+                    src={`https://cdn.sanity.io/images/${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID}/${process.env.NEXT_PUBLIC_SANITY_DATASET}/${item.images[0].asset._ref
+                      .replace("image-", "")
+                      .replace("-jpg", ".jpg")
+                      .replace("-png", ".png")
+                      .replace("-webp", ".webp")}`}
+                    alt={item.name}
+                    className="w-16 h-16 object-cover rounded"
+                  />
+                ) : (
+                  <div className="w-16 h-16 bg-gray-200 rounded flex items-center justify-center">
+                    <span className="text-gray-400 text-xs">Sin imagen</span>
+                  </div>
+                )}
+              </Table.Cell>
+              <Table.Cell>{item.name}</Table.Cell>
+              <Table.Cell>{item.description || "Sin descripción"}</Table.Cell>
+              <Table.Cell>
+                {item.price
+                  ? `$${item.price.toLocaleString()}`
+                  : "Precio no especificado"}
+              </Table.Cell>
+              <Table.Cell>
+                <span
+                  className={`px-2 py-1 rounded-full text-xs ${getStatusStyle(
+                    item.status
+                  )}`}
                 >
-                  {isDeleting ? (
-                    <>
-                      <Spinner size="sm" className="mr-2" />
-                      Eliminando...
-                    </>
-                  ) : (
-                    "Sí, eliminar"
-                  )}
-                </Button>
-                <Button color="gray" onClick={handleCancelDelete}>
-                  Cancelar
-                </Button>
-              </div>
-            </div>
-          </Modal.Body>
-        </Modal>
-        <div className="overflow-x-auto">
-          <Table striped>
-            <Table.Head>
-              <Table.HeadCell className="w-[50px]">Imagen</Table.HeadCell>
-              <Table.HeadCell>Nombre</Table.HeadCell>
-              <Table.HeadCell>Categoría</Table.HeadCell>
-              <Table.HeadCell>Estado</Table.HeadCell>
-              <Table.HeadCell>Acciones</Table.HeadCell>
-            </Table.Head>
-            <Table.Body>
-              {items.map((item) => (
-                <Table.Row key={item._id}>
-                  <Table.Cell>
-                    <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                      {item.images[0] ? (
-                        <img
-                          src={`https://cdn.sanity.io/images/${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID}/${process.env.NEXT_PUBLIC_SANITY_DATASET}/${item.images[0].asset._ref.replace("image-", "").replace("-jpg", ".jpg").replace("-png", ".png").replace("-webp", ".webp")}`}
-                          alt={item.name}
-                          className="w-full h-full object-cover rounded-lg"
-                        />
-                      ) : (
-                        <span className="text-xs text-gray-400">Sin img</span>
-                      )}
-                    </div>
-                  </Table.Cell>
-                  <Table.Cell className="font-medium">{item.name}</Table.Cell>
-                  <Table.Cell>{item.category}</Table.Cell>
-                  <Table.Cell>
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs ${getStatusStyle(item.status)}`}
-                    >
-                      {getStatusLabel(item.status)}
-                    </span>
-                  </Table.Cell>
-                  <Table.Cell>
-                    <div className="flex gap-2">
-                      <Button onClick={() => handleEdit(item)} size="xs" color="gray">
-                        Editar
-                      </Button>
-                      <Button onClick={() => handleDeleteClick(item)} size="xs" color="failure">
-                        Eliminar
-                      </Button>
-                    </div>
-                  </Table.Cell>
-                </Table.Row>
-              ))}
-            </Table.Body>
-          </Table>
-        </div>
-      </>
+                  {getStatusLabel(item.status)}
+                </span>
+              </Table.Cell>
+              <Table.Cell>
+                <div className="flex space-x-2">
+                  <Button
+                    size="xs"
+                    color="info"
+                    onClick={() => handleEdit(item)}
+                  >
+                    Editar
+                  </Button>
+                  <Button
+                    size="xs"
+                    color="failure"
+                    onClick={() => handleDeleteClick(item)}
+                  >
+                    Eliminar
+                  </Button>
+                </div>
+              </Table.Cell>
+            </Table.Row>
+          ))}
+        </Table.Body>
+      </Table>
     );
   };
 
@@ -585,211 +527,173 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
     currentView: "grid" | "list",
     onChange: (view: "grid" | "list") => void
   ) => (
-    <div className="w-full md:w-auto md:self-end">
-      <div className="flex gap-2 justify-end">
-        <Button
-          color={currentView === "grid" ? "light" : "gray"}
-          onClick={() => onChange("grid")}
-          size="sm"
-          className={`hover:bg-gray-100 ${currentView === "grid" ? "bg-gray-100 text-gray-800" : "text-gray-500"}`}
-        >
-          <HiViewGrid className="h-5 w-5" />
-        </Button>
-        <Button
-          color={currentView === "list" ? "light" : "gray"}
-          onClick={() => onChange("list")}
-          size="sm"
-          className={`hover:bg-gray-100 ${currentView === "list" ? "bg-gray-100 text-gray-800" : "text-gray-500"}`}
-        >
-          <HiViewList className="h-5 w-5" />
-        </Button>
-      </div>
+    <div className="flex space-x-2">
+      <Button
+        size="xs"
+        color={currentView === "grid" ? "info" : "gray"}
+        onClick={() => onChange("grid")}
+      >
+        <HiViewGrid className="h-4 w-4" />
+      </Button>
+      <Button
+        size="xs"
+        color={currentView === "list" ? "info" : "gray"}
+        onClick={() => onChange("list")}
+      >
+        <HiViewList className="h-4 w-4" />
+      </Button>
     </div>
   );
 
   return (
     <div className="flex container mx-auto mt-10">
       <DashboardSidebar />
-      <main className="w-3/3 xl:w-3/4 pl-10">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">
-            Gestión de Servicios y Productos
-          </h1>
-        </div>
-
-        <div className="border-b border-gray-200">
-          <Tabs className="!border-none">
-            <Tabs.Item
-              title="Productos"
-              className="!p-4 data-[active=true]:!text-blue-600 data-[active=true]:!border-b-2 data-[active=true]:!border-blue-600"
-            >
-              <div className="mt-5">
-                <div className="flex flex-col md:flex-row gap-4 mb-6">
-                  <div className="flex-1 flex flex-col md:flex-row gap-4">
-                    <div className="w-full md:w-1/3">
-                      <Label htmlFor="search">Buscar</Label>
-                      <TextInput
-                        id="search"
-                        type="text"
-                        icon={HiOutlineSearch}
-                        placeholder="Buscar productos..."
-                        value={productSearch}
-                        onChange={(e) => setProductSearch(e.target.value)}
-                      />
-                    </div>
-                    <div className="w-full md:w-1/3">
-                      <Label htmlFor="category">Categoría</Label>
-                      <Select
-                        id="category"
-                        value={productCategory}
-                        onChange={(e) => setProductCategory(e.target.value)}
-                      >
-                        <option value="">Todas las categorías</option>
-                        <option value="tecnologia">Tecnología</option>
-                        <option value="hogar">Hogar</option>
-                        <option value="oficina">Oficina</option>
-                      </Select>
-                    </div>
-                    <div className="w-full md:w-1/3">
-                      <Label htmlFor="status">Estado</Label>
-                      <Select
-                        id="status"
-                        value={productStatus}
-                        onChange={(e) => setProductStatus(e.target.value)}
-                      >
-                        <option value="">Todos los estados</option>
-                        <option value="active">Activo</option>
-                        <option value="inactive">Inactivo</option>
-                        <option value="draft">Borrador</option>
-                      </Select>
-                    </div>
-                  </div>
-                  <div className="flex items-end gap-2 md:min-w-[200px]">
-                    {renderViewToggle(viewMode, setViewMode)}
-                    <Button
-                      color="blue"
-                      onClick={() => handleAdd("product")}
-                      className="flex-shrink-0"
-                    >
-                      <HiPlus className="h-5 w-5" />
-                    </Button>
-                  </div>
-                </div>
-
-                {viewMode === "grid"
-                  ? renderGridView("product")
-                  : renderListView("product")}
+      <main className="flex-1 ml-8">
+        <Tabs>
+          <Tabs.Item active title="Productos">
+            <div className="mb-4 flex justify-between items-center">
+              <div className="flex space-x-4">
+                <TextInput
+                  icon={HiOutlineSearch}
+                  placeholder="Buscar productos..."
+                  value={productSearch}
+                  onChange={(e) => setProductSearch(e.target.value)}
+                />
+                <Select
+                  value={productCategory}
+                  onChange={(e) => setProductCategory(e.target.value)}
+                >
+                  <option value="">Todas las categorías</option>
+                  <option value="ropa">Ropa</option>
+                  <option value="accesorios">Accesorios</option>
+                  <option value="calzado">Calzado</option>
+                </Select>
+                <Select
+                  value={productStatus}
+                  onChange={(e) => setProductStatus(e.target.value)}
+                >
+                  <option value="">Todos los estados</option>
+                  <option value="active">Activo</option>
+                  <option value="inactive">Inactivo</option>
+                  <option value="draft">Borrador</option>
+                </Select>
               </div>
-            </Tabs.Item>
-
-            <Tabs.Item
-              title="Servicios"
-              className="!p-4 data-[active=true]:!text-blue-600 data-[active=true]:!border-b-2 data-[active=true]:!border-blue-600"
-            >
-              <div className="mt-5">
-                <div className="flex flex-col md:flex-row gap-4 mb-6">
-                  <div className="flex-1 flex flex-col md:flex-row gap-4">
-                    <div className="w-full md:w-1/3">
-                      <Label htmlFor="search-services">Buscar</Label>
-                      <TextInput
-                        id="search-services"
-                        type="text"
-                        icon={HiOutlineSearch}
-                        placeholder="Buscar servicios..."
-                        value={serviceSearch}
-                        onChange={(e) => setServiceSearch(e.target.value)}
-                      />
-                    </div>
-                    <div className="w-full md:w-1/3">
-                      <Label htmlFor="service-category">Categoría</Label>
-                      <Select
-                        id="service-category"
-                        value={serviceCategory}
-                        onChange={(e) => setServiceCategory(e.target.value)}
-                      >
-                        <option value="">Todas las categorías</option>
-                        <option value="consultoria">Consultoría</option>
-                        <option value="desarrollo">Desarrollo</option>
-                        <option value="diseno">Diseño</option>
-                      </Select>
-                    </div>
-                    <div className="w-full md:w-1/3">
-                      <Label htmlFor="service-status">Estado</Label>
-                      <Select
-                        id="service-status"
-                        value={serviceStatus}
-                        onChange={(e) => setServiceStatus(e.target.value)}
-                      >
-                        <option value="">Todos los estados</option>
-                        <option value="active">Activo</option>
-                        <option value="inactive">Inactivo</option>
-                        <option value="draft">Borrador</option>
-                      </Select>
-                    </div>
-                  </div>
-                  <div className="flex items-end gap-2 md:min-w-[200px]">
-                    {renderViewToggle(servicesViewMode, setServicesViewMode)}
-                    <Button
-                      color="blue"
-                      onClick={() => handleAdd("service")}
-                      className="flex-shrink-0"
-                    >
-                      <HiPlus className="h-5 w-5" />
-                    </Button>
-                  </div>
-                </div>
-
-                {servicesViewMode === "grid"
-                  ? renderGridView("service")
-                  : renderListView("service")}
+              <div className="flex items-center space-x-4">
+                {renderViewToggle(viewMode, setViewMode)}
+                <Button onClick={() => handleAdd("product")}>
+                  <HiPlus className="mr-2 h-5 w-5" />
+                  Nuevo Producto
+                </Button>
               </div>
-            </Tabs.Item>
-          </Tabs>
-        </div>
+            </div>
+            {viewMode === "grid" ? renderGridView("product") : renderListView("product")}
+          </Tabs.Item>
+          <Tabs.Item title="Servicios">
+            <div className="mb-4 flex justify-between items-center">
+              <div className="flex space-x-4">
+                <TextInput
+                  icon={HiOutlineSearch}
+                  placeholder="Buscar servicios..."
+                  value={serviceSearch}
+                  onChange={(e) => setServiceSearch(e.target.value)}
+                />
+                <Select
+                  value={serviceCategory}
+                  onChange={(e) => setServiceCategory(e.target.value)}
+                >
+                  <option value="">Todas las categorías</option>
+                  <option value="consultoria">Consultoría</option>
+                  <option value="capacitacion">Capacitación</option>
+                  <option value="asesoramiento">Asesoramiento</option>
+                </Select>
+                <Select
+                  value={serviceStatus}
+                  onChange={(e) => setServiceStatus(e.target.value)}
+                >
+                  <option value="">Todos los estados</option>
+                  <option value="active">Activo</option>
+                  <option value="inactive">Inactivo</option>
+                  <option value="draft">Borrador</option>
+                </Select>
+              </div>
+              <div className="flex items-center space-x-4">
+                {renderViewToggle(servicesViewMode, setServicesViewMode)}
+                <Button onClick={() => handleAdd("service")}>
+                  <HiPlus className="mr-2 h-5 w-5" />
+                  Nuevo Servicio
+                </Button>
+              </div>
+            </div>
+            {servicesViewMode === "grid"
+              ? renderGridView("service")
+              : renderListView("service")}
+          </Tabs.Item>
+        </Tabs>
 
-        <Modal show={showModal} size="4xl" onClose={() => {
-          setShowModal(false);
-          setItemToEdit(null);
-          setFormType("product");
-        }}>
+        <Modal show={showModal} onClose={() => setShowModal(false)} size="xl">
           <Modal.Header>
-            {itemToEdit 
+            {itemToEdit
               ? `Editar ${formType === "product" ? "Producto" : "Servicio"}`
-              : `Agregar ${formType === "product" ? "Producto" : "Servicio"}`}
+              : `Nuevo ${formType === "product" ? "Producto" : "Servicio"}`}
           </Modal.Header>
           <Modal.Body>
             <ProductServiceForm
               type={formType}
-              onSubmit={handleSubmit as (data: ProductServiceData) => void}
-              onCancel={() => {
-                setShowModal(false);
-                setItemToEdit(null);
-                setFormType("product");
-              }}
-              isLoading={isSubmitting}
               initialData={itemToEdit ? {
+                _id: itemToEdit._id,
                 name: itemToEdit.name,
                 description: itemToEdit.description,
                 category: itemToEdit.category,
                 price: itemToEdit.price,
                 status: itemToEdit.status,
-                images: itemToEdit.images as (File | SanityImage)[],
-                imagesPreviews: itemToEdit.images.map(img => 
-                  `https://cdn.sanity.io/images/${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID}/${process.env.NEXT_PUBLIC_SANITY_DATASET}/${img.asset._ref
-                    .replace("image-", "")
-                    .replace("-jpg", ".jpg")
-                    .replace("-png", ".png")
-                    .replace("-webp", ".webp")}`
-                ),
-                ...("sku" in itemToEdit ? { sku: itemToEdit.sku } : {}),
-                ...(!("sku" in itemToEdit) ? {
-                  duration: (itemToEdit as SanityService).duration,
-                  modality: (itemToEdit as SanityService).modality,
-                  availability: (itemToEdit as SanityService).availability
-                } : {})
+                images: itemToEdit.images.filter(img => img.asset !== null) as (File | SanityImage)[],
+                imagesPreviews: itemToEdit.images
+                  .filter(img => img.asset !== null)
+                  .map(img => 
+                    `https://cdn.sanity.io/images/${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID}/${process.env.NEXT_PUBLIC_SANITY_DATASET}/${img.asset?._ref
+                      .replace("image-", "")
+                      .replace("-jpg", ".jpg")
+                      .replace("-png", ".png")
+                      .replace("-webp", ".webp")}`
+                  ),
+                ...(formType === "product"
+                  ? { sku: (itemToEdit as SanityProductDocument).sku }
+                  : {
+                      duration: (itemToEdit as SanityServiceDocument).duration,
+                      modality: (itemToEdit as SanityServiceDocument).modality,
+                      availability: (itemToEdit as SanityServiceDocument).availability,
+                    }),
               } : undefined}
+              onSubmit={handleSubmit}
+              isLoading={isSubmitting}
+              onCancel={() => setShowModal(false)}
             />
           </Modal.Body>
+        </Modal>
+
+        <Modal show={showConfirmModal} onClose={handleCancelDelete} size="md">
+          <Modal.Header>Confirmar eliminación</Modal.Header>
+          <Modal.Body>
+            <p>
+              ¿Estás seguro de que deseas eliminar este elemento? Esta acción no
+              se puede deshacer.
+            </p>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button color="gray" onClick={handleCancelDelete}>
+              Cancelar
+            </Button>
+            <Button color="failure" onClick={handleConfirmDelete}>
+              {isDeleting ? (
+                <>
+                  <Spinner size="sm" className="mr-2" />
+                  Eliminando...
+                </>
+              ) : (
+                "Eliminar"
+              )}
+            </Button>
+          </Modal.Footer>
         </Modal>
       </main>
     </div>

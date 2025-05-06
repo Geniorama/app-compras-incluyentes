@@ -4,7 +4,7 @@ export interface SanityImage {
     asset: {
         _ref: string;
         _type: string;
-    } | null;
+    };
 }
 
 // Tipos base para documentos de Sanity
@@ -69,6 +69,7 @@ export interface UserProfile extends UserData {
     // Los campos de la empresa son opcionales en el perfil
     nameCompany?: string;
     businessName?: string;
+    role?: string;
     typeDocumentCompany?: string;
     numDocumentCompany?: string;
     ciiu?: string;

@@ -19,9 +19,41 @@ export async function GET(request: Request) {
     // Obtener el documento del usuario con su información de empresa
     const userDoc = await client.fetch(
       `*[_type == "user" && firebaseUid == $userId][0]{
-        ...,
+        _id,
+        _type,
+        _rev,
+        _createdAt,
+        _updatedAt,
+        firstName,
+        lastName,
+        email,
+        phone,
+        pronoun,
+        position,
+        typeDocument,
+        numDocument,
+        photo,
+        role,
         company->{
-          ...
+          _id,
+          _type,
+          _rev,
+          _createdAt,
+          _updatedAt,
+          nameCompany,
+          businessName,
+          typeDocumentCompany,
+          numDocumentCompany,
+          ciiu,
+          webSite,
+          addressCompany,
+          logo,
+          facebook,
+          instagram,
+          tiktok,
+          pinterest,
+          linkedin,
+          xtwitter
         }
       }`,
       { userId }

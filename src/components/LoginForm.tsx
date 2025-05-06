@@ -33,6 +33,24 @@ export default function LoginForm() {
 
   const handleLogin = async (data: DataProps) => {
     try {
+      // 1. Validar en Sanity
+      const res = await fetch('/api/check-user-sanity', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: data.email }),
+      });
+      const sanityStatus = await res.json();
+
+      if (!sanityStatus.exists) {
+        setError("Tu usuario no existe en la plataforma.");
+        return;
+      }
+      if (!sanityStatus.published) {
+        setError("Tu usuario aún no ha sido activado por el administrador.");
+        return;
+      }
+
+      // 2. Login normal con Firebase
       const response:UserCredentialExtends = await loginUser(data.email, data.password);
       const token = response.accessToken;
 
@@ -47,7 +65,7 @@ export default function LoginForm() {
         sessionStorage.setItem('authToken', token);
       }
      
-      router.push('/dashboard/profile');
+      router.push('/dashboard/perfil');
     } catch (error: unknown) {
       if (error instanceof Error) {
         setError(error.message);

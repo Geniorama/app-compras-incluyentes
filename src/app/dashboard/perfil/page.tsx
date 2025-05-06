@@ -20,6 +20,7 @@ async function getProfile(userId: string) {
         typeDocument,
         numDocument,
         photo,
+        role,
         company->{
           _id,
           nameCompany,
