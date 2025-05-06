@@ -14,7 +14,7 @@ import InternationalPhoneInput from "@/components/InternationalPhoneInput ";
 import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
 import toast from "react-hot-toast";
-import { updateEmail, sendEmailVerification } from "firebase/auth";
+import { updateEmail, sendEmailVerification, getAuth } from "firebase/auth";
 import { FirebaseError } from "firebase/app";
 import DashboardSidebar from "@/components/DashboardSidebar";
 import type { UserProfile, SanityImage } from "@/types";
@@ -240,9 +240,13 @@ export default function ProfileView({
 
     const handleResendVerification = async () => {
       try {
-        if (user) {
-          await sendEmailVerification(user);
+        const auth = getAuth();
+        const firebaseUser = auth.currentUser;
+        if (firebaseUser) {
+          await sendEmailVerification(firebaseUser);
           toast.success("Se ha enviado un nuevo correo de verificación");
+        } else {
+          toast.error("No se pudo enviar el correo de verificación");
         }
       } catch (error: unknown) {
         if (error instanceof FirebaseError) {
@@ -252,6 +256,7 @@ export default function ProfileView({
           );
         } else {
           toast.error("Error al enviar el correo de verificación");
+          console.error("Error al enviar el correo de verificación:", error);
         }
       }
     };
@@ -267,11 +272,11 @@ export default function ProfileView({
             value={profile?.email || ""}
             onChange={(e) => handleChange("email", e.target.value)}
             disabled={!isVerified}
-            color={isVerified ? "blue" : "gray"}
+            color={"blue"}
             theme={{
               field: {
                 input: {
-                  base: "border-slate-200 focus:border-blue-600 w-full",
+                  base: `border-slate-200 focus:border-blue-600 w-full ${!isVerified ? "bg-gray-50 text-gray-500" : ""}`,
                 },
               },
             }}
