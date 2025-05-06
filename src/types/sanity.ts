@@ -40,5 +40,5 @@ export interface SanityServiceDocument extends SanityDocument {
 
 export interface SanityDocumentStub {
   _type: string;
-  [key: string]: any;
+  [key: string]: unknown;
 } 
