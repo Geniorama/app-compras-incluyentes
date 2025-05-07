@@ -1,6 +1,6 @@
 import nodemailer from 'nodemailer';
 
-export async function sendActivationEmail(email: string, name: string) {
+export async function sendActivationEmail(email: string, name: string, companyName: string) {
   console.log('Iniciando configuración del transporter...');
   console.log('Host:', process.env.SMTP_HOST);
   console.log('Port:', process.env.SMTP_PORT);
@@ -26,10 +26,23 @@ export async function sendActivationEmail(email: string, name: string) {
     const info = await transporter.sendMail({
       from: process.env.SMTP_FROM || 'No-Reply <gerencia@camaradeladiversidad.com>',
       to: email,
-      subject: '¡Tu empresa ha sido activada!',
-      html: `<p>Hola ${name},</p>
-        <p>¡Tu empresa ha sido activada! Ya puedes ingresar a la plataforma.</p>
-        <a href="https://app-compras-incluyentes.vercel.app/login">Iniciar sesión</a>`,
+      subject: `¡${companyName} ha sido activada en la plataforma!`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #333;">¡Bienvenido/a a la plataforma!</h2>
+          <p>Hola ${name},</p>
+          <p>Nos complace informarte que la empresa <strong>${companyName}</strong> ha sido activada en nuestra plataforma de compras incluyentes.</p>
+          <p>Como usuario asociado a esta empresa, ya puedes acceder a todas las funcionalidades de la plataforma.</p>
+          <div style="margin: 30px 0;">
+            <a href="https://app-compras-incluyentes.vercel.app/login" 
+               style="background-color: #4CAF50; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px;">
+              Iniciar sesión
+            </a>
+          </div>
+          <p>Si tienes alguna pregunta o necesitas ayuda, no dudes en contactarnos.</p>
+          <p>Saludos cordiales,<br>Equipo de Compras Incluyentes</p>
+        </div>
+      `,
     });
     
     console.log('Correo de activación enviado exitosamente');
