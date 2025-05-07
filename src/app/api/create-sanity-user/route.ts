@@ -39,13 +39,13 @@ export async function POST(request: Request) {
       )
     }
 
-    // Generar IDs de borrador
-    const companyDraftId = `drafts.${uuidv4()}`;
-    const userDraftId = `drafts.${uuidv4()}`;
+    // Generar ID normal para la empresa y el usuario (ambos publicados)
+    const companyId = uuidv4();
+    const userId = uuidv4();
 
-    // Crear empresa como borrador
+    // Crear empresa como publicada y con active: false
     const companyDoc = await client.create({
-      _id: companyDraftId,
+      _id: companyId,
       _type: 'company',
       nameCompany,
       businessName,
@@ -61,13 +61,14 @@ export async function POST(request: Request) {
       pinterest,
       linkedin,
       xtwitter,
+      active: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     })
 
-    // Crear usuario como borrador y referencia a la empresa borrador
+    // Crear usuario como publicado y referencia a la empresa publicada
     const userDoc = await client.create({
-      _id: userDraftId,
+      _id: userId,
       _type: 'user',
       firstName,
       lastName,
@@ -79,9 +80,10 @@ export async function POST(request: Request) {
       position,
       firebaseUid,
       photo,
+      role: 'admin',
       company: {
         _type: 'reference',
-        _ref: companyDraftId
+        _ref: companyId
       },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),

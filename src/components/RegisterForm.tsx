@@ -71,6 +71,8 @@ export default function RegisterForm() {
   const [stepActive, setStepActive] = useState(1);
   const [activeNextButton, setActiveNextButton] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
   const [logo, setLogo] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [photo, setPhoto] = useState<File | null>(null);
@@ -320,7 +322,13 @@ export default function RegisterForm() {
     handleRegister(data);
   };
 
-  const handleNextStep = () => {
+  const handleNextStep = async () => {
+    if (stepActive === 2) {
+      // Validar email antes de avanzar al paso 3
+      const isEmailValid = await validateEmail(email);
+      if (!isEmailValid) return;
+    }
+    
     if (stepActive < 3) {
       setStepActive(stepActive + 1);
     }
@@ -329,6 +337,42 @@ export default function RegisterForm() {
   const handlePrevStep = () => {
     if (stepActive > 1) {
       setStepActive(stepActive - 1);
+    }
+  };
+
+  const validateEmail = async (email: string) => {
+    if (!email || !isValidEmail(email)) return false;
+    
+    setIsCheckingEmail(true);
+    setEmailError(null);
+    
+    try {
+      const response = await fetch('/api/check-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        setEmailError(data.message || 'Error al verificar el email');
+        return false;
+      }
+      
+      if (data.exists) {
+        setEmailError('Este correo electrónico ya está registrado');
+        return false;
+      }
+      
+      return true;
+    } catch (error: unknown) {
+      setEmailError(error instanceof Error ? error.message : 'Error al verificar el email');
+      return false;
+    } finally {
+      setIsCheckingEmail(false);
     }
   };
 
@@ -454,7 +498,7 @@ export default function RegisterForm() {
 
                     <div className="flex flex-col md:flex-row flex-wrap mt-5 gap-y-4 -mx-2">
                       <div className="w-full md:w-1/2 px-2 space-y-1">
-                        <Label htmlFor="nameCompany">Nombre de la marca</Label>
+                        <Label htmlFor="nameCompany">Nombre de la marca <span className="text-red-500">*</span></Label>
                         <TextInput
                           {...register("nameCompany", {
                             required: "El nombre de la empresa es obligatorio",
@@ -472,7 +516,7 @@ export default function RegisterForm() {
                         />
                       </div>
                       <div className="w-full md:w-1/2 px-2 space-y-1">
-                        <Label htmlFor="businessName">Razón social</Label>
+                        <Label htmlFor="businessName">Razón social <span className="text-red-500">*</span></Label>
                         <TextInput
                           {...register("businessName", {
                             required: "La razón social es obligatoria",
@@ -490,7 +534,7 @@ export default function RegisterForm() {
                         />
                       </div>
                       <div className="w-full md:w-1/2 px-2 space-y-1">
-                        <Label htmlFor="typeDocumentCompany">Documento</Label>
+                        <Label htmlFor="typeDocumentCompany">Documento <span className="text-red-500">*</span></Label>
                         <div className="flex items-center space-x-1">
                           <Select
                             {...register("typeDocumentCompany", {
@@ -531,7 +575,7 @@ export default function RegisterForm() {
                         </div>
                       </div>
                       <div className="w-full md:w-1/2 lg:w-1/2 px-2 space-y-1">
-                        <Label htmlFor="ciiu">Código CIIU (actividad principal)</Label>
+                        <Label htmlFor="ciiu">Código CIIU (actividad principal) <span className="text-red-500">*</span></Label>
                         <Select
                           {...register("ciiu", {
                             required: "El código CIIU es obligatorio",
@@ -572,7 +616,7 @@ export default function RegisterForm() {
                       </div>
 
                       <div className="w-full md:w-1/2 lg:w-1/2 px-2 space-y-1">
-                        <Label htmlFor="webSite">Página Web</Label>
+                        <Label htmlFor="webSite">Página Web <span className="text-red-500">*</span></Label>
                         <TextInput
                           {...register("webSite", {
                             required: "La página web es obligatoria",
@@ -592,7 +636,7 @@ export default function RegisterForm() {
                         />
                       </div>
                       <div className="w-full md:w-1/2 lg:w-1/2 px-2 space-y-1">
-                        <Label htmlFor="addressCompany">Dirección</Label>
+                        <Label htmlFor="addressCompany">Dirección <span className="text-red-500">*</span></Label>
                         <TextInput
                           {...register("addressCompany", {
                             required: "La dirección es obligatoria",
@@ -805,7 +849,7 @@ export default function RegisterForm() {
 
               <div className="flex flex-col md:flex-row flex-wrap mt-5 gap-y-4 -mx-2">
                 <div className="w-full md:w-1/2 px-2 space-y-1">
-                  <Label htmlFor="firstName">Nombre(s)</Label>
+                  <Label htmlFor="firstName">Nombre(s) <span className="text-red-500">*</span></Label>
                   <TextInput
                     {...register("firstName", {
                       required: "El nombre es obligatorio",
@@ -823,7 +867,7 @@ export default function RegisterForm() {
                   />
                 </div>
                 <div className="w-full md:w-1/2 px-2 space-y-1">
-                  <Label htmlFor="lastName">Apellido(s)</Label>
+                  <Label htmlFor="lastName">Apellido(s) <span className="text-red-500">*</span></Label>
                   <TextInput
                     {...register("lastName", {
                       required: "El apellido es obligatorio",
@@ -858,7 +902,7 @@ export default function RegisterForm() {
                   />
                 </div>
                 <div className="w-full md:w-1/2 px-2 space-y-1">
-                  <Label htmlFor="position">Cargo</Label>
+                  <Label htmlFor="position">Cargo <span className="text-red-500">*</span></Label>
                   <TextInput
                     {...register("position", {
                       required: "El cargo es obligatorio",
@@ -877,18 +921,25 @@ export default function RegisterForm() {
                 </div>
 
                 <div className="w-full md:w-1/2 px-2 space-y-1">
-                  <Label htmlFor="email">Correo electrónico</Label>
+                  <Label htmlFor="email">Correo electrónico <span className="text-red-500">*</span></Label>
                   <TextInput
                     {...register("email", {
                       required: "El correo electrónico es obligatorio",
                       pattern: {
-                        value:
-                          /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+                        value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
                         message: "El correo electrónico no es válido",
                       },
+                      onChange: async (e) => {
+                        const value = e.target.value;
+                        if (value && isValidEmail(value)) {
+                          await validateEmail(value);
+                        } else {
+                          setEmailError(null);
+                        }
+                      }
                     })}
                     type="email"
-                    color="blue"
+                    color={emailError ? "failure" : "blue"}
                     id="email"
                     placeholder="email@miempresa.com"
                     theme={{
@@ -899,9 +950,15 @@ export default function RegisterForm() {
                       },
                     }}
                   />
+                  {emailError && (
+                    <p className="text-red-500 text-sm mt-1">{emailError}</p>
+                  )}
+                  {isCheckingEmail && (
+                    <p className="text-blue-500 text-sm mt-1">Verificando email...</p>
+                  )}
                 </div>
                 <div className="w-full md:w-1/2 px-2 space-y-1">
-                  <Label htmlFor="phone">Número de teléfono</Label>
+                  <Label htmlFor="phone">Número de teléfono <span className="text-red-500">*</span></Label>
                   <InternationalPhoneInput
                     {...register("phone", {
                       required: "El número de teléfono es obligatorio",
@@ -928,7 +985,7 @@ export default function RegisterForm() {
                 </div>
 
                 <div className="w-full md:w-1/2 px-2 space-y-1">
-                  <Label htmlFor="typeDocument">Documento</Label>
+                  <Label htmlFor="typeDocument">Documento <span className="text-red-500">*</span></Label>
                   <div className="flex items-center space-x-1">
                     <Select
                       {...register("typeDocument", {
@@ -976,7 +1033,7 @@ export default function RegisterForm() {
             <fieldset>
               <div className="flex flex-col md:flex-row flex-wrap mt-5 gap-y-4 -mx-2">
                 <div className="w-full md:w-1/2 px-2 space-y-1">
-                  <Label htmlFor="password">Contraseña</Label>
+                  <Label htmlFor="password">Contraseña <span className="text-red-500">*</span></Label>
                   <div className="relative">
                     <TextInput
                       {...register("password", {
@@ -1030,7 +1087,7 @@ export default function RegisterForm() {
                   </ul>
                 </div>
                 <div className="w-full md:w-1/2 px-2 space-y-1">
-                  <Label htmlFor="confirm-password">Confirmar contraseña</Label>
+                  <Label htmlFor="confirm-password">Confirmar contraseña <span className="text-red-500">*</span></Label>
                   <div className="relative">
                     <TextInput
                       {...register("confirmPassword", {

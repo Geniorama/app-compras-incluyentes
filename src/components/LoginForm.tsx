@@ -49,6 +49,10 @@ export default function LoginForm() {
         setError("Tu usuario aún no ha sido activado por el administrador.");
         return;
       }
+      if (!sanityStatus.companyActive) {
+        setError("Tu empresa aún no ha sido activada por el administrador.");
+        return;
+      }
 
       // 2. Login normal con Firebase
       const response:UserCredentialExtends = await loginUser(data.email, data.password);
