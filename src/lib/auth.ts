@@ -5,7 +5,8 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
+  sendEmailVerification
 } from "firebase/auth";
 import { setCookie } from "cookies-next";
 import { deleteCookie } from "cookies-next";
@@ -34,7 +35,7 @@ export const registerUser = async (email: string, password: string) => {
       email,
       password
     );
-
+    await sendEmailVerification(userCredential.user);
     return userCredential.user;
   } catch (error: unknown) {
     if (error instanceof Error && "code" in error) {

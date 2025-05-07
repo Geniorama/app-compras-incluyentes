@@ -12,7 +12,7 @@
  * - Manejar los errores de la API de Sanity
  */
 
-import { Label, TextInput, Button, Spinner, Select } from "flowbite-react";
+import { Label, TextInput, Button, Spinner, Select, Modal } from "flowbite-react";
 import {
   SlSocialLinkedin,
   SlSocialFacebook,
@@ -81,6 +81,7 @@ export default function RegisterForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -247,7 +248,8 @@ export default function RegisterForm() {
         });
 
         if (response.ok) {
-          router.push("/dashboard");
+          setShowSuccessModal(true);
+          return;
         } else {
           const errorData = await response.json();
           throw new Error(errorData.message || 'Error al crear usuario en Sanity');
@@ -1006,6 +1008,23 @@ export default function RegisterForm() {
           </div>
         </form>
       </div>
+      <Modal show={showSuccessModal} size="md" onClose={() => {}}>
+        <Modal.Header>¡Registro exitoso!</Modal.Header>
+        <Modal.Body>
+          <div className="space-y-4">
+            <p>Tu cuenta ha sido creada correctamente.</p>
+            <ul className="list-disc pl-5 space-y-2">
+              <li>Revisa tu correo electrónico y haz clic en el enlace de verificación que te hemos enviado.</li>
+              <li>Debes esperar a que un administrador active tu empresa. Te notificaremos cuando puedas acceder a la plataforma.</li>
+            </ul>
+          </div>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button color="blue" onClick={() => router.push('/login')}>
+            Entendido
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 }
