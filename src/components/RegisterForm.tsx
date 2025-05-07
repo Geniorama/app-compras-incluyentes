@@ -12,7 +12,7 @@
  * - Manejar los errores de la API de Sanity
  */
 
-import { Label, TextInput, Button, Spinner } from "flowbite-react";
+import { Label, TextInput, Button, Spinner, Select } from "flowbite-react";
 import {
   SlSocialLinkedin,
   SlSocialFacebook,
@@ -29,17 +29,17 @@ import {
   AccordionPanel,
   AccordionTitle,
 } from "flowbite-react";
-import { Select } from "flowbite-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { RiCheckboxCircleFill } from "react-icons/ri";
 import LogoColor from "@/assets/img/logo-color.webp";
 import { useForm } from "react-hook-form";
-import { useRef, useEffect } from "react";
+import { useRef } from "react";
 import dataCIIU from "@/data/ciiu";
 import { useRouter } from "next/navigation";
 import { registerUser } from "@/lib/auth";
 import { RiEyeLine } from "react-icons/ri";
 import { RiEyeOffLine } from "react-icons/ri";
+import ReactSelect from "react-select";
 
 interface FormData {
   nameCompany: string;
@@ -80,6 +80,7 @@ export default function RegisterForm() {
   const [optionsCIIU, setOptionsCIIU] = useState<{value: string, label: string}[]>([]);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isClient, setIsClient] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -89,6 +90,7 @@ export default function RegisterForm() {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<FormData>();
 
@@ -180,6 +182,10 @@ export default function RegisterForm() {
     logo,
     photo
   ]);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   interface CIIUData {
     clasificacion_ciiu: string;
@@ -506,13 +512,6 @@ export default function RegisterForm() {
                           color="blue"
                           id="nameCompany"
                           placeholder="Nombre de la marca"
-                          theme={{
-                            field: {
-                              input: {
-                                base: "border-slate-200 focus:border-blue-600 w-full",
-                              },
-                            },
-                          }}
                         />
                       </div>
                       <div className="w-full md:w-1/2 px-2 space-y-1">
@@ -524,13 +523,6 @@ export default function RegisterForm() {
                           color="blue"
                           id="businessName"
                           placeholder="Razón social"
-                          theme={{
-                            field: {
-                              input: {
-                                base: "border-slate-200 focus:border-blue-600 w-full",
-                              },
-                            },
-                          }}
                         />
                       </div>
                       <div className="w-full md:w-1/2 px-2 space-y-1">
@@ -543,13 +535,6 @@ export default function RegisterForm() {
                             id="typeDocumentCompany"
                             className="w-[100px]"
                             color="blue"
-                            theme={{
-                              field: {
-                                select: {
-                                  base: "border-slate-200 focus:border-blue-600 w-full",
-                                },
-                              },
-                            }}
                           >
                             <option value="nit">NIT</option>
                             <option value="cc">CC</option>
@@ -564,55 +549,25 @@ export default function RegisterForm() {
                             id="numDocumentCompany"
                             placeholder="Número de documento"
                             type="number"
-                            theme={{
-                              field: {
-                                input: {
-                                  base: "border-slate-200 focus:border-blue-600 w-full",
-                                },
-                              },
-                            }}
                           />
                         </div>
                       </div>
                       <div className="w-full md:w-1/2 lg:w-1/2 px-2 space-y-1">
                         <Label htmlFor="ciiu">Código CIIU (actividad principal) <span className="text-red-500">*</span></Label>
-                        <Select
-                          {...register("ciiu", {
-                            required: "El código CIIU es obligatorio",
-                          })}
-                          id="ciiu"
-                          className="w-auto flex-grow"
-                          color="blue"
-                          theme={{
-                            field: {
-                              select: {
-                                base: "border-slate-200 focus:border-blue-600 w-full",
-                              },
-                            },
-                          }}
-                        >
-                          <option value="">Selecciona un código CIIU</option>
-                          {optionsCIIU.map((option: {value: string, label: string}, index: number) => (
-                            <option key={index} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </Select>
-                        {/* <TextInput
-                          {...register("ciiu", {
-                            required: "El código CIIU es obligatorio",
-                          })}
-                          color="blue"
-                          id="ciiu"
-                          placeholder="Código CIIU"
-                          theme={{
-                            field: {
-                              input: {
-                                base: "border-slate-200 focus:border-blue-600 w-full",
-                              },
-                            },
-                          }}
-                        /> */}
+                        {isClient && (
+                          <ReactSelect
+                            options={optionsCIIU}
+                            value={optionsCIIU.find(option => option.value === ciiu) || null}
+                            onChange={option => setValue('ciiu', option?.value || '')}
+                            placeholder="Selecciona o busca un código CIIU"
+                            isSearchable
+                            name="ciiu"
+                            inputId="ciiu"
+                          />
+                        )}
+                        {errors.ciiu && (
+                          <p className="text-red-500 text-sm mt-1">{errors.ciiu.message}</p>
+                        )}
                       </div>
 
                       <div className="w-full md:w-1/2 lg:w-1/2 px-2 space-y-1">
@@ -626,13 +581,6 @@ export default function RegisterForm() {
                           type="url"
                           pattern="https?://.+"
                           placeholder="https://www.misitio.com"
-                          theme={{
-                            field: {
-                              input: {
-                                base: "border-slate-200 focus:border-blue-600 w-full",
-                              },
-                            },
-                          }}
                         />
                       </div>
                       <div className="w-full md:w-1/2 lg:w-1/2 px-2 space-y-1">
@@ -644,13 +592,6 @@ export default function RegisterForm() {
                           color="blue"
                           id="addressCompany"
                           placeholder="Calle 123 # 45-67"
-                          theme={{
-                            field: {
-                              input: {
-                                base: "border-slate-200 focus:border-blue-600 w-full",
-                              },
-                            },
-                          }}
                         />
                       </div>
                     </div>
@@ -676,13 +617,6 @@ export default function RegisterForm() {
                           id="facebook"
                           placeholder="Añadir enlace"
                           type="url"
-                          theme={{
-                            field: {
-                              input: {
-                                base: "border-slate-200 focus:border-blue-600 w-full",
-                              },
-                            },
-                          }}
                         />
                       </div>
                       <div className="w-full md:w-1/2 lg:w-1/2 px-2 space-y-1">
@@ -701,13 +635,6 @@ export default function RegisterForm() {
                           id="instagram"
                           type="url"
                           placeholder="Añadir enlace"
-                          theme={{
-                            field: {
-                              input: {
-                                base: "border-slate-200 focus:border-blue-600 w-full",
-                              },
-                            },
-                          }}
                         />
                       </div>
 
@@ -724,13 +651,6 @@ export default function RegisterForm() {
                           id="tiktok"
                           type="url"
                           placeholder="Añadir enlace"
-                          theme={{
-                            field: {
-                              input: {
-                                base: "border-slate-200 focus:border-blue-600 w-full",
-                              },
-                            },
-                          }}
                         />
                       </div>
                       <div className="w-full md:w-1/2 lg:w-1/2 px-2 space-y-1">
@@ -749,13 +669,6 @@ export default function RegisterForm() {
                           id="pinterest"
                           type="url"
                           placeholder="Añadir enlace"
-                          theme={{
-                            field: {
-                              input: {
-                                base: "border-slate-200 focus:border-blue-600 w-full",
-                              },
-                            },
-                          }}
                         />
                       </div>
 
@@ -772,13 +685,6 @@ export default function RegisterForm() {
                           id="linkedin"
                           type="url"
                           placeholder="Añadir enlace"
-                          theme={{
-                            field: {
-                              input: {
-                                base: "border-slate-200 focus:border-blue-600 w-full",
-                              },
-                            },
-                          }}
                         />
                       </div>
 
@@ -795,13 +701,6 @@ export default function RegisterForm() {
                           id="xtwitter"
                           type="url"
                           placeholder="Añadir enlace"
-                          theme={{
-                            field: {
-                              input: {
-                                base: "border-slate-200 focus:border-blue-600 w-full",
-                              },
-                            },
-                          }}
                         />
                       </div>
                     </div>
@@ -857,13 +756,6 @@ export default function RegisterForm() {
                     color="blue"
                     id="firstName"
                     placeholder="John"
-                    theme={{
-                      field: {
-                        input: {
-                          base: "border-slate-200 focus:border-blue-600 w-full",
-                        },
-                      },
-                    }}
                   />
                 </div>
                 <div className="w-full md:w-1/2 px-2 space-y-1">
@@ -875,13 +767,6 @@ export default function RegisterForm() {
                     color="blue"
                     id="apellido"
                     placeholder="Doe"
-                    theme={{
-                      field: {
-                        input: {
-                          base: "border-slate-200 focus:border-blue-600 w-full",
-                        },
-                      },
-                    }}
                   />
                 </div>
 
@@ -892,13 +777,6 @@ export default function RegisterForm() {
                     color="blue"
                     id="pronoun"
                     placeholder="Él, Ella, Elle"
-                    theme={{
-                      field: {
-                        input: {
-                          base: "border-slate-200 focus:border-blue-600 w-full",
-                        },
-                      },
-                    }}
                   />
                 </div>
                 <div className="w-full md:w-1/2 px-2 space-y-1">
@@ -910,13 +788,6 @@ export default function RegisterForm() {
                     color="blue"
                     id="position"
                     placeholder="CEO"
-                    theme={{
-                      field: {
-                        input: {
-                          base: "border-slate-200 focus:border-blue-600 w-full",
-                        },
-                      },
-                    }}
                   />
                 </div>
 
@@ -942,13 +813,6 @@ export default function RegisterForm() {
                     color={emailError ? "failure" : "blue"}
                     id="email"
                     placeholder="email@miempresa.com"
-                    theme={{
-                      field: {
-                        input: {
-                          base: "border-slate-200 focus:border-blue-600 w-full",
-                        },
-                      },
-                    }}
                   />
                   {emailError && (
                     <p className="text-red-500 text-sm mt-1">{emailError}</p>
@@ -974,13 +838,6 @@ export default function RegisterForm() {
                     id="phone"
                     placeholder="Número de teléfono"
                     color="blue"
-                    theme={{
-                      field: {
-                        input: {
-                          base: "border-slate-200 focus:border-blue-600 w-full",
-                        },
-                      },
-                    }}
                   />
                 </div>
 
@@ -994,13 +851,6 @@ export default function RegisterForm() {
                       id="typeDocument"
                       className="w-[100px]"
                       color="blue"
-                      theme={{
-                        field: {
-                          select: {
-                            base: "border-slate-200 focus:border-blue-600 w-full",
-                          },
-                        },
-                      }}
                     >
                       <option value="cc">CC</option>
                       <option value="ce">CE</option>
@@ -1014,13 +864,6 @@ export default function RegisterForm() {
                       id="numDocument"
                       placeholder="Número de documento"
                       type="number"
-                      theme={{
-                        field: {
-                          input: {
-                            base: "border-slate-200 focus:border-blue-600 w-full",
-                          },
-                        },
-                      }}
                     />
                   </div>
                 </div>
@@ -1052,13 +895,6 @@ export default function RegisterForm() {
                       placeholder="**********"
                       type={showPassword ? "text" : "password"}
                       autoComplete="off"
-                      theme={{
-                        field: {
-                          input: {
-                            base: "border-slate-200 focus:border-blue-600 w-full pr-10",
-                          },
-                        },
-                      }}
                     />
                     <button
                       type="button"
@@ -1104,13 +940,6 @@ export default function RegisterForm() {
                       placeholder="**********"
                       type={showConfirmPassword ? "text" : "password"}
                       autoComplete="off"
-                      theme={{
-                        field: {
-                          input: {
-                            base: "border-slate-200 focus:border-blue-600 w-full pr-10",
-                          },
-                        },
-                      }}
                     />
                     <button
                       type="button"
