@@ -18,7 +18,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es">
-      <body className={inter.className}>
+      <body className={'font-sans'}>
         <AuthProvider>
           {children}
           <Toaster position="top-right" />

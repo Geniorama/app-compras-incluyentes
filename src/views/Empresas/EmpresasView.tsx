@@ -1,11 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { Button, TextInput, Select } from 'flowbite-react';
 import { HiSearch, HiX } from 'react-icons/hi';
 import CompanyCard from '@/components/CompanyCard';
 import DashboardNavbar from '@/components/dashboard/Navbar';
-import { sanityClient } from '@/lib/sanity.client';
 
 interface SanityImage {
   _type: 'image';
@@ -22,89 +20,52 @@ interface Company {
   logo: SanityImage;
   addressCompany: string;
   webSite: string;
+  sector: string;
+  typeDocumentCompany: string;
+  numDocumentCompany: string;
+  ciiu: string;
+  active: boolean;
+  facebook?: string;
+  instagram?: string;
+  tiktok?: string;
+  pinterest?: string;
+  linkedin?: string;
+  xtwitter?: string;
 }
 
-export default function EmpresasView() {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sector, setSector] = useState('');
-  const [location, setLocation] = useState('');
-  const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [companies, setCompanies] = useState<Company[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [totalResults, setTotalResults] = useState(0);
+interface EmpresasViewProps {
+  companies: Company[];
+  isLoading: boolean;
+  totalResults: number;
+  currentPage: number;
+  searchTerm: string;
+  sector: string;
+  location: string;
+  selectedFilters: string[];
+  onSearchTermChange: (value: string) => void;
+  onSectorChange: (value: string) => void;
+  onLocationChange: (value: string) => void;
+  onPageChange: (page: number) => void;
+  onSearch: () => void;
+  onRemoveFilter: (filter: string) => void;
+}
 
-  useEffect(() => {
-    fetchCompanies();
-    // eslint-disable-next-line
-  }, [currentPage, sector, location]);
-
-  const fetchCompanies = async () => {
-    try {
-      setIsLoading(true);
-      // Construir la consulta base
-      let query = `*[_type == "user"`;
-      
-      // Agregar filtros si existen
-      const filters = [];
-      if (searchTerm) filters.push(`(nameCompany match "${searchTerm}*" || businessName match "${searchTerm}*")`);
-      if (sector) filters.push(`sector == "${sector}"`);
-      if (location) filters.push(`addressCompany match "${location}*"`);
-      
-      if (filters.length > 0) {
-        query += ` && ${filters.join(" && ")}`;
-      }
-      query += `] | order(_createdAt desc) {
-        _id,
-        nameCompany,
-        businessName,
-        logo,
-        addressCompany,
-        webSite,
-        sector
-      }`;
-
-      // Consulta para el total de resultados
-      const totalQuery = `count(*[_type == "user"${filters.length > 0 ? ` && ${filters.join(" && ")}` : ''}])`;
-      const total = await sanityClient.fetch(totalQuery);
-      setTotalResults(total);
-
-      // Agregar paginación
-      const start = (currentPage - 1) * 9;
-      query += `[${start}...${start + 9}]`;
-
-      const results = await sanityClient.fetch(query);
-      setCompanies(results);
-    } catch (error) {
-      console.error('Error fetching companies:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSearch = () => {
-    const newFilters = [];
-    if (searchTerm) {
-      newFilters.push(searchTerm);
-    }
-    if (sector) {
-      newFilters.push(sector);
-    }
-    if (location) {
-      newFilters.push(location);
-    }
-    setSelectedFilters(newFilters);
-    setCurrentPage(1);
-    fetchCompanies();
-  };
-
-  const handleRemoveFilter = (filter: string) => {
-    setSelectedFilters(selectedFilters.filter(f => f !== filter));
-    if (filter === sector) setSector('');
-    if (filter === location) setLocation('');
-    setCurrentPage(1);
-  };
-
+export default function EmpresasView({
+  companies,
+  isLoading,
+  totalResults,
+  currentPage,
+  searchTerm,
+  sector,
+  location,
+  selectedFilters,
+  onSearchTermChange,
+  onSectorChange,
+  onLocationChange,
+  onPageChange,
+  onSearch,
+  onRemoveFilter
+}: EmpresasViewProps) {
   return (
     <div className="min-h-screen bg-gray-50">
       <DashboardNavbar />
@@ -112,16 +73,16 @@ export default function EmpresasView() {
         <div className="relative h-[300px] bg-gradient-to-r from-blue-600 to-blue-800">
           <div className="absolute inset-0 bg-[url('/images/hero-pattern.png')] opacity-10" />
           <div className="relative z-10 container mx-auto px-4 h-full flex flex-col items-center justify-center text-white text-center">
-            <h1 className="text-3xl md:text-4xl font-bold mb-6">
+            <h1 className="text-3xl md:text-4xl font-normal mb-6">
               Conecta con las organizaciones y<br />
-              PYMES más diversas de <span className="text-blue-200">América Latina</span>
+              PYMES más diversas de <span className="font-bold">América Latina</span>
             </h1>
             <div className="w-full max-w-2xl flex flex-col md:flex-row gap-2">
               <TextInput
                 type="text"
                 placeholder="Buscar Empresa"
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => onSearchTermChange(e.target.value)}
                 className="flex-grow"
                 icon={HiSearch}
                 theme={{
@@ -134,7 +95,7 @@ export default function EmpresasView() {
               />
               <Select 
                 value={sector}
-                onChange={(e) => setSector(e.target.value)}
+                onChange={(e) => onSectorChange(e.target.value)}
                 className="md:w-48"
                 theme={{
                   field: {
@@ -152,7 +113,7 @@ export default function EmpresasView() {
               </Select>
               <Button 
                 color="light"
-                onClick={handleSearch}
+                onClick={onSearch}
                 className="w-full md:w-auto"
               >
                 Buscar
@@ -166,7 +127,7 @@ export default function EmpresasView() {
             <div className="flex flex-wrap gap-2">
               <Select 
                 value={sector} 
-                onChange={(e) => setSector(e.target.value)}
+                onChange={(e) => onSectorChange(e.target.value)}
                 className="w-36"
                 theme={{
                   field: {
@@ -183,7 +144,7 @@ export default function EmpresasView() {
               </Select>
               <Select 
                 value={location} 
-                onChange={(e) => setLocation(e.target.value)}
+                onChange={(e) => onLocationChange(e.target.value)}
                 className="w-36"
                 theme={{
                   field: {
@@ -224,7 +185,7 @@ export default function EmpresasView() {
                 >
                   {filter}
                   <button
-                    onClick={() => handleRemoveFilter(filter)}
+                    onClick={() => onRemoveFilter(filter)}
                     className="ml-2 hover:text-gray-900"
                   >
                     <HiX className="w-3 h-3" />
@@ -267,7 +228,7 @@ export default function EmpresasView() {
               <Button 
                 color="gray"
                 size="sm"
-                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                onClick={() => onPageChange(Math.max(1, currentPage - 1))}
                 disabled={currentPage === 1 || isLoading}
               >
                 Atrás
@@ -275,7 +236,7 @@ export default function EmpresasView() {
               <Button 
                 color="gray"
                 size="sm"
-                onClick={() => setCurrentPage(prev => prev + 1)}
+                onClick={() => onPageChange(currentPage + 1)}
                 disabled={currentPage * 9 >= totalResults || isLoading}
               >
                 Siguiente

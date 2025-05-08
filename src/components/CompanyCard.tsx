@@ -1,9 +1,7 @@
 'use client';
 
 import { Button } from 'flowbite-react';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { urlFor } from '@/lib/sanity.image';
 
 interface SanityImage {
   _type: 'image';
@@ -18,22 +16,52 @@ interface CompanyCardProps {
   nameCompany: string;
   businessName: string;
   logo: SanityImage;
+  phone?: string;
 }
 
-export default function CompanyCard({ _id, nameCompany, businessName, logo }: CompanyCardProps) {
+export default function CompanyCard({ _id, nameCompany, businessName, logo, phone }: CompanyCardProps) {
   const router = useRouter();
+
+  // Función para formatear el número de teléfono para WhatsApp
+  const formatPhoneForWhatsApp = (phone?: string) => {
+    if (!phone) return '';
+    // Eliminar todos los caracteres no numéricos
+    const cleanPhone = phone.replace(/\D/g, '');
+    // Si el número comienza con 0, reemplazarlo por 57
+    if (cleanPhone.startsWith('0')) {
+      return '57' + cleanPhone.substring(1);
+    }
+    // Si el número comienza con +57, eliminar el +
+    if (cleanPhone.startsWith('57')) {
+      return cleanPhone;
+    }
+    // Si no tiene código de país, agregar 57
+    return '57' + cleanPhone;
+  };
+
+  // Función para abrir WhatsApp
+  const handleWhatsAppClick = () => {
+    const formattedPhone = formatPhoneForWhatsApp(phone);
+    if (!formattedPhone) return;
+    const whatsappUrl = `https://wa.me/${formattedPhone}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
+  // Función para obtener la URL de la imagen de Sanity
+  const getImageUrl = (image: SanityImage) => {
+    if (!image || !image.asset) return null;
+    return `https://cdn.sanity.io/images/${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID}/${process.env.NEXT_PUBLIC_SANITY_DATASET}/${image.asset._ref.replace("image-", "").replace("-jpg", ".jpg").replace("-png", ".png").replace("-webp", ".webp")}`;
+  };
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow">
       <div className="flex items-center mb-4">
         <div className="w-10 h-10 bg-gray-50 rounded-full mr-3 overflow-hidden relative flex-shrink-0">
-          {logo ? (
-            <Image
-              src={urlFor(logo).width(80).height(80).url()}
+          {logo && getImageUrl(logo) ? (
+            <img
+              src={getImageUrl(logo) || '/images/placeholder-company.png'}
               alt={nameCompany}
-              fill
-              className="object-contain p-1"
-              sizes="40px"
+              className="w-full h-full object-contain p-1"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-gray-400">
@@ -49,7 +77,7 @@ export default function CompanyCard({ _id, nameCompany, businessName, logo }: Co
         </div>
       </div>
       <div className="flex gap-2">
-        <Button 
+        <Button
           color="blue"
           onClick={() => router.push(`/empresas/${_id}`)}
           size="sm"
@@ -57,14 +85,16 @@ export default function CompanyCard({ _id, nameCompany, businessName, logo }: Co
         >
           Ver Empresa
         </Button>
-        <Button 
-          color="light"
-          onClick={() => router.push(`/chat/${_id}`)}
-          size="sm"
-          className="flex-1 justify-center"
-        >
-          Enviar Mensaje
-        </Button>
+        {phone && phone.trim() !== '' && (
+          <Button
+            color="light"
+            onClick={handleWhatsAppClick}
+            size="sm"
+            className="flex-1 justify-center"
+          >
+            Enviar Mensaje
+          </Button>
+        )}
       </div>
     </div>
   );
