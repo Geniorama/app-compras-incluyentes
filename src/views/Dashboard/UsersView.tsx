@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Table, Button, Spinner, Modal, TextInput, Label, Select } from "flowbite-react";
+import { Table, Button, Spinner, Modal, TextInput, Label, Select, Alert } from "flowbite-react";
 import DashboardSidebar from "@/components/DashboardSidebar";
 import { useAuth } from "@/context/AuthContext";
 import InternationalPhoneInput from "@/components/InternationalPhoneInput ";
@@ -11,6 +11,11 @@ interface User {
   lastName: string;
   email: string;
   role?: string;
+  phone?: string;
+  pronoun?: string;
+  position?: string;
+  typeDocument?: string;
+  numDocument?: string;
 }
 
 function generarPassword(longitud = 12) {
@@ -26,6 +31,8 @@ export default function UsersView() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [form, setForm] = useState({
     firstName: '',
     lastName: '',
@@ -44,15 +51,34 @@ export default function UsersView() {
   const { user } = useAuth();
 
   useEffect(() => {
-    const fetchUsers = async () => {
-      setLoading(true);
-      const res = await fetch("/api/users");
+    if (user?.uid) {
+      fetchUsers();
+    }
+  }, [user?.uid]);
+
+  const fetchUsers = async () => {
+    if (!user?.uid) return;
+    
+    setLoading(true);
+    try {
+      const res = await fetch("/api/users", {
+        headers: {
+          'x-user-id': user.uid
+        }
+      });
       const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Error al obtener usuarios');
       setUsers(data.users || []);
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Error al obtener usuarios');
+      }
+    } finally {
       setLoading(false);
-    };
-    fetchUsers();
-  }, []);
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -60,22 +86,101 @@ export default function UsersView() {
 
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user?.uid) return;
+
     setIsSubmitting(true);
     setError('');
     try {
       const res = await fetch('/api/invite-user', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, inviterUid: user?.uid }),
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-user-id': user.uid
+        },
+        body: JSON.stringify({ ...form, inviterUid: user.uid }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Error al invitar usuario');
       setShowModal(false);
       setForm({ firstName: '', lastName: '', email: '', password: '', role: 'user', phone: '', pronoun: '', position: '', typeDocument: '', numDocument: '', photo: '' });
-      // Refrescar lista
-      const resUsers = await fetch("/api/users");
-      const dataUsers = await resUsers.json();
-      setUsers(dataUsers.users || []);
+      await fetchUsers();
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Error desconocido');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleEditUser = (user: User) => {
+    setSelectedUser(user);
+    setForm({
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      password: '',
+      role: user.role || 'user',
+      phone: user.phone || '',
+      pronoun: user.pronoun || '',
+      position: user.position || '',
+      typeDocument: user.typeDocument || '',
+      numDocument: user.numDocument || '',
+      photo: '',
+    });
+    setShowModal(true);
+  };
+
+  const handleUpdateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedUser || !user?.uid) return;
+
+    setIsSubmitting(true);
+    setError('');
+    try {
+      const res = await fetch(`/api/users/${selectedUser._id}`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-user-id': user.uid
+        },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Error al actualizar usuario');
+      setShowModal(false);
+      setSelectedUser(null);
+      await fetchUsers();
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Error desconocido');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteUser = async () => {
+    if (!selectedUser || !user?.uid) return;
+
+    setIsSubmitting(true);
+    setError('');
+    try {
+      const res = await fetch(`/api/users/${selectedUser._id}`, {
+        method: 'DELETE',
+        headers: {
+          'x-user-id': user.uid
+        }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Error al eliminar usuario');
+      setShowDeleteModal(false);
+      setSelectedUser(null);
+      await fetchUsers();
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
@@ -93,11 +198,23 @@ export default function UsersView() {
   };
 
   useEffect(() => {
-    if (showModal) {
+    if (showModal && !selectedUser) {
       sugerirPassword();
     }
-    // eslint-disable-next-line
-  }, [showModal]);
+  }, [showModal, selectedUser]);
+
+  if (!user?.uid) {
+    return (
+      <div className="flex container mx-auto mt-10">
+        <DashboardSidebar />
+        <main className="w-full md:w-3/4 md:pl-10 mt-6 md:mt-0">
+          <Alert color="failure">
+            No tienes permisos para ver esta página
+          </Alert>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="flex container mx-auto mt-10">
@@ -105,8 +222,12 @@ export default function UsersView() {
       <main className="w-full md:w-3/4 md:pl-10 mt-6 md:mt-0">
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold">Usuarios y Permisos</h1>
-          <Button color="blue" onClick={() => setShowModal(true)}>Agregar usuario</Button>
+          <Button color="blue" onClick={() => {
+            setSelectedUser(null);
+            setShowModal(true);
+          }}>Agregar usuario</Button>
         </div>
+        {error && <Alert color="failure" className="mb-4">{error}</Alert>}
         {loading ? (
           <Spinner />
         ) : (
@@ -124,7 +245,20 @@ export default function UsersView() {
                   <Table.Cell>{user.email}</Table.Cell>
                   <Table.Cell>{user.role || "user"}</Table.Cell>
                   <Table.Cell>
-                    <Button size="xs">Editar</Button>
+                    <div className="flex gap-2">
+                      <Button size="xs" color="blue" onClick={() => handleEditUser(user)}>
+                        Editar
+                      </Button>
+                      <button 
+                        className="text-red-600 hover:text-red-800 text-xs font-medium"
+                        onClick={() => {
+                          setSelectedUser(user);
+                          setShowDeleteModal(true);
+                        }}
+                      >
+                        Eliminar
+                      </button>
+                    </div>
                   </Table.Cell>
                 </Table.Row>
               ))}
@@ -132,10 +266,26 @@ export default function UsersView() {
           </Table>
         )}
 
-        <Modal show={showModal} onClose={() => setShowModal(false)}>
-          <Modal.Header>Agregar usuario</Modal.Header>
+        <Modal show={showModal} onClose={() => {
+          setShowModal(false);
+          setSelectedUser(null);
+          setForm({
+            firstName: '',
+            lastName: '',
+            email: '',
+            password: '',
+            role: 'user',
+            phone: '',
+            pronoun: '',
+            position: '',
+            typeDocument: '',
+            numDocument: '',
+            photo: '',
+          });
+        }}>
+          <Modal.Header>{selectedUser ? 'Editar usuario' : 'Agregar usuario'}</Modal.Header>
           <Modal.Body>
-            <form onSubmit={handleAddUser} className="flex flex-col gap-4">
+            <form onSubmit={selectedUser ? handleUpdateUser : handleAddUser} className="flex flex-col gap-4">
               <div className="flex gap-4">
                 <div className="w-1/2">
                   <Label htmlFor="firstName">Nombre</Label>
@@ -148,25 +298,35 @@ export default function UsersView() {
               </div>
               <div>
                 <Label htmlFor="email">Email</Label>
-                <TextInput id="email" name="email" type="email" value={form.email} onChange={handleInputChange} required />
+                <TextInput 
+                  id="email" 
+                  name="email" 
+                  type="email" 
+                  value={form.email} 
+                  onChange={handleInputChange} 
+                  required 
+                  disabled={!!selectedUser}
+                />
               </div>
-              <div>
-                <Label htmlFor="password">Contraseña sugerida</Label>
-                <div className="flex gap-2">
-                  <TextInput
-                    id="password"
-                    name="password"
-                    type="text"
-                    value={form.password}
-                    onChange={handleInputChange}
-                    required
-                    className="flex-1"
-                  />
-                  <Button type="button" onClick={sugerirPassword} size="xs" className="flex-grow-0 inline-block">
-                    Regenerar
-                  </Button>
+              {!selectedUser && (
+                <div>
+                  <Label htmlFor="password">Contraseña sugerida</Label>
+                  <div className="flex gap-2">
+                    <TextInput
+                      id="password"
+                      name="password"
+                      type="text"
+                      value={form.password}
+                      onChange={handleInputChange}
+                      required
+                      className="flex-1"
+                    />
+                    <Button type="button" onClick={sugerirPassword} size="xs" className="flex-grow-0 inline-block">
+                      Regenerar
+                    </Button>
+                  </div>
                 </div>
-              </div>
+              )}
               <div>
                 <Label htmlFor="role">Rol</Label>
                 <Select id="role" name="role" value={form.role} onChange={handleInputChange}>
@@ -210,12 +370,35 @@ export default function UsersView() {
                 <Label htmlFor="numDocument">Número de documento</Label>
                 <TextInput id="numDocument" name="numDocument" value={form.numDocument} onChange={handleInputChange} />
               </div>
-              {error && <div className="text-red-500 text-sm">{error}</div>}
+              {error && <Alert color="failure">{error}</Alert>}
               <Button type="submit" color="blue" disabled={isSubmitting}>
-                {isSubmitting ? 'Agregando...' : 'Agregar usuario'}
+                {isSubmitting ? 'Procesando...' : (selectedUser ? 'Actualizar usuario' : 'Agregar usuario')}
               </Button>
             </form>
           </Modal.Body>
+        </Modal>
+
+        <Modal show={showDeleteModal} onClose={() => {
+          setShowDeleteModal(false);
+          setSelectedUser(null);
+        }}>
+          <Modal.Header>Confirmar eliminación</Modal.Header>
+          <Modal.Body>
+            <p>¿Estás seguro que deseas eliminar al usuario {selectedUser?.firstName} {selectedUser?.lastName}?</p>
+            <p className="text-red-500 mt-2">Esta acción no se puede deshacer.</p>
+            {error && <Alert color="failure" className="mt-4">{error}</Alert>}
+          </Modal.Body>
+          <Modal.Footer>
+            <Button color="gray" onClick={() => {
+              setShowDeleteModal(false);
+              setSelectedUser(null);
+            }}>
+              Cancelar
+            </Button>
+            <Button color="failure" onClick={handleDeleteUser} disabled={isSubmitting}>
+              {isSubmitting ? 'Eliminando...' : 'Eliminar usuario'}
+            </Button>
+          </Modal.Footer>
         </Modal>
       </main>
     </div>

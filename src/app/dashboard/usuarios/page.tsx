@@ -32,7 +32,7 @@ export default function UsuariosPage() {
   }, [user]);
 
   useEffect(() => {
-    if (!loading && userRole !== 'admin') {
+    if (!loading && userRole !== null && userRole !== 'admin') {
       router.push('/dashboard/perfil');
     }
   }, [loading, userRole, router]);
