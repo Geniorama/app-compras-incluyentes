@@ -371,7 +371,7 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
     });
 
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
         {filteredItems.map((item) => (
           <div
             key={item._id}
@@ -400,7 +400,7 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
                 {item.description || "Sin descripción"}
               </p>
               <div className="flex justify-between items-center">
-                <span className="text-blue-600 font-semibold">
+                <span className={`leading-4 py-1 rounded-full text-sm font-semibold ${item.price ? "text-green-600" : "text-slate-400"}`	}>
                   {item.price
                     ? `$${item.price.toLocaleString()}`
                     : "Precio no especificado"}
@@ -551,7 +551,7 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
       <main className="flex-1 ml-8">
         <Tabs>
           <Tabs.Item active title="Productos">
-            <div className="mb-4 flex justify-between items-center">
+            <div className="mb-4 flex justify-between items-center flex-wrap space-y-2">
               <div className="flex space-x-4">
                 <TextInput
                   icon={HiOutlineSearch}
