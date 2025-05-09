@@ -1,4 +1,10 @@
-import { SanityImage } from "./index";
+export interface SanityImage {
+    _type: string;
+    asset: {
+        _ref: string;
+        _type: string;
+    };
+}
 
 export interface SanityDocument {
   _id: string;

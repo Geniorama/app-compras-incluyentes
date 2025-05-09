@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import { Button } from 'flowbite-react';
@@ -76,6 +77,7 @@ export default function CompanyCard({ _id, nameCompany, businessName, logo, phon
           <p className="text-sm text-gray-500">{businessName}</p>
         </div>
       </div>
+      <hr className='mb-5 mt-2' />
       <div className="flex gap-2">
         <Button
           color="blue"

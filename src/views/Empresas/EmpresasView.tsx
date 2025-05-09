@@ -4,6 +4,7 @@ import { Button, TextInput, Select } from 'flowbite-react';
 import { HiSearch, HiX } from 'react-icons/hi';
 import CompanyCard from '@/components/CompanyCard';
 import DashboardNavbar from '@/components/dashboard/Navbar';
+import BannerEmpresas from '@/assets/img/banner-empresas.webp';
 
 interface SanityImage {
   _type: 'image';
@@ -40,11 +41,9 @@ interface EmpresasViewProps {
   currentPage: number;
   searchTerm: string;
   sector: string;
-  location: string;
   selectedFilters: string[];
   onSearchTermChange: (value: string) => void;
   onSectorChange: (value: string) => void;
-  onLocationChange: (value: string) => void;
   onPageChange: (page: number) => void;
   onSearch: () => void;
   onRemoveFilter: (filter: string) => void;
@@ -57,21 +56,25 @@ export default function EmpresasView({
   currentPage,
   searchTerm,
   sector,
-  location,
   selectedFilters,
   onSearchTermChange,
   onSectorChange,
-  onLocationChange,
   onPageChange,
   onSearch,
   onRemoveFilter
 }: EmpresasViewProps) {
+  // Obtener los CIIU únicos de las empresas
+  const ciiuOptions = Array.from(new Set(companies.map((c) => c.ciiu).filter(Boolean)));
+
   return (
     <div className="min-h-screen bg-gray-50">
       <DashboardNavbar />
       <main className="pt-16">
-        <div className="relative h-[300px] bg-gradient-to-r from-blue-600 to-blue-800">
-          <div className="absolute inset-0 bg-[url('/images/hero-pattern.png')] opacity-10" />
+        <div className="relative h-[600px] bg-slate-800">
+          <div
+            className="absolute inset-0 bg-cover bg-top before:content-[''] before:absolute before:inset-0 before:bg-gradient-to-b before:from-black/50 before:to-black/50"
+            style={{ backgroundImage: `url('${BannerEmpresas.src}')` }}
+          />
           <div className="relative z-10 container mx-auto px-4 h-full flex flex-col items-center justify-center text-white text-center">
             <h1 className="text-3xl md:text-4xl font-normal mb-6">
               Conecta con las organizaciones y<br />
@@ -83,36 +86,18 @@ export default function EmpresasView({
                 placeholder="Buscar Empresa"
                 value={searchTerm}
                 onChange={(e) => onSearchTermChange(e.target.value)}
-                className="flex-grow"
+                className="flex-grow-0 w-full"
                 icon={HiSearch}
                 theme={{
                   field: {
                     input: {
-                      base: "bg-white border-0 focus:ring-2 focus:ring-blue-500"
+                      base: "bg-white border-0 focus:ring-2 focus:ring-blue-500 w-full"
                     }
                   }
                 }}
               />
-              <Select 
-                value={sector}
-                onChange={(e) => onSectorChange(e.target.value)}
-                className="md:w-48"
-                theme={{
-                  field: {
-                    select: {
-                      base: "bg-white border-0 focus:ring-2 focus:ring-blue-500"
-                    }
-                  }
-                }}
-              >
-                <option value="">Todos los sectores</option>
-                <option value="salud">Salud</option>
-                <option value="tecnologia">Tecnología</option>
-                <option value="comercio">Comercio</option>
-                <option value="servicios">Servicios</option>
-              </Select>
               <Button 
-                color="light"
+                color="blue"
                 onClick={onSearch}
                 className="w-full md:w-auto"
               >
@@ -124,11 +109,11 @@ export default function EmpresasView({
         <div className="container mx-auto px-4 py-8">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
             <h2 className="text-xl font-semibold text-gray-800">Empresas</h2>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 md:gap-x-4">
               <Select 
                 value={sector} 
                 onChange={(e) => onSectorChange(e.target.value)}
-                className="w-36"
+                className="min-w-[150px]"
                 theme={{
                   field: {
                     select: {
@@ -137,30 +122,13 @@ export default function EmpresasView({
                   }
                 }}
               >
-                <option value="">Todos los sectores</option>
-                <option value="salud">Salud</option>
-                <option value="tecnologia">Tecnología</option>
-                <option value="comercio">Comercio</option>
-              </Select>
-              <Select 
-                value={location} 
-                onChange={(e) => onLocationChange(e.target.value)}
-                className="w-36"
-                theme={{
-                  field: {
-                    select: {
-                      base: "bg-white border-gray-200 text-sm"
-                    }
-                  }
-                }}
-              >
-                <option value="">Ubicación</option>
-                <option value="medellin">Medellín</option>
-                <option value="bogota">Bogotá</option>
-                <option value="cali">Cali</option>
+                <option value="">Todos los sectores (CIIU)</option>
+                {ciiuOptions.map((ciiu) => (
+                  <option key={ciiu} value={ciiu}>{ciiu}</option>
+                ))}
               </Select>
               <Select
-                className="w-36"
+                className="w-36 min-w-[150px]"
                 theme={{
                   field: {
                     select: {

@@ -1,11 +1,5 @@
 // Tipos para Sanity
-export interface SanityImage {
-    _type: string;
-    asset: {
-        _ref: string;
-        _type: string;
-    };
-}
+export type { SanityImage } from './sanity';
 
 // Tipos base para documentos de Sanity
 export interface SanityResponse {
@@ -33,6 +27,7 @@ export interface SanityUserDocument extends SanityResponse, UserData {
 }
 
 // Tipos para el documento de empresa
+import type { Product, Service } from './product-service';
 export interface CompanyData {
     nameCompany?: string;
     businessName?: string;
@@ -48,6 +43,11 @@ export interface CompanyData {
     pinterest?: string;
     linkedin?: string;
     xtwitter?: string;
+    sector?: string;
+    phone?: string;
+    photo?: string | import('./sanity').SanityImage;
+    products?: Product[];
+    services?: Service[];
 }
 
 export interface SanityCompanyDocument extends SanityResponse, CompanyData {}
@@ -74,15 +74,18 @@ export interface UserProfile extends UserData {
     ciiu?: string;
     webSite?: string;
     addressCompany?: string;
-    logo?: string | SanityImage;
+    logo?: string | import('./sanity').SanityImage;
     facebook?: string;
     instagram?: string;
     tiktok?: string;
     pinterest?: string;
     linkedin?: string;
     xtwitter?: string;
-    photo?: string | SanityImage;
+    photo?: string | import('./sanity').SanityImage;
 }
+
+// Centralizar types de productos y servicios
+export type { SanityProduct as Product, SanityService as Service } from './product-service';
 
 // Asegurarnos de que el archivo es un módulo
 export {}; 

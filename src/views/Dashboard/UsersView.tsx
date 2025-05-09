@@ -56,10 +56,10 @@ export default function UsersView() {
     }
   }, [user?.uid]);
 
-  const fetchUsers = async () => {
+    const fetchUsers = async () => {
     if (!user?.uid) return;
     
-    setLoading(true);
+      setLoading(true);
     try {
       const res = await fetch("/api/users", {
         headers: {
@@ -78,7 +78,7 @@ export default function UsersView() {
     } finally {
       setLoading(false);
     }
-  };
+    };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -309,23 +309,23 @@ export default function UsersView() {
                 />
               </div>
               {!selectedUser && (
-                <div>
-                  <Label htmlFor="password">Contraseña sugerida</Label>
-                  <div className="flex gap-2">
-                    <TextInput
-                      id="password"
-                      name="password"
-                      type="text"
-                      value={form.password}
-                      onChange={handleInputChange}
-                      required
-                      className="flex-1"
-                    />
-                    <Button type="button" onClick={sugerirPassword} size="xs" className="flex-grow-0 inline-block">
-                      Regenerar
-                    </Button>
-                  </div>
+              <div>
+                <Label htmlFor="password">Contraseña sugerida</Label>
+                <div className="flex gap-2">
+                  <TextInput
+                    id="password"
+                    name="password"
+                    type="text"
+                    value={form.password}
+                    onChange={handleInputChange}
+                    required
+                    className="flex-1"
+                  />
+                  <Button type="button" onClick={sugerirPassword} size="xs" className="flex-grow-0 inline-block">
+                    Regenerar
+                  </Button>
                 </div>
+              </div>
               )}
               <div>
                 <Label htmlFor="role">Rol</Label>

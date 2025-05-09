@@ -47,6 +47,14 @@ export default function EmpresasPage() {
     fetchCompanies();
   }, [currentPage, sector, location]);
 
+  useEffect(() => {
+    if (searchTerm === '') {
+      setCurrentPage(1);
+      fetchCompanies();
+    }
+    // eslint-disable-next-line
+  }, [searchTerm]);
+
   const fetchCompanies = async () => {
     try {
       setIsLoading(true);
@@ -56,7 +64,7 @@ export default function EmpresasPage() {
       // Agregar filtros si existen
       const filters = [];
       if (searchTerm) filters.push(`(nameCompany match "${searchTerm}*" || businessName match "${searchTerm}*")`);
-      if (sector) filters.push(`sector == "${sector}"`);
+      if (sector) filters.push(`ciiu == "${sector}"`);
       if (location) filters.push(`addressCompany match "${location}*"`);
       
       if (filters.length > 0) {
@@ -119,6 +127,7 @@ export default function EmpresasPage() {
   const handleRemoveFilter = (filter: string) => {
     setSelectedFilters(selectedFilters.filter(f => f !== filter));
     if (filter === sector) setSector('');
+    if (filter === searchTerm) setSearchTerm('');
     if (filter === location) setLocation('');
     setCurrentPage(1);
   };
@@ -131,11 +140,9 @@ export default function EmpresasPage() {
       currentPage={currentPage}
       searchTerm={searchTerm}
       sector={sector}
-      location={location}
       selectedFilters={selectedFilters}
       onSearchTermChange={setSearchTerm}
       onSectorChange={setSector}
-      onLocationChange={setLocation}
       onPageChange={setCurrentPage}
       onSearch={handleSearch}
       onRemoveFilter={handleRemoveFilter}

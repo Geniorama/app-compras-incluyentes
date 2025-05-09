@@ -1,4 +1,4 @@
-import type { SanityImage } from "./index";
+import type { SanityImage } from "./sanity";
 
 export interface SanityProduct {
   _id: string;
@@ -27,6 +27,9 @@ export interface SanityService {
   createdAt: string;
   updatedAt: string;
 }
+
+export type Product = SanityProduct;
+export type Service = SanityService;
 
 // Re-exportar SanityImage para mantener la consistencia
 export type { SanityImage }; 
