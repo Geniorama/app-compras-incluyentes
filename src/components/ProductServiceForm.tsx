@@ -1,14 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Label, TextInput, Button, Select, Textarea, FileInput } from "flowbite-react";
 import { useForm } from "react-hook-form";
+import type { SanityCategoryDocument } from "@/types/sanity";
 
 interface ProductServiceData {
     _id?: string;           // ID para edición
     name: string;           // Obligatorio
     description?: string;   // Opcional
-    category: string;       // Obligatorio
+    category: string[];     // Cambiado de SanityCategoryDocument[] a string[]
     price?: number;        // Opcional
     status: string;        // Obligatorio
     images: (File | SanityImage)[];        // Obligatorio (al menos 1) - puede ser File[] o SanityImage[]
@@ -35,15 +36,16 @@ interface ProductServiceFormProps {
     onCancel: () => void;
     isLoading?: boolean;
     initialData?: Partial<ProductServiceData>; // Datos iniciales para editar
+    categories: SanityCategoryDocument[];
 }
 
-export default function ProductServiceForm({ type, onSubmit, onCancel, isLoading = false, initialData }: ProductServiceFormProps) {
+export default function ProductServiceForm({ type, onSubmit, onCancel, isLoading = false, initialData, categories }: ProductServiceFormProps) {
     const [images, setImages] = useState<(File | SanityImage)[]>([]);
     const [imagesPreviews, setImagesPreviews] = useState<string[]>([]);
     const [prevData, setPrevData] = useState<Partial<ProductServiceData>>({
         name: '',
         description: '',
-        category: '',
+        category: [],
         price: undefined,
         status: 'draft',
         sku: '',
@@ -51,6 +53,9 @@ export default function ProductServiceForm({ type, onSubmit, onCancel, isLoading
         modality: '',
         availability: ''
     });
+    const [categoryInput, setCategoryInput] = useState("");
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const inputRef = useRef<HTMLInputElement>(null);
 
     const { register, handleSubmit, formState: { errors }, reset } = useForm<ProductServiceData>({
         defaultValues: prevData
@@ -63,7 +68,7 @@ export default function ProductServiceForm({ type, onSubmit, onCancel, isLoading
         setPrevData({
             name: '',
             description: '',
-            category: '',
+            category: [],
             price: undefined,
             status: 'draft',
             sku: '',
@@ -74,7 +79,7 @@ export default function ProductServiceForm({ type, onSubmit, onCancel, isLoading
         reset({
             name: '',
             description: '',
-            category: '',
+            category: [],
             price: undefined,
             status: 'draft',
             sku: '',
@@ -98,7 +103,7 @@ export default function ProductServiceForm({ type, onSubmit, onCancel, isLoading
             reset({
                 name: initialData.name || '',
                 description: initialData.description || '',
-                category: initialData.category || '',
+                category: initialData.category || [],
                 price: initialData.price,
                 status: initialData.status || 'draft',
                 sku: initialData.sku || '',
@@ -113,7 +118,7 @@ export default function ProductServiceForm({ type, onSubmit, onCancel, isLoading
             setPrevData({
                 name: '',
                 description: '',
-                category: '',
+                category: [],
                 price: undefined,
                 status: 'draft',
                 sku: '',
@@ -124,7 +129,7 @@ export default function ProductServiceForm({ type, onSubmit, onCancel, isLoading
             reset({
                 name: '',
                 description: '',
-                category: '',
+                category: [],
                 price: undefined,
                 status: 'draft',
                 sku: '',
@@ -146,6 +151,30 @@ export default function ProductServiceForm({ type, onSubmit, onCancel, isLoading
     const removeImage = (index: number) => {
         setImages(prev => prev.filter((_, i) => i !== index));
         setImagesPreviews(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const selectedCategoryIds = prevData.category || [];
+    const selectedCategories = categories.filter(cat => selectedCategoryIds.includes(cat._id));
+    const filteredSuggestions = categories.filter(
+        cat =>
+            !selectedCategoryIds.includes(cat._id) &&
+            cat.name.toLowerCase().includes(categoryInput.toLowerCase())
+    );
+
+    const handleAddCategory = (catId: string) => {
+        const newCategories = [...selectedCategoryIds, catId];
+        setPrevData(prev => ({ ...prev, category: newCategories }));
+        setCategoryInput("");
+        setShowSuggestions(false);
+        // Actualiza el valor en react-hook-form
+        reset({ ...prevData, category: newCategories });
+    };
+
+    const handleRemoveCategory = (catId: string) => {
+        const newCategories = selectedCategoryIds.filter(id => id !== catId);
+        setPrevData(prev => ({ ...prev, category: newCategories }));
+        // Actualiza el valor en react-hook-form
+        reset({ ...prevData, category: newCategories });
     };
 
     const onSubmitForm = (data: ProductServiceData) => {
@@ -198,7 +227,7 @@ export default function ProductServiceForm({ type, onSubmit, onCancel, isLoading
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
+                    <div className="md:col-span-2">
                         <Label htmlFor="name" className="flex items-center">
                             Nombre <span className="text-red-500 ml-1">*</span>
                         </Label>
@@ -211,30 +240,52 @@ export default function ProductServiceForm({ type, onSubmit, onCancel, isLoading
                         {errors.name && <span className="text-red-500 text-sm">{errors.name.message}</span>}
                     </div>
 
-                    <div>
-                        <Label htmlFor="category" className="flex items-center">
-                            Categoría <span className="text-red-500 ml-1">*</span>
+                    <div className="md:col-span-2">
+                        <Label className="flex items-center">
+                            Categorías <span className="text-red-500 ml-1">*</span>
                         </Label>
-                        <Select
-                            id="category"
-                            {...register("category", { required: "La categoría es obligatoria" })}
-                            defaultValue={prevData.category}
-                        >
-                            <option value="">Seleccionar categoría</option>
-                            {type === 'product' ? (
-                                <>
-                                    <option value="tecnologia">Tecnología</option>
-                                    <option value="hogar">Hogar</option>
-                                    <option value="oficina">Oficina</option>
-                                </>
-                            ) : (
-                                <>
-                                    <option value="consultoria">Consultoría</option>
-                                    <option value="desarrollo">Desarrollo</option>
-                                    <option value="diseno">Diseño</option>
-                                </>
+                        <div className="flex flex-wrap gap-2 mt-2 mb-2">
+                            {selectedCategories.map(cat => (
+                                <span key={cat._id} className="inline-flex items-center bg-blue-50 text-blue-700 px-3 py-1 rounded-lg text-sm font-medium border border-blue-200">
+                                    {cat.name}
+                                    <button
+                                        type="button"
+                                        className="ml-2 text-blue-500 hover:text-red-500 focus:outline-none"
+                                        onClick={() => handleRemoveCategory(cat._id)}
+                                    >
+                                        ×
+                                    </button>
+                                </span>
+                            ))}
+                        </div>
+                        <div className="relative">
+                            <TextInput
+                                ref={inputRef}
+                                placeholder="Buscar y agregar categoría..."
+                                value={categoryInput}
+                                onChange={e => {
+                                    setCategoryInput(e.target.value);
+                                    setShowSuggestions(true);
+                                }}
+                                onFocus={() => setShowSuggestions(true)}
+                                onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+                            />
+                            {showSuggestions && filteredSuggestions.length > 0 && (
+                                <ul className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto">
+                                    {filteredSuggestions.map(cat => (
+                                        <li
+                                            key={cat._id}
+                                            className="px-4 py-2 cursor-pointer hover:bg-gray-50 text-gray-700"
+                                            onMouseDown={() => handleAddCategory(cat._id)}
+                                        >
+                                            {cat.name}
+                                        </li>
+                                    ))}
+                                </ul>
                             )}
-                        </Select>
+                        </div>
+                        {/* Campo oculto para react-hook-form */}
+                        <input type="hidden" {...register("category", { required: "La categoría es obligatoria" })} value={selectedCategoryIds.join(",")}/>
                         {errors.category && <span className="text-red-500 text-sm">{errors.category.message}</span>}
                     </div>
 

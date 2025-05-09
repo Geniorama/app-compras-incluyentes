@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import ProductsView from "@/views/Dashboard/ProductsView";
 import { sanityClient } from "@/lib/sanity.client";
-import { SanityProductDocument, SanityServiceDocument } from "@/types/sanity";
+import { SanityProductDocument, SanityServiceDocument, SanityCategoryDocument } from "@/types/sanity";
 import { Spinner } from "flowbite-react";
 
 export default function ProductsPage() {
@@ -14,9 +14,17 @@ export default function ProductsPage() {
   const [initialData, setInitialData] = useState<{
     products: SanityProductDocument[];
     services: SanityServiceDocument[];
+    categories: {
+      products: SanityCategoryDocument[];
+      services: SanityCategoryDocument[];
+    };
   }>({
     products: [],
-    services: []
+    services: [],
+    categories: {
+      products: [],
+      services: []
+    }
   });
   const [isLoading, setIsLoading] = useState(true);
 
@@ -75,7 +83,38 @@ export default function ProductsPage() {
           } | order(createdAt desc)
         `, { companyId: user.company._id });
 
-        setInitialData({ products, services });
+        // Obtener categorías
+        const [productCategories, serviceCategories] = await Promise.all([
+          sanityClient.fetch<SanityCategoryDocument[]>(`
+            *[_type == "category" && "product" in types] {
+              _id,
+              name,
+              description,
+              image,
+              types,
+              slug
+            }
+          `),
+          sanityClient.fetch<SanityCategoryDocument[]>(`
+            *[_type == "category" && "service" in types] {
+              _id,
+              name,
+              description,
+              image,
+              types,
+              slug
+            }
+          `)
+        ]);
+
+        setInitialData({ 
+          products, 
+          services,
+          categories: {
+            products: productCategories,
+            services: serviceCategories
+          }
+        });
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {

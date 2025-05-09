@@ -10,7 +10,7 @@ import {
   Spinner,
 } from "flowbite-react";
 import DashboardSidebar from "@/components/DashboardSidebar";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   HiPlus,
   HiOutlineSearch,
@@ -22,12 +22,13 @@ import toast from "react-hot-toast";
 import { useAuth } from "@/context/AuthContext";
 import { SanityImage } from "@/types/index";
 import { SanityProductDocument, SanityServiceDocument } from "@/types/sanity";
+import { sanityClient } from "@/lib/sanity.client";
+import type { SanityCategoryDocument } from "@/types/sanity";
 
 interface ProductServiceData {
   _id?: string;
   name: string;
   description?: string;
-  category: string;
   price?: number;
   status: string;
   images: (File | SanityImage)[];
@@ -38,12 +39,17 @@ interface ProductServiceData {
   duration?: string;
   modality?: string;
   availability?: string;
+  category: string[];
 }
 
 interface ProductsViewProps {
   initialData: {
     products: SanityProductDocument[];
     services: SanityServiceDocument[];
+    categories: {
+      products: SanityCategoryDocument[];
+      services: SanityCategoryDocument[];
+    };
   };
 }
 
@@ -105,6 +111,39 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
   // Estado para manejar la edición
   const [itemToEdit, setItemToEdit] = useState<SanityProductDocument | SanityServiceDocument | null>(null);
 
+  const [productCategories, setProductCategories] = useState<SanityCategoryDocument[]>([]);
+  const [serviceCategories, setServiceCategories] = useState<SanityCategoryDocument[]>([]);
+
+  // Add this useEffect to fetch categories
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const [productCats, serviceCats] = await Promise.all([
+          sanityClient.fetch<SanityCategoryDocument[]>(`
+            *[_type == "category" && "product" in types] {
+              _id,
+              name,
+              slug
+            }
+          `),
+          sanityClient.fetch<SanityCategoryDocument[]>(`
+            *[_type == "category" && "service" in types] {
+              _id,
+              name,
+              slug
+            }
+          `)
+        ]);
+        setProductCategories(productCats);
+        setServiceCategories(serviceCats);
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+      }
+    };
+
+    fetchCategories();
+  }, []);
+
   const handleAdd = (type: "product" | "service") => {
     setFormType(type);
     setItemToEdit(null);
@@ -133,7 +172,6 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
       _id: item._id,
       name: item.name,
       description: item.description,
-      category: item.category,
       price: item.price,
       status: item.status,
       images: validImages as (File | SanityImage)[],
@@ -165,9 +203,8 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
     setIsDeleting(true);
     try {
       const isProduct = "sku" in itemToDelete;
-      const endpoint = isProduct ? "/api/products" : "/api/services";
 
-      const response = await fetch(endpoint, {
+      const response = await fetch(`/api/${isProduct ? 'products' : 'services'}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -209,7 +246,6 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
     const commonFields = {
       name: data.name,
       description: data.description,
-      category: data.category,
       price: data.price,
       status: data.status,
       images: data.images,
@@ -233,7 +269,6 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
     setIsSubmitting(true);
     try {
       const isProduct = formType === "product";
-      const endpoint = isProduct ? "/api/products" : "/api/services";
 
       // Si hay imágenes, procesarlas primero
       let processedImages = data.images;
@@ -277,7 +312,7 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
 
       if (itemToEdit) {
         // Actualizar
-        const response = await fetch("/api/update-product-service", {
+        const response = await fetch(`/api/${formType === 'product' ? 'products' : 'services'}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -317,7 +352,7 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
         toast.success("Elemento actualizado correctamente");
       } else {
         // Crear
-        const response = await fetch(endpoint, {
+        const response = await fetch(`/api/${formType === 'product' ? 'products' : 'services'}`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -364,8 +399,15 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
       const matchesSearch = item.name
         .toLowerCase()
         .includes(search.toLowerCase());
-      const matchesCategory =
-        !category || item.category === category;
+      const matchesCategory = !category || (
+        Array.isArray(item.category) &&
+        item.category
+          .map((cat: { _ref?: string; _id?: string } | string) =>
+            typeof cat === 'string' ? cat : cat._ref || cat._id || ''
+          )
+          .filter(Boolean)
+          .includes(category)
+      );
       const matchesStatus = !status || item.status === status;
       return matchesSearch && matchesCategory && matchesStatus;
     });
@@ -446,8 +488,15 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
       const matchesSearch = item.name
         .toLowerCase()
         .includes(search.toLowerCase());
-      const matchesCategory =
-        !category || item.category === category;
+      const matchesCategory = !category || (
+        Array.isArray(item.category) &&
+        item.category
+          .map((cat: { _ref?: string; _id?: string } | string) =>
+            typeof cat === 'string' ? cat : cat._ref || cat._id || ''
+          )
+          .filter(Boolean)
+          .includes(category)
+      );
       const matchesStatus = !status || item.status === status;
       return matchesSearch && matchesCategory && matchesStatus;
     });
@@ -545,6 +594,7 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
     </div>
   );
 
+
   return (
     <div className="flex container mx-auto mt-10">
       <DashboardSidebar />
@@ -564,9 +614,11 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
                   onChange={(e) => setProductCategory(e.target.value)}
                 >
                   <option value="">Todas las categorías</option>
-                  <option value="ropa">Ropa</option>
-                  <option value="accesorios">Accesorios</option>
-                  <option value="calzado">Calzado</option>
+                  {productCategories.map((category) => (
+                    <option key={category._id} value={category.slug.current}>
+                      {category.name}
+                    </option>
+                  ))}
                 </Select>
                 <Select
                   value={productStatus}
@@ -602,9 +654,11 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
                   onChange={(e) => setServiceCategory(e.target.value)}
                 >
                   <option value="">Todas las categorías</option>
-                  <option value="consultoria">Consultoría</option>
-                  <option value="capacitacion">Capacitación</option>
-                  <option value="asesoramiento">Asesoramiento</option>
+                  {serviceCategories.map((category) => (
+                    <option key={category._id} value={category.slug.current}>
+                      {category.name}
+                    </option>
+                  ))}
                 </Select>
                 <Select
                   value={serviceStatus}
@@ -643,8 +697,14 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
                 _id: itemToEdit._id,
                 name: itemToEdit.name,
                 description: itemToEdit.description,
-                category: itemToEdit.category,
                 price: itemToEdit.price,
+                category: Array.isArray(itemToEdit.category)
+                  ? itemToEdit.category
+                      .map((cat: { _ref?: string; _id?: string } | string) =>
+                        typeof cat === 'string' ? cat : cat._ref || cat._id || ''
+                      )
+                      .filter(Boolean)
+                  : [],
                 status: itemToEdit.status,
                 images: itemToEdit.images.filter(img => img.asset !== null) as (File | SanityImage)[],
                 imagesPreviews: itemToEdit.images
@@ -664,9 +724,15 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
                       availability: (itemToEdit as SanityServiceDocument).availability,
                     }),
               } : undefined}
-              onSubmit={handleSubmit}
+              onSubmit={async (data) => {
+                const categoryIds = Array.isArray(data.category)
+                  ? data.category.filter((cat): cat is string => typeof cat === 'string')
+                  : [];
+                await handleSubmit({ ...data, category: categoryIds });
+              }}
               isLoading={isSubmitting}
               onCancel={() => setShowModal(false)}
+              categories={formType === 'product' ? productCategories : serviceCategories}
             />
           </Modal.Body>
         </Modal>

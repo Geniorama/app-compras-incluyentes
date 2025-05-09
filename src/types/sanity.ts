@@ -14,10 +14,22 @@ export interface SanityDocument {
   _updatedAt: string;
 }
 
+export interface SanityCategory {
+  _id: string;
+  name: string;
+  description: string;
+  image: SanityImage;
+  types: ('product' | 'service')[];
+  slug: {
+    _type: 'slug';
+    current: string;
+  };
+}
+
 export interface SanityProductDocument extends SanityDocument {
   name: string;
   description?: string;
-  category: string;
+  category: SanityCategory;
   price?: number;
   status: string;
   sku?: string;
@@ -31,7 +43,7 @@ export interface SanityProductDocument extends SanityDocument {
 export interface SanityServiceDocument extends SanityDocument {
   name: string;
   description?: string;
-  category: string;
+  category: SanityCategory;
   price?: number;
   status: string;
   duration?: string;
@@ -42,6 +54,18 @@ export interface SanityServiceDocument extends SanityDocument {
     _type: "reference";
     _ref: string;
   };
+}
+
+export interface SanityCategoryDocument extends SanityDocument {
+  name: string;
+  description: string;
+  image: SanityImage;
+  types: ('product' | 'service')[];
+  slug: {
+    _type: 'slug';
+    current: string;
+  };
+  category: SanityCategory[];
 }
 
 export interface SanityDocumentStub {
