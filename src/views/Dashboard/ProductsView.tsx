@@ -24,6 +24,7 @@ import { SanityImage } from "@/types/index";
 import { SanityProductDocument, SanityServiceDocument } from "@/types/sanity";
 import { sanityClient } from "@/lib/sanity.client";
 import type { SanityCategoryDocument } from "@/types/sanity";
+import { v4 as uuidv4 } from 'uuid';
 
 interface ProductServiceData {
   _id?: string;
@@ -167,6 +168,16 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
     const isProduct = "sku" in item;
     setFormType(isProduct ? "product" : "service");
     
+    // Obtener las categorías correctamente
+    const categories = Array.isArray(item.category) 
+      ? item.category.map(cat => {
+          if (typeof cat === 'string') return cat;
+          if (cat._ref) return cat._ref;
+          if (cat._id) return cat._id;
+          return '';
+        }).filter(Boolean)
+      : [];
+    
     // Crear un objeto compatible con ProductServiceData
     const formData: Partial<ProductServiceData> = {
       _id: item._id,
@@ -175,7 +186,8 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
       price: item.price,
       status: item.status,
       images: validImages as (File | SanityImage)[],
-      imagesPreviews: imagesPreviews
+      imagesPreviews: imagesPreviews,
+      category: categories
     };
     
     // Agregar campos específicos según el tipo
@@ -249,6 +261,7 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
       price: data.price,
       status: data.status,
       images: data.images,
+      category: data.category,
     };
     if (type === "product") {
       return {
@@ -304,11 +317,22 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
       }
 
       // Limpiar los datos antes de enviar
-      const requestData = cleanRequestData({
+      const cleaned = cleanRequestData({
         ...data,
         images: processedImages,
         price: data.price ? Number(data.price) : undefined,
       }, formType);
+
+      const requestData = {
+        ...cleaned,
+        category: Array.isArray(data.category)
+          ? data.category.map(id => ({
+              _type: 'reference',
+              _ref: id,
+              _key: uuidv4()
+            }))
+          : [],
+      };
 
       if (itemToEdit) {
         // Actualizar
@@ -699,11 +723,12 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
                 description: itemToEdit.description,
                 price: itemToEdit.price,
                 category: Array.isArray(itemToEdit.category)
-                  ? itemToEdit.category
-                      .map((cat: { _ref?: string; _id?: string } | string) =>
-                        typeof cat === 'string' ? cat : cat._ref || cat._id || ''
-                      )
-                      .filter(Boolean)
+                  ? itemToEdit.category.map(cat => {
+                      if (typeof cat === 'string') return cat;
+                      if (cat._ref) return cat._ref;
+                      if (cat._id) return cat._id;
+                      return '';
+                    }).filter(Boolean)
                   : [],
                 status: itemToEdit.status,
                 images: itemToEdit.images.filter(img => img.asset !== null) as (File | SanityImage)[],
