@@ -69,7 +69,7 @@ export default function LoginForm() {
         sessionStorage.setItem('authToken', token);
       }
      
-      router.push('/dashboard/perfil');
+      router.push('/empresas');
     } catch (error: unknown) {
       if (error instanceof Error) {
         setError(error.message);

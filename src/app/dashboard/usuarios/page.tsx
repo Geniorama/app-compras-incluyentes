@@ -39,7 +39,7 @@ export default function UsuariosPage() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
+      <div className="flex flex-1 justify-center items-center h-[80vh]">
         <Spinner size="xl" />
       </div>
     );

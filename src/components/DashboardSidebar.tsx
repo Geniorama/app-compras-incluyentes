@@ -2,12 +2,11 @@
 
 import { Sidebar, Button } from 'flowbite-react';
 import { usePathname, useRouter } from 'next/navigation';
-import { signOut } from 'firebase/auth';
-import { auth } from '@/lib/firebaseConfig';
+import { logout } from '@/lib/auth';
 import {
   HiOutlineShieldExclamation,
   HiUser,
-  HiOutlineBell,
+  // HiOutlineBell,
   HiMenu,
   HiX,
   HiShoppingBag,
@@ -65,8 +64,10 @@ export default function DashboardSidebar() {
     }
   }, [pathname, isMobile]);
 
-  const handleLogout = () => {
-    signOut(auth);
+  const handleLogout = async () => {
+    await logout();
+    localStorage.removeItem('authToken');
+    sessionStorage.removeItem('authToken');
     router.push('/login');
   };
 
@@ -81,11 +82,11 @@ export default function DashboardSidebar() {
       icon: HiShoppingBag,
       label: 'Productos y Servicios'
     },
-    {
-      href: '/dashboard/notificaciones',
-      icon: HiOutlineBell,
-      label: 'Notificaciones'
-    },
+    // {
+    //   href: '/dashboard/notificaciones',
+    //   icon: HiOutlineBell,
+    //   label: 'Notificaciones'
+    // },
     {
       href: '/dashboard/seguridad',
       icon: HiOutlineShieldExclamation,

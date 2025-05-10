@@ -1,10 +1,10 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedClient } from '@/lib/sanity.client';
 import { auth } from '@/lib/firebaseConfig';
 import { deleteUser } from 'firebase/auth';
 
 export async function PUT(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
@@ -20,7 +20,7 @@ export async function PUT(
 
     if (!existingUser) {
       return NextResponse.json(
-        { message: 'Usuario no encontrado' },
+        { success: false, message: 'Usuario no encontrado' },
         { status: 404 }
       );
     }
@@ -29,30 +29,33 @@ export async function PUT(
     const updatedUser = await client
       .patch(id)
       .set({
-        firstName: body.firstName,
-        lastName: body.lastName,
-        role: body.role,
-        phone: body.phone,
-        pronoun: body.pronoun,
-        position: body.position,
-        typeDocument: body.typeDocument,
-        numDocument: body.numDocument,
+        firstName: body.firstName ?? "",
+        lastName: body.lastName ?? "",
+        role: body.role ?? "",
+        phone: body.phone ?? "",
+        pronoun: body.pronoun ?? "",
+        position: body.position ?? "",
+        typeDocument: body.typeDocument ?? "",
+        numDocument: body.numDocument ?? "",
         updatedAt: new Date().toISOString(),
       })
       .commit();
 
-    return NextResponse.json({ user: updatedUser });
+    return NextResponse.json({ 
+      success: true,
+      data: { user: updatedUser }
+    });
   } catch (error) {
     console.error('Error al actualizar usuario:', error);
     return NextResponse.json(
-      { message: 'Error al actualizar usuario' },
+      { success: false, message: 'Error al actualizar usuario' },
       { status: 500 }
     );
   }
 }
 
 export async function DELETE(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
@@ -70,7 +73,7 @@ export async function DELETE(
 
     if (!existingUser) {
       return NextResponse.json(
-        { message: 'Usuario no encontrado' },
+        { success: false, message: 'Usuario no encontrado' },
         { status: 404 }
       );
     }
@@ -94,13 +97,16 @@ export async function DELETE(
     }
 
     return NextResponse.json({ 
+      success: true,
       message: 'Usuario eliminado correctamente',
-      note: 'Si el usuario no se eliminó de Firebase, deberá eliminarse manualmente desde la consola.'
+      data: {
+        note: 'Si el usuario no se eliminó de Firebase, deberá eliminarse manualmente desde la consola.'
+      }
     });
   } catch (error) {
     console.error('Error al eliminar usuario:', error);
     return NextResponse.json(
-      { message: 'Error al eliminar usuario' },
+      { success: false, message: 'Error al eliminar usuario' },
       { status: 500 }
     );
   }

@@ -1,4 +1,5 @@
 import { User as FirebaseUser } from "firebase/auth";
+import { SanityImage } from './sanity';
 
 export interface Company {
   _id: string;
@@ -6,6 +7,9 @@ export interface Company {
 }
 
 export interface User extends FirebaseUser {
+  firstName?: string;
+  lastName?: string;
+  photo?: SanityImage;
   company?: Company;
 }
 

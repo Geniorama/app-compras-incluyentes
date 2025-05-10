@@ -20,6 +20,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           // Obtener la información de la empresa del usuario
           const userData = await sanityClient.fetch(
             `*[_type == "user" && firebaseUid == $firebaseUid][0]{
+              firstName,
+              lastName,
+              email,
+              photo,
               company->{
                 _id,
                 name
@@ -28,9 +32,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             { firebaseUid: firebaseUser.uid }
           );
 
-          // Extender el usuario de Firebase con la información de la empresa
+          // Extender el usuario de Firebase con la información de la empresa, nombre y foto
           const extendedUser = {
             ...firebaseUser,
+            firstName: userData?.firstName,
+            lastName: userData?.lastName,
+            email: userData?.email || firebaseUser.email,
+            photo: userData?.photo,
             company: userData?.company
           } as User;
 

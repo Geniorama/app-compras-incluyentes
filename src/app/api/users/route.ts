@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getAuthenticatedClient } from '@/lib/sanity.client';
+import { UsersApiResponse } from '@/types/next';
 
-export async function GET(request: Request) {
+export async function GET(request: Request): Promise<NextResponse<UsersApiResponse>> {
   try {
     const client = getAuthenticatedClient();
     
@@ -15,7 +16,7 @@ export async function GET(request: Request) {
 
     if (!currentUser?.company?._id) {
       return NextResponse.json(
-        { message: 'No se encontró la empresa del usuario' },
+        { success: false, message: 'No se encontró la empresa del usuario' },
         { status: 404 }
       );
     }
@@ -37,11 +38,14 @@ export async function GET(request: Request) {
       { companyId: currentUser.company._id }
     );
 
-    return NextResponse.json({ users });
+    return NextResponse.json({ 
+      success: true,
+      data: { users }
+    });
   } catch (error) {
     console.error('Error al obtener usuarios:', error);
     return NextResponse.json(
-      { message: 'Error al obtener usuarios' },
+      { success: false, message: 'Error al obtener usuarios' },
       { status: 500 }
     );
   }

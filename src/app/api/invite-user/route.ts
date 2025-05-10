@@ -3,10 +3,26 @@ import { getAuthenticatedClient } from '@/lib/sanity.client';
 import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
 import { v4 as uuidv4 } from 'uuid';
 import { auth } from '@/lib/firebaseConfig';
+import { ApiUserResponse } from '@/types/api';
 
-export async function POST(request: Request) {
+interface InviteUserData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  role: string;
+  inviterUid: string;
+  phone?: string;
+  pronoun?: string;
+  position?: string;
+  typeDocument?: string;
+  numDocument?: string;
+}
+
+export async function POST(request: Request): Promise<NextResponse<ApiUserResponse>> {
   try {
     const client = getAuthenticatedClient();
+    const body = await request.json() as InviteUserData;
     const {
       firstName,
       lastName,
@@ -19,7 +35,8 @@ export async function POST(request: Request) {
       position,
       typeDocument,
       numDocument
-    } = await request.json();
+    } = body;
+
     if (!firstName || !lastName || !email || !password || !inviterUid) {
       return NextResponse.json({ message: 'Faltan datos requeridos' }, { status: 400 });
     }
@@ -51,20 +68,29 @@ export async function POST(request: Request) {
       lastName,
       email,
       phone,
-      pronoun,
-      position,
       typeDocument,
       numDocument,
-      role,
+      pronoun,
+      position,
       firebaseUid: firebaseUser.user.uid,
-      company: { _type: 'reference', _ref: inviter.company._id },
+      role,
+      company: {
+        _type: 'reference',
+        _ref: inviter.company._id
+      },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });
 
-    return NextResponse.json({ message: 'Usuario invitado correctamente', user: userDoc });
+    return NextResponse.json({ 
+      message: 'Usuario invitado exitosamente',
+      user: userDoc
+    });
   } catch (error) {
-    console.error(error);
-    return NextResponse.json({ message: 'Error al invitar usuario' }, { status: 500 });
+    console.error('Error al invitar usuario:', error);
+    return NextResponse.json(
+      { message: 'Error al invitar usuario' },
+      { status: 500 }
+    );
   }
 } 

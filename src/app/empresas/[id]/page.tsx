@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useParams } from "next/navigation";
 import { sanityClient } from "@/lib/sanity.client";
 import EmpresaView from "@/views/Empresas/EmpresaView";
 import DashboardNavbar from "@/components/dashboard/Navbar";
 import { Spinner } from "flowbite-react";
+import { SanityProductDocument, SanityServiceDocument } from '@/types/sanity';
 
 interface SanityImage {
   _type: "image";
@@ -54,7 +55,6 @@ interface Company {
 }
 
 export default function EmpresaPage() {
-  const router = useRouter();
   const params = useParams();
   const { id } = params as { id: string };
   const [company, setCompany] = useState<Company | null>(null);
@@ -90,6 +90,7 @@ export default function EmpresaPage() {
         const data = await sanityClient.fetch(query, { id });
         setCompany(data);
       } catch (err) {
+        console.error("Error al cargar la empresa:", err);
         setError("No se pudo cargar la información de la empresa");
       } finally {
         setLoading(false);
@@ -97,6 +98,16 @@ export default function EmpresaPage() {
     };
     fetchCompany();
   }, [id]);
+
+  // Helper para convertir SanityImage a URL
+  const getSanityImageUrl = (img?: SanityImage) =>
+    img && img.asset?._ref
+      ? `https://cdn.sanity.io/images/${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID}/${process.env.NEXT_PUBLIC_SANITY_DATASET}/${img.asset._ref
+          .replace('image-', '')
+          .replace('-jpg', '.jpg')
+          .replace('-png', '.png')
+          .replace('-webp', '.webp')}`
+      : "";
 
   if (loading) {
     return (
@@ -120,5 +131,42 @@ export default function EmpresaPage() {
     );
   }
 
-  return <EmpresaView company={company} />;
+  if (company) {
+    const mapProduct = (p: Partial<SanityProductDocument>) => ({
+      ...p,
+      _id: p._id || "",
+      name: p.name ?? "",
+      description: p.description ?? "",
+      category:
+        typeof p.category === "string"
+          ? p.category
+          : (p.category && (p.category._id || p.category.slug?.current)) || "",
+      status: p.status || "",
+      images: p.images || [],
+      createdAt: p._createdAt || "",
+      updatedAt: p._updatedAt || "",
+    });
+    const mapService = (s: Partial<SanityServiceDocument>) => ({
+      ...s,
+      _id: s._id || "",
+      name: s.name ?? "",
+      description: s.description ?? "",
+      category:
+        typeof s.category === "string"
+          ? s.category
+          : (s.category && (s.category._id || s.category.slug?.current)) || "",
+      status: s.status || "",
+      images: s.images || [],
+      createdAt: s._createdAt || "",
+      updatedAt: s._updatedAt || "",
+    });
+    const companyData = {
+      ...company,
+      logo: getSanityImageUrl(company.logo),
+      products: company.products?.map(mapProduct),
+      services: company.services?.map(mapService),
+    };
+    return <EmpresaView company={companyData} />;
+  }
+  return null;
 } 

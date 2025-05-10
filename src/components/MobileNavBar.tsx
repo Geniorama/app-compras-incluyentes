@@ -6,7 +6,7 @@ import {
   HiHome,
   HiShoppingBag,
   HiUser,
-  HiOutlineBell,
+  // HiOutlineBell,
 } from 'react-icons/hi';
 
 const navItems = [
@@ -16,17 +16,17 @@ const navItems = [
     label: 'Inicio'
   },
   {
-    href: '/dashboard/products',
+    href: '/dashboard/catalogo',
     icon: HiShoppingBag,
     label: 'Productos'
   },
+  // {
+  //   href: '/dashboard/notificaciones',
+  //   icon: HiOutlineBell,
+  //   label: 'Alertas'
+  // },
   {
-    href: '/dashboard/notifications',
-    icon: HiOutlineBell,
-    label: 'Alertas'
-  },
-  {
-    href: '/dashboard/profile',
+    href: '/dashboard/perfil',
     icon: HiUser,
     label: 'Perfil'
   }

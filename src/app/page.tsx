@@ -10,11 +10,11 @@ export default function Home() {
 
   useEffect(() => {
     if (user) {
-      router.push('/dashboard/perfil');
+      router.push('/empresas');
     } else {
       router.push('/login');
     }
-  }, [router]);
+  }, [user, router]);
 
   return (
     <div>

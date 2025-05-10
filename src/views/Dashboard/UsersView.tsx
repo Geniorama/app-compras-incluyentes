@@ -68,7 +68,7 @@ export default function UsersView() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Error al obtener usuarios');
-      setUsers(data.users || []);
+      setUsers(data.data?.users || []);
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
