@@ -31,7 +31,6 @@ export default function UsersView() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [form, setForm] = useState({
     firstName: '',
@@ -164,34 +163,6 @@ export default function UsersView() {
     }
   };
 
-  const handleDeleteUser = async () => {
-    if (!selectedUser || !user?.uid) return;
-
-    setIsSubmitting(true);
-    setError('');
-    try {
-      const res = await fetch(`/api/users/${selectedUser._id}`, {
-        method: 'DELETE',
-        headers: {
-          'x-user-id': user.uid
-        }
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Error al eliminar usuario');
-      setShowDeleteModal(false);
-      setSelectedUser(null);
-      await fetchUsers();
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError('Error desconocido');
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   const sugerirPassword = () => {
     const nueva = generarPassword();
     setForm(f => ({ ...f, password: nueva }));
@@ -249,15 +220,7 @@ export default function UsersView() {
                       <Button size="xs" color="blue" onClick={() => handleEditUser(user)}>
                         Editar
                       </Button>
-                      <button 
-                        className="text-red-600 hover:text-red-800 text-xs font-medium"
-                        onClick={() => {
-                          setSelectedUser(user);
-                          setShowDeleteModal(true);
-                        }}
-                      >
-                        Eliminar
-                      </button>
+                      <span className="text-gray-400 text-xs">No se puede eliminar</span>
                     </div>
                   </Table.Cell>
                 </Table.Row>
@@ -376,29 +339,6 @@ export default function UsersView() {
               </Button>
             </form>
           </Modal.Body>
-        </Modal>
-
-        <Modal show={showDeleteModal} onClose={() => {
-          setShowDeleteModal(false);
-          setSelectedUser(null);
-        }}>
-          <Modal.Header>Confirmar eliminación</Modal.Header>
-          <Modal.Body>
-            <p>¿Estás seguro que deseas eliminar al usuario {selectedUser?.firstName} {selectedUser?.lastName}?</p>
-            <p className="text-red-500 mt-2">Esta acción no se puede deshacer.</p>
-            {error && <Alert color="failure" className="mt-4">{error}</Alert>}
-          </Modal.Body>
-          <Modal.Footer>
-            <Button color="gray" onClick={() => {
-              setShowDeleteModal(false);
-              setSelectedUser(null);
-            }}>
-              Cancelar
-            </Button>
-            <Button color="failure" onClick={handleDeleteUser} disabled={isSubmitting}>
-              {isSubmitting ? 'Eliminando...' : 'Eliminar usuario'}
-            </Button>
-          </Modal.Footer>
         </Modal>
       </main>
     </div>

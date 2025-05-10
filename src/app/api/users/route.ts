@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAuthenticatedClient } from '@/lib/sanity.client';
-import { UsersApiResponse } from '@/types/next';
 
-export async function GET(request: Request): Promise<NextResponse<UsersApiResponse>> {
+export async function GET(request: Request) {
   try {
     const client = getAuthenticatedClient();
     

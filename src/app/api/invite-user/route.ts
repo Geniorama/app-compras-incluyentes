@@ -3,7 +3,6 @@ import { getAuthenticatedClient } from '@/lib/sanity.client';
 import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
 import { v4 as uuidv4 } from 'uuid';
 import { auth } from '@/lib/firebaseConfig';
-import { ApiUserResponse } from '@/types/api';
 
 interface InviteUserData {
   firstName: string;
@@ -19,7 +18,7 @@ interface InviteUserData {
   numDocument?: string;
 }
 
-export async function POST(request: Request): Promise<NextResponse<ApiUserResponse>> {
+export async function POST(request: Request) {
   try {
     const client = getAuthenticatedClient();
     const body = await request.json() as InviteUserData;
