@@ -80,7 +80,7 @@ export default function CatalogoView({ products, services, categories, companies
           <div className="relative z-10 container mx-auto px-4 h-full flex flex-col items-center justify-center text-white text-center">
             <h1 className="text-3xl md:text-4xl font-normal mb-6">
               Explora el catálogo de<br />
-              <span className="font-bold">productos y servicios activos</span>
+              <span className="font-bold">productos y servicios</span>
             </h1>
             <div className="w-full max-w-2xl flex flex-col md:flex-row gap-2">
               <TextInput
@@ -109,7 +109,7 @@ export default function CatalogoView({ products, services, categories, companies
           </div>
         </div>
         {/* Grid de categorías debajo del banner */}
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 pt-8">
           <div className="mb-8">
             <h2 className="text-xl font-bold text-gray-800 mb-4">Categorías</h2>
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
@@ -135,7 +135,7 @@ export default function CatalogoView({ products, services, categories, companies
           </div>
         </div>
         {/* Sidebar de filtros mejorado */}
-        <div className="container mx-auto px-4 py-4 flex flex-col md:flex-row gap-8">
+        <div className="container mx-auto px-4 flex flex-col-reverse md:flex-row gap-8 pb-10">
           <aside className="w-full md:w-64 mb-4 md:mb-0">
             <div className="bg-white rounded-2xl shadow-lg p-6 flex flex-col gap-6 sticky top-24 border border-gray-100">
               <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2 mb-2"><HiAdjustments className="text-blue-600" /> Filtros</h2>
@@ -168,16 +168,49 @@ export default function CatalogoView({ products, services, categories, companies
             </div>
           </aside>
           <div className="flex-1">
-            <div className="container mx-auto px-4 py-8">
+            <div className="container mx-auto lg:px-4">
               {/* Chips de filtros activos */}
-              {(!!searchTerm) && (
+              {(searchTerm || category || type !== 'all' || company) && (
                 <div className="flex flex-wrap gap-2 mb-6">
                   {searchTerm && (
                     <span className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-gray-100 text-gray-700">
-                      {searchTerm}
+                      Búsqueda: {searchTerm}
                       <button
                         onClick={() => { setSearch(''); setSearchTerm(''); }}
                         className="ml-2 hover:text-gray-900"
+                      >
+                        <HiX className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
+                  {category && (
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-700">
+                      Categoría: {categories.find(cat => cat._id === category)?.name}
+                      <button
+                        onClick={() => setCategory('')}
+                        className="ml-2 hover:text-blue-900"
+                      >
+                        <HiX className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
+                  {type !== 'all' && (
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-purple-100 text-purple-700">
+                      Tipo: {type === 'product' ? 'Productos' : 'Servicios'}
+                      <button
+                        onClick={() => setType('all')}
+                        className="ml-2 hover:text-purple-900"
+                      >
+                        <HiX className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
+                  {company && (
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-green-100 text-green-700">
+                      Empresa: {companies.find(comp => comp._id === company)?.nameCompany}
+                      <button
+                        onClick={() => setCompany('')}
+                        className="ml-2 hover:text-green-900"
                       >
                         <HiX className="w-3 h-3" />
                       </button>
