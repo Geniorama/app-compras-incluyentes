@@ -155,8 +155,8 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
     if(!item) return;
     
     // Filtrar solo imágenes válidas
-    const validImages = item.images.filter(img => img && img.asset && img.asset._ref);
-    const imagesPreviews = validImages.map(img =>
+    const validImages = item.images?.filter(img => img && img.asset && img.asset._ref);
+    const imagesPreviews = validImages?.map(img =>
       `https://cdn.sanity.io/images/${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID}/${process.env.NEXT_PUBLIC_SANITY_DATASET}/${img.asset._ref
         .replace("image-", "")
         .replace("-jpg", ".jpg")
@@ -312,7 +312,7 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
               _key: imgTyped._key || crypto.randomUUID(),
             };
           })
-        );
+        ) as (SanityImage | File)[];
         processedImages = imageAssets;
       }
 
@@ -639,9 +639,11 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
                 >
                   <option value="">Todas las categorías</option>
                   {productCategories.map((category) => (
-                    <option key={category._id} value={category.slug.current}>
-                      {category.name}
-                    </option>
+                    category.slug?.current && (
+                      <option key={category._id} value={category.slug.current}>
+                        {category.name}
+                      </option>
+                    )
                   ))}
                 </Select>
                 <Select
@@ -679,9 +681,11 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
                 >
                   <option value="">Todas las categorías</option>
                   {serviceCategories.map((category) => (
-                    <option key={category._id} value={category.slug.current}>
-                      {category.name}
-                    </option>
+                    category.slug?.current && (
+                      <option key={category._id} value={category.slug.current}>
+                        {category.name}
+                      </option>
+                    )
                   ))}
                 </Select>
                 <Select
@@ -731,16 +735,18 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
                     }).filter(Boolean)
                   : [],
                 status: itemToEdit.status,
-                images: itemToEdit.images.filter(img => img.asset !== null) as (File | SanityImage)[],
+                images: itemToEdit.images ? itemToEdit.images.filter(img => img.asset !== null) as (File | SanityImage)[] : [],
                 imagesPreviews: itemToEdit.images
-                  .filter(img => img.asset !== null)
-                  .map(img => 
-                    `https://cdn.sanity.io/images/${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID}/${process.env.NEXT_PUBLIC_SANITY_DATASET}/${img.asset?._ref
-                      .replace("image-", "")
-                      .replace("-jpg", ".jpg")
-                      .replace("-png", ".png")
-                      .replace("-webp", ".webp")}`
-                  ),
+                  ? itemToEdit.images
+                      .filter(img => img.asset !== null)
+                      .map(img => 
+                        `https://cdn.sanity.io/images/${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID}/${process.env.NEXT_PUBLIC_SANITY_DATASET}/${img.asset?._ref
+                          .replace("image-", "")
+                          .replace("-jpg", ".jpg")
+                          .replace("-png", ".png")
+                          .replace("-webp", ".webp")}`
+                      )
+                  : [],
                 ...(formType === "product"
                   ? { sku: (itemToEdit as SanityProductDocument).sku }
                   : {
@@ -753,7 +759,7 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
                 const categoryIds = Array.isArray(data.category)
                   ? data.category.filter((cat): cat is string => typeof cat === 'string')
                   : [];
-                await handleSubmit({ ...data, category: categoryIds });
+                await handleSubmit({ ...data, category: categoryIds, images: data.images as (SanityImage | File)[] });
               }}
               isLoading={isSubmitting}
               onCancel={() => setShowModal(false)}

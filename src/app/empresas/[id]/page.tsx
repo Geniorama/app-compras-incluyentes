@@ -6,7 +6,7 @@ import { sanityClient } from "@/lib/sanity.client";
 import EmpresaView from "@/views/Empresas/EmpresaView";
 import DashboardNavbar from "@/components/dashboard/Navbar";
 import { Spinner } from "flowbite-react";
-import { SanityProductDocument, SanityServiceDocument } from '@/types/sanity';
+import type { SanityProductDocument, SanityServiceDocument } from "@/types/sanity";
 
 interface SanityImage {
   _type: "image";
@@ -14,22 +14,6 @@ interface SanityImage {
     _ref: string;
     _type: "reference";
   };
-}
-
-interface Product {
-  _id: string;
-  name: string;
-  description: string;
-  image?: SanityImage;
-  price?: number;
-}
-
-interface Service {
-  _id: string;
-  name: string;
-  description: string;
-  image?: SanityImage;
-  price?: number;
 }
 
 interface Company {
@@ -50,8 +34,8 @@ interface Company {
   pinterest?: string;
   linkedin?: string;
   xtwitter?: string;
-  products?: Product[];
-  services?: Service[];
+  products?: SanityProductDocument[];
+  services?: SanityServiceDocument[];
 }
 
 export default function EmpresaPage() {

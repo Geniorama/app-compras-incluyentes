@@ -1,31 +1,31 @@
-import type { SanityImage } from "./sanity";
+import type { SanityImage, SanityCategoryDocument } from "./sanity";
 
 export interface SanityProduct {
   _id: string;
   name: string;
   description?: string;
-  category: string;
+  category?: SanityCategoryDocument[];
   price?: number;
   status: string;
   sku?: string;
-  images: SanityImage[];
-  createdAt: string;
-  updatedAt: string;
+  images?: SanityImage[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface SanityService {
   _id: string;
   name: string;
   description?: string;
-  category: string;
+  category?: SanityCategoryDocument[];
   price?: number;
   status: string;
   duration?: string;
   modality?: string;
   availability?: string;
-  images: SanityImage[];
-  createdAt: string;
-  updatedAt: string;
+  images?: SanityImage[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export type Product = SanityProduct;
