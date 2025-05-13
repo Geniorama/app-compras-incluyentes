@@ -1,6 +1,6 @@
 import DashboardNavbar from '@/components/dashboard/Navbar';
-import { Card, Button } from 'flowbite-react';
-import { HiOutlineGlobeAlt } from 'react-icons/hi';
+import { Button } from 'flowbite-react';
+import { HiOutlineGlobeAlt, HiTag } from 'react-icons/hi';
 import { FaWhatsapp } from 'react-icons/fa';
 import {
   RiFacebookLine,
@@ -10,18 +10,19 @@ import {
   RiLinkedinLine,
   RiTwitterXLine
 } from 'react-icons/ri';
-import type { CompanyData, Product, Service, SanityImage } from '@/types';
+import type { CompanyData } from '@/types';
+import type { SanityProductDocument, SanityServiceDocument, SanityImage, SanityCategoryDocument } from '@/types/sanity';
 import BgCover from '@/assets/img/bg-portada-empresa.png';
 
 interface EmpresaViewProps {
   company: CompanyData & {
-    products?: Product[];
-    services?: Service[];
+    products?: SanityProductDocument[];
+    services?: SanityServiceDocument[];
   };
 }
 
-function getImageUrl(image: SanityImage) {
-  if (!image || !image.asset) return null;
+function getImageUrl(image: SanityImage): string {
+  if (!image || !image.asset) return '/images/placeholder-product.png';
   return `https://cdn.sanity.io/images/${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID}/${process.env.NEXT_PUBLIC_SANITY_DATASET}/${image.asset._ref.replace('image-', '').replace('-jpg', '.jpg').replace('-png', '.png').replace('-webp', '.webp')}`;
 }
 
@@ -157,54 +158,98 @@ export default function EmpresaView({ company }: EmpresaViewProps) {
           </div>
 
           {/* Productos */}
-          <section className="mb-10">
+          <section className="mt-8">
             <h2 className="text-2xl font-semibold mb-4">Productos</h2>
             {products.length === 0 ? (
               <p className="text-gray-500">Esta empresa no tiene productos registrados.</p>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
                 {products.map(product => (
-                  <Card key={product._id} className="shadow-md flex flex-col">
-                    {product.images?.[0] && (
-                      <img
-                        src={getImageUrl(product.images?.[0]) || '/images/placeholder-product.png'}
-                        alt={product.name}
-                        className="w-full h-40 object-cover rounded mb-2"
-                      />
-                    )}
-                    <div className="flex flex-col flex-grow">
-                      <h3 className="text-lg font-bold mb-2">{product.name}</h3>
-                      <p className="text-gray-600 mb-2">{product.description}</p>
-                      {product.price && <p className="text-green-700 font-semibold mt-auto">${product.price.toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</p>}
+                  <div key={product._id} className="bg-white rounded-lg shadow-md overflow-hidden">
+                    <div className="relative h-48">
+                      {product.images?.[0] ? (
+                        <img
+                          src={getImageUrl(product.images[0])}
+                          alt={product.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                          <span className="text-gray-400">Sin imagen</span>
+                        </div>
+                      )}
                     </div>
-                  </Card>
+                    <div className="p-4">
+                      <h3 className="text-lg font-semibold mb-2">{product.name}</h3>
+                      <p className="text-gray-600 text-sm mb-2">{product.description || 'Sin descripción'}</p>
+                      
+                      {/* Categoría */}
+                      {product.category && Array.isArray(product.category) && product.category.length > 0 && (
+                        <div className="flex items-center gap-1 mb-3">
+                          <HiTag className="w-4 h-4 text-gray-400" />
+                          <span className="text-sm text-gray-600">
+                            {(product.category as SanityCategoryDocument[]).map((cat: SanityCategoryDocument) => cat.name).join(', ')}
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="flex justify-between items-center">
+                        <span className={`leading-4 py-1 rounded-full text-sm font-semibold ${product.price ? 'text-green-600' : 'text-slate-400'}`}>
+                          {product.price ? `$${product.price.toLocaleString()}` : 'Precio no especificado'}
+                        </span>
+                        <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">Activo</span>
+                      </div>
+                    </div>
+                  </div>
                 ))}
               </div>
             )}
           </section>
 
           {/* Servicios */}
-          <section>
+          <section className="mt-8">
             <h2 className="text-2xl font-semibold mb-4">Servicios</h2>
             {services.length === 0 ? (
               <p className="text-gray-500">Esta empresa no tiene servicios registrados.</p>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
                 {services.map(service => (
-                  <Card key={service._id} className="shadow-md flex flex-col">
-                    {service.images?.[0] && (
-                      <img
-                        src={getImageUrl(service.images?.[0]) || '/images/placeholder-service.png'}
-                        alt={service.name}
-                        className="w-full h-40 object-cover rounded mb-2"
-                      />
-                    )}
-                    <div className="flex flex-col flex-grow">
-                      <h3 className="text-lg font-bold mb-2">{service.name}</h3>
-                      <p className="text-gray-600 mb-2">{service.description}</p>
-                      {service.price && <p className="text-green-700 font-semibold mt-auto">${service.price.toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</p>}
+                  <div key={service._id} className="bg-white rounded-lg shadow-md overflow-hidden">
+                    <div className="relative h-48">
+                      {service.images?.[0] ? (
+                        <img
+                          src={getImageUrl(service.images[0])}
+                          alt={service.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                          <span className="text-gray-400">Sin imagen</span>
+                        </div>
+                      )}
                     </div>
-                  </Card>
+                    <div className="p-4">
+                      <h3 className="text-lg font-semibold mb-2">{service.name}</h3>
+                      <p className="text-gray-600 text-sm mb-2">{service.description || 'Sin descripción'}</p>
+                      
+                      {/* Categoría */}
+                      {service.category && Array.isArray(service.category) && service.category.length > 0 && (
+                        <div className="flex items-center gap-1 mb-3">
+                          <HiTag className="w-4 h-4 text-gray-400" />
+                          <span className="text-sm text-gray-600">
+                            {(service.category as SanityCategoryDocument[]).map((cat: SanityCategoryDocument) => cat.name).join(', ')}
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="flex justify-between items-center">
+                        <span className={`leading-4 py-1 rounded-full text-sm font-semibold ${service.price ? 'text-green-600' : 'text-slate-400'}`}>
+                          {service.price ? `$${service.price.toLocaleString()}` : 'Precio no especificado'}
+                        </span>
+                        <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">Activo</span>
+                      </div>
+                    </div>
+                  </div>
                 ))}
               </div>
             )}

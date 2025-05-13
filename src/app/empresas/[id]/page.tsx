@@ -66,29 +66,52 @@ export default function EmpresaPage() {
     const fetchCompany = async () => {
       setLoading(true);
       try {
-        const query = `*[_type == "company" && _id == $id][0]{
-          _id,
-          nameCompany,
-          businessName,
-          logo,
-          addressCompany,
-          webSite,
-          sector,
-          typeDocumentCompany,
-          numDocumentCompany,
-          ciiu,
-          phone,
-          facebook,
-          instagram,
-          tiktok,
-          pinterest,
-          linkedin,
-          xtwitter,
-          "products": *[_type == "product" && references(^._id)],
-          "services": *[_type == "service" && references(^._id)]
-        }`;
-        const data = await sanityClient.fetch(query, { id });
-        setCompany(data);
+        const company = await sanityClient.fetch<Company>(`
+          *[_type == "company" && _id == $id][0]{
+            _id,
+            nameCompany,
+            businessName,
+            logo,
+            addressCompany,
+            webSite,
+            sector,
+            typeDocumentCompany,
+            numDocumentCompany,
+            ciiu,
+            phone,
+            facebook,
+            instagram,
+            tiktok,
+            pinterest,
+            linkedin,
+            xtwitter,
+            "products": *[_type == "product" && company._ref == $id && status == "active"]{
+              _id,
+              name,
+              description,
+              price,
+              status,
+              images,
+              "category": category[]->{
+                _id,
+                name
+              }
+            },
+            "services": *[_type == "service" && company._ref == $id && status == "active"]{
+              _id,
+              name,
+              description,
+              price,
+              status,
+              images,
+              "category": category[]->{
+                _id,
+                name
+              }
+            }
+          }
+        `, { id });
+        setCompany(company);
       } catch (err) {
         console.error("Error al cargar la empresa:", err);
         setError("No se pudo cargar la información de la empresa");
@@ -132,39 +155,11 @@ export default function EmpresaPage() {
   }
 
   if (company) {
-    const mapProduct = (p: Partial<SanityProductDocument>) => ({
-      ...p,
-      _id: p._id || "",
-      name: p.name ?? "",
-      description: p.description ?? "",
-      category:
-        typeof p.category === "string"
-          ? p.category
-          : (p.category && (p.category._id || p.category.slug?.current)) || "",
-      status: p.status || "",
-      images: p.images || [],
-      createdAt: p._createdAt || "",
-      updatedAt: p._updatedAt || "",
-    });
-    const mapService = (s: Partial<SanityServiceDocument>) => ({
-      ...s,
-      _id: s._id || "",
-      name: s.name ?? "",
-      description: s.description ?? "",
-      category:
-        typeof s.category === "string"
-          ? s.category
-          : (s.category && (s.category._id || s.category.slug?.current)) || "",
-      status: s.status || "",
-      images: s.images || [],
-      createdAt: s._createdAt || "",
-      updatedAt: s._updatedAt || "",
-    });
     const companyData = {
       ...company,
       logo: getSanityImageUrl(company.logo),
-      products: company.products?.map(mapProduct),
-      services: company.services?.map(mapService),
+      products: company.products,
+      services: company.services
     };
     return <EmpresaView company={companyData} />;
   }

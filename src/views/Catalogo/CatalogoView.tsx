@@ -4,8 +4,8 @@ import { useState } from 'react';
 import { TextInput, Select, Spinner } from 'flowbite-react';
 import { HiOutlineSearch, HiX, HiTag, HiOfficeBuilding, HiAdjustments } from 'react-icons/hi';
 import DashboardNavbar from '@/components/dashboard/Navbar';
-import BannerEmpresas from '@/assets/img/banner-empresas.webp';
 import { SanityProductDocument, SanityServiceDocument, SanityCategoryDocument } from '@/types/sanity';
+import BgProduct from '@/assets/img/bg-productos.webp';
 
 interface Company {
   _id: string;
@@ -75,7 +75,7 @@ export default function CatalogoView({ products, services, categories, companies
         <div className="relative h-[600px] bg-slate-800">
           <div
             className="absolute inset-0 bg-cover bg-top before:content-[''] before:absolute before:inset-0 before:bg-gradient-to-b before:from-black/50 before:to-black/50"
-            style={{ backgroundImage: `url('${BannerEmpresas.src}')` }}
+            style={{ backgroundImage: `url('${BgProduct.src}')` }}
           />
           <div className="relative z-10 container mx-auto px-4 h-full flex flex-col items-center justify-center text-white text-center">
             <h1 className="text-3xl md:text-4xl font-normal mb-6">
@@ -249,6 +249,35 @@ export default function CatalogoView({ products, services, categories, companies
                         <div className="p-4">
                           <h3 className="text-lg font-semibold mb-2">{item.name}</h3>
                           <p className="text-gray-600 text-sm mb-2">{item.description || 'Sin descripción'}</p>
+                          
+                          {/* Categoría y Empresa */}
+                          <div className="flex flex-col gap-1 mb-3">
+                            {item.category && Array.isArray(item.category) && item.category.length > 0 && (
+                              <div className="flex items-center gap-1">
+                                <HiTag className="w-4 h-4 text-gray-400" />
+                                <span className="text-sm text-gray-600">
+                                  {item.category.map(cat => {
+                                    const categoryObj = categories.find(c => 
+                                      (typeof cat === 'string' ? c._id === cat : c._id === (cat._ref || cat._id))
+                                    );
+                                    return categoryObj?.name;
+                                  }).filter(Boolean).join(', ')}
+                                </span>
+                              </div>
+                            )}
+                            {item.company && (
+                              <div className="flex items-center gap-1">
+                                <HiOfficeBuilding className="w-4 h-4 text-gray-400" />
+                                <a 
+                                  href={`/empresas/${getCompanyId(item.company)}`}
+                                  className="text-sm text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+                                >
+                                  {companies.find(comp => comp._id === getCompanyId(item.company))?.nameCompany}
+                                </a>
+                              </div>
+                            )}
+                          </div>
+
                           <div className="flex justify-between items-center">
                             <span className={`leading-4 py-1 rounded-full text-sm font-semibold ${item.price ? 'text-green-600' : 'text-slate-400'}`}>
                               {item.price ? `$${item.price.toLocaleString()}` : 'Precio no especificado'}

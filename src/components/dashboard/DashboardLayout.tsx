@@ -1,5 +1,4 @@
-"use client";
-
+// import DashboardNavbar from "./Navbar";
 import DashboardNavbar from "./Navbar";
 import MobileNavBar from "../MobileNavBar";
 

@@ -1,8 +1,8 @@
 export interface SanityImage {
-    _type: string;
+    _type: 'image';
     asset: {
         _ref: string;
-        _type: string;
+        _type: 'reference';
     };
 }
 
@@ -26,46 +26,54 @@ export interface SanityCategory {
   };
 }
 
-export interface SanityProductDocument extends SanityDocument {
+export interface SanityProductDocument {
+  _id: string;
+  _type: 'product';
   name: string;
   description?: string;
-  category: SanityCategory;
   price?: number;
-  status: string;
+  status: 'active' | 'inactive';
   sku?: string;
-  images: SanityImage[];
-  company: {
-    _type: "reference";
+  images?: SanityImage[];
+  category?: SanityCategoryDocument[];
+  company?: {
     _ref: string;
+    _type: 'reference';
   };
+  createdAt?: string;
+  updatedAt?: string;
 }
 
-export interface SanityServiceDocument extends SanityDocument {
+export interface SanityServiceDocument {
+  _id: string;
+  _type: 'service';
   name: string;
   description?: string;
-  category: SanityCategory;
   price?: number;
-  status: string;
+  status: 'active' | 'inactive';
   duration?: string;
   modality?: string;
   availability?: string;
-  images: SanityImage[];
-  company: {
-    _type: "reference";
+  images?: SanityImage[];
+  category?: SanityCategoryDocument[];
+  company?: {
     _ref: string;
+    _type: 'reference';
   };
+  createdAt?: string;
+  updatedAt?: string;
 }
 
-export interface SanityCategoryDocument extends SanityDocument {
+export interface SanityCategoryDocument {
+  _id: string;
+  _ref?: string;
   name: string;
-  description: string;
-  image: SanityImage;
-  types: ('product' | 'service')[];
-  slug: {
-    _type: 'slug';
+  description?: string;
+  image?: SanityImage;
+  types?: string[];
+  slug?: {
     current: string;
   };
-  category: SanityCategory[];
 }
 
 export interface SanityDocumentStub {
