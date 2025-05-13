@@ -8,6 +8,7 @@ const nextConfig = {
         pathname: '**',
       },
     ],
+    domains: ['cdn.sanity.io', 'comprasincluyentes.geniorama.co'],
   },
 }
 
