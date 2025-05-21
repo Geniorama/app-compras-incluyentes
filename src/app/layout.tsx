@@ -65,7 +65,7 @@ export default function RootLayout({
                 </Link>
               </p>
               <p className="flex gap-4">
-                <Link className="underline opacity-80 hover:opacity-100 transition" href="https://geniorama.co" target="_blank">
+                <Link className="underline opacity-80 hover:opacity-100 transition" href="#" target="_blank">
                   Términos y condiciones
                 </Link>
                 <Link className="underline opacity-80 hover:opacity-100 transition" href="https://camaradeladiversidad.com/home/politica-de-privacidad/" target="_blank" rel="noopener noreferrer">
