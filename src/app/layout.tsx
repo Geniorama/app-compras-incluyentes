@@ -5,6 +5,7 @@ import { Toaster } from "react-hot-toast";
 import Link from "next/link";
 import { FaFacebook, FaInstagram, FaLinkedinIn } from "react-icons/fa";
 import { BsTwitterX } from "react-icons/bs";
+import { BiSupport } from "react-icons/bi";
 
 export const metadata: Metadata = {
   title: "Compras Incluyentes",
@@ -49,6 +50,28 @@ export default function RootLayout({
                   </Link>
                 </div>
               </div>
+            </div>
+
+            <hr className="my-10 border-white opacity-20" />
+
+            <div className="flex flex-col-reverse lg:flex-row justify-center lg:justify-between items-center text-xs text-center lg:text-left gap-4">
+              <p>Todos los derechos reservados © {new Date().getFullYear()} Compras Incluyentes</p>
+              <p>
+                <Link href="mailto:gerenciacomunicaciones@camaradeladiversidad.com" target="_blank" className="flex items-center gap-2 underline opacity-80 hover:opacity-100 transition">
+                  <span className="text-lg lg:hidden">
+                    <BiSupport />
+                  </span>
+                  <b className="hidden lg:block">Soporte:</b> gerenciacomunicaciones@camaradeladiversidad.com 
+                </Link>
+              </p>
+              <p className="flex gap-4">
+                <Link className="underline opacity-80 hover:opacity-100 transition" href="https://geniorama.co" target="_blank">
+                  Términos y condiciones
+                </Link>
+                <Link className="underline opacity-80 hover:opacity-100 transition" href="https://camaradeladiversidad.com/home/politica-de-privacidad/" target="_blank" rel="noopener noreferrer">
+                  Política de privacidad
+                </Link>
+              </p>
             </div>
           </div>
         </footer>
