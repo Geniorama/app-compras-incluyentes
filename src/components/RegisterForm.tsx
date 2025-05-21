@@ -67,6 +67,11 @@ interface FormData {
   xtwitter?: string;
 }
 
+// Agregar interfaces para validaciones
+interface ValidationErrors {
+  [key: string]: string;
+}
+
 export default function RegisterForm() {
   const [stepActive, setStepActive] = useState(1);
   const [activeNextButton, setActiveNextButton] = useState(false);
@@ -82,6 +87,7 @@ export default function RegisterForm() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -92,7 +98,6 @@ export default function RegisterForm() {
     handleSubmit,
     watch,
     setValue,
-    formState: { errors },
   } = useForm<FormData>();
 
   // Fields Step 1
@@ -114,8 +119,6 @@ export default function RegisterForm() {
   const pronoun = watch("pronoun");
   const position = watch("position");
 
-
- 
   // Fields Step 3
   const password = watch("password");
   const confirmPassword = watch("confirmPassword");
@@ -128,39 +131,180 @@ export default function RegisterForm() {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   }
 
-  const validateStep = () => {
-    if (stepActive === 1) {
-      return Boolean(
-        nameCompany &&
-        businessName &&
-        typeDocumentCompany &&
-        numDocumentCompany &&
-        ciiu &&
-        webSite &&
-        addressCompany && 
-        logo
-      );
-    } else if (stepActive === 2) {
-      return Boolean(
-        firstName &&
-        lastName &&
-        email &&
-        phone &&
-        typeDocument &&
-        numDocument &&
-        pronoun &&
-        position &&
-        photo &&
-        isValidEmail(email)
-      );
-    } else if (stepActive === 3) {
-      return Boolean(password && confirmPassword && (password === confirmPassword) && isPasswordValid(password));
+  // Función para validar campos específicos
+  const validateField = (name: string, value: string | undefined): string | null => {
+    if (value === undefined) return 'Este campo es obligatorio';
+    switch (name) {
+      case 'nameCompany':
+        if (!value) return 'El nombre de la marca es obligatorio';
+        if (value.length < 3) return 'El nombre de la marca debe tener al menos 3 caracteres';
+        if (value.length > 50) return 'El nombre de la marca no puede tener más de 50 caracteres';
+        if (!/^[a-zA-Z0-9\s-]+$/.test(value)) return 'El nombre de la marca solo puede contener letras, números, espacios y guiones';
+        return null;
+
+      case 'businessName':
+        if (!value) return 'La razón social es obligatoria';
+        if (value.length < 3) return 'La razón social debe tener al menos 3 caracteres';
+        if (value.length > 100) return 'La razón social no puede tener más de 100 caracteres';
+        return null;
+
+      case 'numDocumentCompany':
+        if (!value) return 'El número de documento es obligatorio';
+        if (typeDocumentCompany === 'nit' && !/^\d{9,10}$/.test(value)) return 'El NIT debe tener entre 9 y 10 dígitos';
+        if ((typeDocumentCompany === 'cc' || typeDocumentCompany === 'ce') && !/^\d{8,10}$/.test(value)) return 'El documento debe tener entre 8 y 10 dígitos';
+        return null;
+
+      case 'webSite':
+        if (!value) return 'La página web es obligatoria';
+        if (!/^https?:\/\/.+/.test(value)) return 'La URL debe comenzar con http:// o https://';
+        return null;
+
+      case 'addressCompany':
+        if (!value) return 'La dirección es obligatoria';
+        if (value.length < 5) return 'La dirección debe tener al menos 5 caracteres';
+        if (value.length > 200) return 'La dirección no puede tener más de 200 caracteres';
+        return null;
+
+      case 'firstName':
+        if (!value) return 'El nombre es obligatorio';
+        if (value.length < 2) return 'El nombre debe tener al menos 2 caracteres';
+        if (value.length > 50) return 'El nombre no puede tener más de 50 caracteres';
+        if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s-]+$/.test(value)) return 'El nombre solo puede contener letras, espacios y guiones';
+        return null;
+
+      case 'lastName':
+        if (!value) return 'El apellido es obligatorio';
+        if (value.length < 2) return 'El apellido debe tener al menos 2 caracteres';
+        if (value.length > 50) return 'El apellido no puede tener más de 50 caracteres';
+        if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s-]+$/.test(value)) return 'El apellido solo puede contener letras, espacios y guiones';
+        return null;
+
+      case 'position':
+        if (!value) return 'El cargo es obligatorio';
+        if (value.length < 2) return 'El cargo debe tener al menos 2 caracteres';
+        if (value.length > 50) return 'El cargo no puede tener más de 50 caracteres';
+        return null;
+
+      case 'phone':
+        if (!value) return 'El número de teléfono es obligatorio';
+        if (!/^\+?\d{10,15}$/.test(value.replace(/\D/g, ''))) return 'El número de teléfono debe tener entre 10 y 15 dígitos';
+        return null;
+
+      case 'numDocument':
+        if (!value) return 'El número de documento es obligatorio';
+        if (!/^\d{8,10}$/.test(value)) return 'El documento debe tener entre 8 y 10 dígitos';
+        return null;
+
+      case 'password':
+        if (!value) return 'La contraseña es obligatoria';
+        if (value.length < 10) return 'La contraseña debe tener al menos 10 caracteres';
+        if (!/[A-Z]/.test(value)) return 'La contraseña debe contener al menos una mayúscula';
+        if (!/[a-z]/.test(value)) return 'La contraseña debe contener al menos una minúscula';
+        if (!/\d/.test(value)) return 'La contraseña debe contener al menos un número';
+        if (!/[!@#$%^&*(),.?":{}|<>]/.test(value)) return 'La contraseña debe contener al menos un carácter especial';
+        return null;
+
+      case 'confirmPassword':
+        if (!value) return 'La confirmación de contraseña es obligatoria';
+        if (value !== password) return 'Las contraseñas no coinciden';
+        return null;
+
+      default:
+        return null;
     }
-    return false;
   };
 
+  // Función para validar todos los campos del paso actual
+  const validateCurrentStep = (): boolean => {
+    const currentErrors: ValidationErrors = {};
+    let isValid = true;
+
+    if (stepActive === 1) {
+      const fieldsToValidate: (keyof FormData)[] = [
+        'nameCompany',
+        'businessName',
+        'typeDocumentCompany',
+        'numDocumentCompany',
+        'ciiu',
+        'webSite',
+        'addressCompany'
+      ];
+
+      fieldsToValidate.forEach((field: keyof FormData) => {
+        const value = watch(field);
+        const error = validateField(field, value);
+        if (error) {
+          currentErrors[field] = error;
+          isValid = false;
+        }
+      });
+
+      if (!logo) {
+        currentErrors.logo = 'El logo es obligatorio';
+        isValid = false;
+      }
+    } else if (stepActive === 2) {
+      const fieldsToValidate: (keyof FormData)[] = [
+        'firstName',
+        'lastName',
+        'email',
+        'phone',
+        'typeDocument',
+        'numDocument',
+        'pronoun',
+        'position'
+      ];
+
+      fieldsToValidate.forEach((field: keyof FormData) => {
+        const value = watch(field);
+        const error = validateField(field, value);
+        if (error) {
+          currentErrors[field] = error;
+          isValid = false;
+        }
+      });
+
+      if (!photo) {
+        currentErrors.photo = 'La foto de perfil es obligatoria';
+        isValid = false;
+      }
+
+      if (emailError) {
+        currentErrors.email = emailError;
+        isValid = false;
+      }
+    } else if (stepActive === 3) {
+      const fieldsToValidate: (keyof FormData)[] = ['password', 'confirmPassword'];
+      fieldsToValidate.forEach((field: keyof FormData) => {
+        const value = watch(field);
+        const error = validateField(field, value);
+        if (error) {
+          currentErrors[field] = error;
+          isValid = false;
+        }
+      });
+    }
+
+    setValidationErrors(currentErrors);
+    return isValid;
+  };
+
+  // Modificar la función handleNextStep
+  const handleNextStep = async () => {
+    if (stepActive === 2) {
+      const isEmailValid = await validateEmail(email);
+      if (!isEmailValid) return;
+    }
+
+    if (validateCurrentStep()) {
+      setStepActive(stepActive + 1);
+    }
+  };
+
+  // Modificar el useEffect para validar el paso actual
   useEffect(() => {
-    setActiveNextButton(validateStep());
+    const isValid = validateCurrentStep();
+    setActiveNextButton(isValid);
   }, [
     nameCompany,
     businessName,
@@ -181,7 +325,8 @@ export default function RegisterForm() {
     pronoun,
     position,
     logo,
-    photo
+    photo,
+    emailError
   ]);
 
   useEffect(() => {
@@ -330,18 +475,6 @@ export default function RegisterForm() {
     handleRegister(data);
   };
 
-  const handleNextStep = async () => {
-    if (stepActive === 2) {
-      // Validar email antes de avanzar al paso 3
-      const isEmailValid = await validateEmail(email);
-      if (!isEmailValid) return;
-    }
-    
-    if (stepActive < 3) {
-      setStepActive(stepActive + 1);
-    }
-  };
-
   const handlePrevStep = () => {
     if (stepActive > 1) {
       setStepActive(stepActive - 1);
@@ -461,7 +594,7 @@ export default function RegisterForm() {
                   </AccordionTitle>
                   <AccordionContent>
                     <div>
-                      <Label htmlFor="logo">Logo de la marca</Label>
+                      <Label htmlFor="logo">Logo de la marca <span className="text-red-500">*</span></Label>
                       <div className="flex flex-col md:flex-row md:items-center md:space-x-4 space-y-3 md:space-y-0 mt-2">
                         <div
                           onClick={handleUploadClick}
@@ -502,6 +635,9 @@ export default function RegisterForm() {
                         id="logo"
                         onChange={handleLogoChange}
                       />
+                      {validationErrors.logo && (
+                        <p className="text-red-500 text-sm mt-1">{validationErrors.logo}</p>
+                      )}
                     </div>
 
                     <div className="flex flex-col md:flex-row flex-wrap mt-5 gap-y-4 -mx-2">
@@ -510,22 +646,50 @@ export default function RegisterForm() {
                         <TextInput
                           {...register("nameCompany", {
                             required: "El nombre de la empresa es obligatorio",
+                            onChange: (e) => {
+                              const error = validateField('nameCompany', e.target.value);
+                              if (error) {
+                                setValidationErrors(prev => ({ ...prev, nameCompany: error }));
+                              } else {
+                                setValidationErrors(prev => {
+                                  const { ...rest } = prev;
+                                  return rest;
+                                });
+                              }
+                            }
                           })}
-                          color="blue"
+                          color={validationErrors.nameCompany ? "failure" : "blue"}
                           id="nameCompany"
                           placeholder="Nombre de la marca"
                         />
+                        {validationErrors.nameCompany && (
+                          <p className="text-red-500 text-sm mt-1">{validationErrors.nameCompany}</p>
+                        )}
                       </div>
                       <div className="w-full md:w-1/2 px-2 space-y-1">
                         <Label htmlFor="businessName">Razón social <span className="text-red-500">*</span></Label>
                         <TextInput
                           {...register("businessName", {
                             required: "La razón social es obligatoria",
+                            onChange: (e) => {
+                              const error = validateField('businessName', e.target.value);
+                              if (error) {
+                                setValidationErrors(prev => ({ ...prev, businessName: error }));
+                              } else {
+                                setValidationErrors(prev => {
+                                  const { ...rest } = prev;
+                                  return rest;
+                                });
+                              }
+                            }
                           })}
-                          color="blue"
+                          color={validationErrors.businessName ? "failure" : "blue"}
                           id="businessName"
                           placeholder="Razón social"
                         />
+                        {validationErrors.businessName && (
+                          <p className="text-red-500 text-sm mt-1">{validationErrors.businessName}</p>
+                        )}
                       </div>
                       <div className="w-full md:w-1/2 px-2 space-y-1">
                         <Label htmlFor="typeDocumentCompany">Documento <span className="text-red-500">*</span></Label>
@@ -533,6 +697,17 @@ export default function RegisterForm() {
                           <Select
                             {...register("typeDocumentCompany", {
                               required: "El tipo de documento es obligatorio",
+                              onChange: (e) => {
+                                const error = validateField('typeDocumentCompany', e.target.value);
+                                if (error) {
+                                  setValidationErrors(prev => ({ ...prev, typeDocumentCompany: error }));
+                                } else {
+                                  setValidationErrors(prev => {
+                                    const { ...rest } = prev;
+                                    return rest;
+                                  });
+                                }
+                              }
                             })}
                             id="typeDocumentCompany"
                             className="w-[100px]"
@@ -545,6 +720,17 @@ export default function RegisterForm() {
                           <TextInput
                             {...register("numDocumentCompany", {
                               required: "El número de documento es obligatorio",
+                              onChange: (e) => {
+                                const error = validateField('numDocumentCompany', e.target.value);
+                                if (error) {
+                                  setValidationErrors(prev => ({ ...prev, numDocumentCompany: error }));
+                                } else {
+                                  setValidationErrors(prev => {
+                                    const { ...rest } = prev;
+                                    return rest;
+                                  });
+                                }
+                              }
                             })}
                             className="w-auto flex-grow"
                             color="blue"
@@ -553,6 +739,9 @@ export default function RegisterForm() {
                             type="number"
                           />
                         </div>
+                        {validationErrors.numDocumentCompany && (
+                          <p className="text-red-500 text-sm mt-1">{validationErrors.numDocumentCompany}</p>
+                        )}
                       </div>
                       <div className="w-full md:w-1/2 lg:w-1/2 px-2 space-y-1">
                         <Label htmlFor="ciiu">Código CIIU (actividad principal) <span className="text-red-500">*</span></Label>
@@ -567,8 +756,8 @@ export default function RegisterForm() {
                             inputId="ciiu"
                           />
                         )}
-                        {errors.ciiu && (
-                          <p className="text-red-500 text-sm mt-1">{errors.ciiu.message}</p>
+                        {validationErrors.ciiu && (
+                          <p className="text-red-500 text-sm mt-1">{validationErrors.ciiu}</p>
                         )}
                       </div>
 
@@ -577,24 +766,52 @@ export default function RegisterForm() {
                         <TextInput
                           {...register("webSite", {
                             required: "La página web es obligatoria",
+                            onChange: (e) => {
+                              const error = validateField('webSite', e.target.value);
+                              if (error) {
+                                setValidationErrors(prev => ({ ...prev, webSite: error }));
+                              } else {
+                                setValidationErrors(prev => {
+                                  const { ...rest } = prev;
+                                  return rest;
+                                });
+                              }
+                            }
                           })}
-                          color="blue"
+                          color={validationErrors.webSite ? "failure" : "blue"}
                           id="webSite"
                           type="url"
                           pattern="https?://.+"
                           placeholder="https://www.misitio.com"
                         />
+                        {validationErrors.webSite && (
+                          <p className="text-red-500 text-sm mt-1">{validationErrors.webSite}</p>
+                        )}
                       </div>
                       <div className="w-full md:w-1/2 lg:w-1/2 px-2 space-y-1">
                         <Label htmlFor="addressCompany">Dirección <span className="text-red-500">*</span></Label>
                         <TextInput
                           {...register("addressCompany", {
                             required: "La dirección es obligatoria",
+                            onChange: (e) => {
+                              const error = validateField('addressCompany', e.target.value);
+                              if (error) {
+                                setValidationErrors(prev => ({ ...prev, addressCompany: error }));
+                              } else {
+                                setValidationErrors(prev => {
+                                  const { ...rest } = prev;
+                                  return rest;
+                                });
+                              }
+                            }
                           })}
-                          color="blue"
+                          color={validationErrors.addressCompany ? "failure" : "blue"}
                           id="addressCompany"
                           placeholder="Calle 123 # 45-67"
                         />
+                        {validationErrors.addressCompany && (
+                          <p className="text-red-500 text-sm mt-1">{validationErrors.addressCompany}</p>
+                        )}
                       </div>
                     </div>
                   </AccordionContent>
@@ -716,7 +933,7 @@ export default function RegisterForm() {
           {stepActive === 2 && (
             <fieldset>
               <div>
-                <Label htmlFor="foto-perfil">Foto de perfil</Label>
+                <Label htmlFor="foto-perfil">Foto de perfil <span className="text-red-500">*</span></Label>
                 <div className="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-4 mt-2">
                   <div onClick={handlePhotoUploadClick} className={`${photoPreview ? 'bg-white' : 'bg-red-500'} w-[80px] h-[80px] flex items-center justify-center rounded-full min-w-[80px] cursor-pointer`}>
                     {photoPreview ? (
@@ -746,6 +963,9 @@ export default function RegisterForm() {
                   id="foto-perfil"
                   onChange={handlePhotoChange}
                 />
+                {validationErrors.photo && (
+                  <p className="text-red-500 text-sm mt-1">{validationErrors.photo}</p>
+                )}
               </div>
 
               <div className="flex flex-col md:flex-row flex-wrap mt-5 gap-y-4 -mx-2">
@@ -754,22 +974,50 @@ export default function RegisterForm() {
                   <TextInput
                     {...register("firstName", {
                       required: "El nombre es obligatorio",
+                      onChange: (e) => {
+                        const error = validateField('firstName', e.target.value);
+                        if (error) {
+                          setValidationErrors(prev => ({ ...prev, firstName: error }));
+                        } else {
+                          setValidationErrors(prev => {
+                            const { ...rest } = prev;
+                            return rest;
+                          });
+                        }
+                      }
                     })}
-                    color="blue"
+                    color={validationErrors.firstName ? "failure" : "blue"}
                     id="firstName"
                     placeholder="John"
                   />
+                  {validationErrors.firstName && (
+                    <p className="text-red-500 text-sm mt-1">{validationErrors.firstName}</p>
+                  )}
                 </div>
                 <div className="w-full md:w-1/2 px-2 space-y-1">
                   <Label htmlFor="lastName">Apellido(s) <span className="text-red-500">*</span></Label>
                   <TextInput
                     {...register("lastName", {
                       required: "El apellido es obligatorio",
+                      onChange: (e) => {
+                        const error = validateField('lastName', e.target.value);
+                        if (error) {
+                          setValidationErrors(prev => ({ ...prev, lastName: error }));
+                        } else {
+                          setValidationErrors(prev => {
+                            const { ...rest } = prev;
+                            return rest;
+                          });
+                        }
+                      }
                     })}
-                    color="blue"
+                    color={validationErrors.lastName ? "failure" : "blue"}
                     id="apellido"
                     placeholder="Doe"
                   />
+                  {validationErrors.lastName && (
+                    <p className="text-red-500 text-sm mt-1">{validationErrors.lastName}</p>
+                  )}
                 </div>
 
                 <div className="w-full md:w-1/2 px-2 space-y-1">
@@ -786,11 +1034,25 @@ export default function RegisterForm() {
                   <TextInput
                     {...register("position", {
                       required: "El cargo es obligatorio",
+                      onChange: (e) => {
+                        const error = validateField('position', e.target.value);
+                        if (error) {
+                          setValidationErrors(prev => ({ ...prev, position: error }));
+                        } else {
+                          setValidationErrors(prev => {
+                            const { ...rest } = prev;
+                            return rest;
+                          });
+                        }
+                      }
                     })}
-                    color="blue"
+                    color={validationErrors.position ? "failure" : "blue"}
                     id="position"
                     placeholder="CEO"
                   />
+                  {validationErrors.position && (
+                    <p className="text-red-500 text-sm mt-1">{validationErrors.position}</p>
+                  )}
                 </div>
 
                 <div className="w-full md:w-1/2 px-2 space-y-1">
@@ -802,22 +1064,33 @@ export default function RegisterForm() {
                         value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
                         message: "El correo electrónico no es válido",
                       },
-                      onChange: async (e) => {
+                      onBlur: async (e) => {
                         const value = e.target.value;
+                        if (!value) {
+                          setValidationErrors(prev => ({ ...prev, email: 'El correo electrónico es obligatorio' }));
+                          return;
+                        }
                         if (value && isValidEmail(value)) {
                           await validateEmail(value);
                         } else {
-                          setEmailError(null);
+                          setEmailError('El correo electrónico no es válido');
+                        }
+                      },
+                      onChange: async (e) => {
+                        const value = e.target.value;
+                        setEmailError(null);
+                        if (value && isValidEmail(value)) {
+                          await validateEmail(value);
                         }
                       }
                     })}
                     type="email"
-                    color={emailError ? "failure" : "blue"}
+                    color={validationErrors.email || emailError ? "failure" : "blue"}
                     id="email"
                     placeholder="email@miempresa.com"
                   />
-                  {emailError && (
-                    <p className="text-red-500 text-sm mt-1">{emailError}</p>
+                  {(validationErrors.email || emailError) && (
+                    <p className="text-red-500 text-sm mt-1">{validationErrors.email || emailError}</p>
                   )}
                   {isCheckingEmail && (
                     <p className="text-blue-500 text-sm mt-1">Verificando email...</p>
@@ -828,10 +1101,21 @@ export default function RegisterForm() {
                   <InternationalPhoneInput
                     {...register("phone", {
                       required: "El número de teléfono es obligatorio",
+                      onChange: (e) => {
+                        const value = e.target.value;
+                        const error = validateField('phone', value);
+                        if (error) {
+                          setValidationErrors(prev => ({ ...prev, phone: error }));
+                        } else {
+                          setValidationErrors(prev => {
+                            const { ...rest } = prev;
+                            return rest;
+                          });
+                        }
+                      },
                       setValueAs: (value) => {
-                        // Asegurarnos de que el valor incluya el código del país
                         if (!value.startsWith('+')) {
-                          return `+57${value}`; // Código por defecto de Colombia
+                          return `+57${value}`;
                         }
                         return value;
                       }
@@ -839,8 +1123,11 @@ export default function RegisterForm() {
                     name="phone"
                     id="phone"
                     placeholder="Número de teléfono"
-                    color="blue"
+                    color={validationErrors.phone ? "failure" : "blue"}
                   />
+                  {validationErrors.phone && (
+                    <p className="text-red-500 text-sm mt-1">{validationErrors.phone}</p>
+                  )}
                 </div>
 
                 <div className="w-full md:w-1/2 px-2 space-y-1">
@@ -849,10 +1136,21 @@ export default function RegisterForm() {
                     <Select
                       {...register("typeDocument", {
                         required: "El tipo de documento es obligatorio",
+                        onChange: (e) => {
+                          const error = validateField('typeDocument', e.target.value);
+                          if (error) {
+                            setValidationErrors(prev => ({ ...prev, typeDocument: error }));
+                          } else {
+                            setValidationErrors(prev => {
+                              const { ...rest } = prev;
+                              return rest;
+                            });
+                          }
+                        }
                       })}
                       id="typeDocument"
                       className="w-[100px]"
-                      color="blue"
+                      color={validationErrors.typeDocument ? "failure" : "blue"}
                     >
                       <option value="cc">CC</option>
                       <option value="ce">CE</option>
@@ -860,14 +1158,30 @@ export default function RegisterForm() {
                     <TextInput
                       {...register("numDocument", {
                         required: "El número de documento es obligatorio",
+                        onChange: (e) => {
+                          const error = validateField('numDocument', e.target.value);
+                          if (error) {
+                            setValidationErrors(prev => ({ ...prev, numDocument: error }));
+                          } else {
+                            setValidationErrors(prev => {
+                              const { ...rest } = prev;
+                              return rest;
+                            });
+                          }
+                        }
                       })}
                       className="w-auto flex-grow"
-                      color="blue"
+                      color={validationErrors.numDocument ? "failure" : "blue"}
                       id="numDocument"
                       placeholder="Número de documento"
                       type="number"
                     />
                   </div>
+                  {(validationErrors.typeDocument || validationErrors.numDocument) && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {validationErrors.typeDocument || validationErrors.numDocument}
+                    </p>
+                  )}
                 </div>
               </div>
             </fieldset>
@@ -906,8 +1220,8 @@ export default function RegisterForm() {
                       {showPassword ? <RiEyeOffLine /> : <RiEyeLine />}
                     </button>
                   </div>
-                  {errors.password && (
-                    <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>
+                  {validationErrors.password && (
+                    <p className="text-red-500 text-sm mt-1">{validationErrors.password}</p>
                   )}
                   <ul className="text-xs text-slate-500 md:text-sm mt-2 lg:mt-0 space-y-1">
                     <li className="text-xs">
@@ -951,8 +1265,8 @@ export default function RegisterForm() {
                       {showConfirmPassword ? <RiEyeOffLine /> : <RiEyeLine />}
                     </button>
                   </div>
-                  {errors.confirmPassword && (
-                    <p className="text-red-500 text-sm mt-1">{errors.confirmPassword.message}</p>
+                  {validationErrors.confirmPassword && (
+                    <p className="text-red-500 text-sm mt-1">{validationErrors.confirmPassword}</p>
                   )}
                 </div>
               </div>
