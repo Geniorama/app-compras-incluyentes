@@ -1,5 +1,5 @@
-import MensajesView from '@/views/Mensajes/MensajesView';
+import MensajesView from "@/views/Dashboard/MensajesView";
 
 export default function MensajesPage() {
   return <MensajesView />;
-} 
+}

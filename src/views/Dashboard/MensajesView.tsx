@@ -2,10 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { sanityClient } from '@/lib/sanity.client';
 import { Button, TextInput, Textarea, Avatar, Modal, Tabs, Spinner } from 'flowbite-react';
-import DashboardNavbar from '@/components/dashboard/Navbar';
-import { HiOutlineMailOpen, HiPaperAirplane, HiTrash, HiSearch } from 'react-icons/hi';
+import { HiOutlineMailOpen, HiPaperAirplane, HiSearch } from 'react-icons/hi';
+import DashboardSidebar from '@/components/DashboardSidebar';
 
 interface Message {
   _id: string;
@@ -20,11 +19,10 @@ interface Message {
       }
     }
   };
-  receiver: {
+  company: {
     _id: string;
-    firstName: string;
-    lastName: string;
-    photo?: {
+    nameCompany: string;
+    logo?: {
       asset: {
         _ref: string;
       }
@@ -41,11 +39,12 @@ export default function MensajesView() {
   const [mensajesEnviados, setMensajesEnviados] = useState<Message[]>([]);
   const [mensajeSeleccionado, setMensajeSeleccionado] = useState<Message | null>(null);
   const [showNuevoMensaje, setShowNuevoMensaje] = useState(false);
-  const [destinatarioId, setDestinatarioId] = useState('');
+  const [destinatarioEmpresaId, setDestinatarioEmpresaId] = useState('');
   const [asunto, setAsunto] = useState('');
   const [contenidoNuevo, setContenidoNuevo] = useState('');
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -56,35 +55,15 @@ export default function MensajesView() {
   const fetchMensajes = async () => {
     try {
       setLoading(true);
-      // Obtener mensajes recibidos
-      const recibidos = await sanityClient.fetch(
-        `*[_type == "message" && receiver._ref == $userId && !deleted] | order(createdAt desc) {
-          _id,
-          subject,
-          content,
-          createdAt,
-          read,
-          sender->{ _id, firstName, lastName, photo },
-          receiver->{ _id, firstName, lastName, photo }
-        }`,
-        { userId: user?.uid }
-      );
-      setMensajesRecibidos(recibidos);
+      // Obtener mensajes recibidos (por empresa)
+      const recibidosRes = await fetch(`/api/messages?companyId=${user?.company?._id}`);
+      const recibidosData = await recibidosRes.json();
+      setMensajesRecibidos(recibidosData.messages || []);
 
-      // Obtener mensajes enviados
-      const enviados = await sanityClient.fetch(
-        `*[_type == "message" && sender._ref == $userId && !deleted] | order(createdAt desc) {
-          _id,
-          subject,
-          content,
-          createdAt,
-          read,
-          sender->{ _id, firstName, lastName, photo },
-          receiver->{ _id, firstName, lastName, photo }
-        }`,
-        { userId: user?.uid }
-      );
-      setMensajesEnviados(enviados);
+      // Obtener mensajes enviados (por usuario)
+      const enviadosRes = await fetch(`/api/messages?senderId=${user?.uid}`);
+      const enviadosData = await enviadosRes.json();
+      setMensajesEnviados(enviadosData.messages || []);
     } catch (error) {
       console.error('Error al cargar mensajes:', error);
     } finally {
@@ -94,53 +73,38 @@ export default function MensajesView() {
 
   const marcarComoLeido = async (mensajeId: string) => {
     try {
-      await sanityClient
-        .patch(mensajeId)
-        .set({ read: true })
-        .commit();
-      
+      await fetch('/api/messages/mark-as-read', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messageId: mensajeId })
+      });
       await fetchMensajes();
     } catch (error) {
       console.error('Error al marcar como leído:', error);
     }
   };
 
-  const eliminarMensaje = async (mensajeId: string) => {
-    try {
-      await sanityClient
-        .patch(mensajeId)
-        .set({ deleted: true })
-        .commit();
-      await fetchMensajes();
-      setMensajeSeleccionado(null);
-    } catch (error) {
-      console.error('Error al eliminar mensaje:', error);
-    }
-  };
-
   const enviarMensaje = async () => {
-    if (!destinatarioId.trim() || !contenidoNuevo.trim() || !asunto.trim()) return;
+    if (!destinatarioEmpresaId.trim() || !contenidoNuevo.trim() || !asunto.trim()) return;
 
     try {
-      await sanityClient.create({
-        _type: 'message',
-        subject: asunto,
-        content: contenidoNuevo,
-        sender: {
-          _type: 'reference',
-          _ref: user?.uid
-        },
-        receiver: {
-          _type: 'reference',
-          _ref: destinatarioId
-        },
-        createdAt: new Date().toISOString(),
-        read: false,
-        deleted: false
+      const response = await fetch('/api/send-message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subject: asunto,
+          content: contenidoNuevo,
+          senderId: user?.uid,
+          companyId: destinatarioEmpresaId
+        })
       });
 
+      if (!response.ok) {
+        throw new Error('Error al enviar mensaje');
+      }
+
       setShowNuevoMensaje(false);
-      setDestinatarioId('');
+      setDestinatarioEmpresaId('');
       setAsunto('');
       setContenidoNuevo('');
       await fetchMensajes();
@@ -156,14 +120,25 @@ export default function MensajesView() {
       mensaje.subject.toLowerCase().includes(termino) ||
       mensaje.content.toLowerCase().includes(termino) ||
       `${mensaje.sender.firstName} ${mensaje.sender.lastName}`.toLowerCase().includes(termino) ||
-      `${mensaje.receiver.firstName} ${mensaje.receiver.lastName}`.toLowerCase().includes(termino)
+      `${mensaje.company.nameCompany}`.toLowerCase().includes(termino)
     );
   };
 
+  function getImageUrl(image: any): string {
+    if (!image || !image.asset) return '/images/placeholder-product.png';
+    return `https://cdn.sanity.io/images/${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID}/${process.env.NEXT_PUBLIC_SANITY_DATASET}/${image.asset._ref.replace('image-', '').replace('-jpg', '.jpg').replace('-png', '.png').replace('-webp', '.webp')}`;
+  }
+
   const renderMensajeItem = (mensaje: Message, tipo: 'recibido' | 'enviado') => {
     const esMensajeSeleccionado = mensajeSeleccionado?._id === mensaje._id;
-    const persona = tipo === 'recibido' ? mensaje.sender : mensaje.receiver;
-    
+    // Para recibido, mostrar el remitente; para enviado, mostrar la empresa destinataria
+    const nombrePersona = tipo === 'recibido'
+      ? `${mensaje.sender.firstName} ${mensaje.sender.lastName}`
+      : mensaje.company.nameCompany;
+    const avatarImg = tipo === 'recibido'
+      ? (mensaje.sender.photo ? getImageUrl(mensaje.sender.photo) : undefined)
+      : (mensaje.company.logo ? getImageUrl(mensaje.company.logo) : undefined);
+
     return (
       <div 
         key={mensaje._id}
@@ -179,13 +154,13 @@ export default function MensajesView() {
       >
         <div className="flex items-center gap-4">
           <Avatar
-            img={persona.photo ? `https://cdn.sanity.io/images/${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID}/${process.env.NEXT_PUBLIC_SANITY_DATASET}/${persona.photo.asset._ref}` : undefined}
+            img={avatarImg}
             rounded
           />
           <div className="flex-1 min-w-0">
             <div className="flex justify-between items-start">
               <p className="font-medium truncate">
-                {persona.firstName} {persona.lastName}
+                {nombrePersona}
               </p>
               <span className="text-sm text-gray-500 flex-shrink-0">
                 {new Date(mensaje.createdAt).toLocaleDateString()}
@@ -212,9 +187,9 @@ export default function MensajesView() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <DashboardNavbar />
-      <main className="container mx-auto px-4 py-8 pt-20">
+    <div className="flex container mx-auto mt-10">
+      <DashboardSidebar />
+      <main className="w-3/3 xl:w-3/4 pl-10">
         <div className="bg-white rounded-lg shadow-sm">
           <div className="p-4 border-b flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <h1 className="text-2xl font-bold">Mensajes</h1>
@@ -262,7 +237,7 @@ export default function MensajesView() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Avatar
-                    img={mensajeSeleccionado?.sender.photo ? `https://cdn.sanity.io/images/${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID}/${process.env.NEXT_PUBLIC_SANITY_DATASET}/${mensajeSeleccionado.sender.photo.asset._ref}` : undefined}
+                    img={mensajeSeleccionado?.sender.photo ? getImageUrl(mensajeSeleccionado.sender.photo) : undefined}
                     rounded
                   />
                   <div>
@@ -274,14 +249,19 @@ export default function MensajesView() {
                     </p>
                   </div>
                 </div>
-                <Button
-                  color="failure"
-                  size="sm"
-                  onClick={() => mensajeSeleccionado && eliminarMensaje(mensajeSeleccionado._id)}
-                >
-                  <HiTrash className="mr-2 h-5 w-5" />
-                  Eliminar
-                </Button>
+                {mensajeSeleccionado && (
+                  <Button
+                    color="blue"
+                    onClick={() => {
+                      setDestinatarioEmpresaId(mensajeSeleccionado.company._id || '');
+                      setAsunto(`Re: ${mensajeSeleccionado.subject || ''}`);
+                      setShowNuevoMensaje(true);
+                      setMensajeSeleccionado(null);
+                    }}
+                  >
+                    Responder
+                  </Button>
+                )}
               </div>
               <p className="text-gray-700 whitespace-pre-wrap">
                 {mensajeSeleccionado?.content}
@@ -303,13 +283,13 @@ export default function MensajesView() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  ID del destinatario
+                  ID de la empresa destinataria
                 </label>
                 <TextInput
                   type="text"
-                  value={destinatarioId}
-                  onChange={(e) => setDestinatarioId(e.target.value)}
-                  placeholder="Ingresa el ID del destinatario"
+                  value={destinatarioEmpresaId}
+                  onChange={(e) => setDestinatarioEmpresaId(e.target.value)}
+                  placeholder="Ingresa el ID de la empresa destinataria"
                 />
               </div>
               <div>
@@ -339,12 +319,38 @@ export default function MensajesView() {
           <Modal.Footer>
             <Button 
               color="blue" 
-              onClick={enviarMensaje}
-              disabled={!destinatarioId.trim() || !contenidoNuevo.trim() || !asunto.trim()}
+              onClick={() => setShowConfirmModal(true)}
+              disabled={!destinatarioEmpresaId.trim() || !contenidoNuevo.trim() || !asunto.trim()}
             >
               Enviar mensaje
             </Button>
             <Button color="gray" onClick={() => setShowNuevoMensaje(false)}>
+              Cancelar
+            </Button>
+          </Modal.Footer>
+        </Modal>
+
+        {/* Modal de confirmación */}
+        <Modal
+          show={showConfirmModal}
+          onClose={() => setShowConfirmModal(false)}
+          size="md"
+        >
+          <Modal.Header>Confirmar envío</Modal.Header>
+          <Modal.Body>
+            <p>¿Estás seguro de que deseas enviar este mensaje?</p>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button
+              color="blue"
+              onClick={async () => {
+                setShowConfirmModal(false);
+                await enviarMensaje();
+              }}
+            >
+              Sí, enviar
+            </Button>
+            <Button color="gray" onClick={() => setShowConfirmModal(false)}>
               Cancelar
             </Button>
           </Modal.Footer>

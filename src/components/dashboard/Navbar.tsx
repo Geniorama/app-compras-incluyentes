@@ -66,10 +66,10 @@ export default function DashboardNavbar() {
               Mis productos y servicios
             </Dropdown.Item>
             <Dropdown.Divider />
-            {/* <Dropdown.Item onClick={() => router.push("/dashboard/notificaciones")}>
-              Notificaciones
-            </Dropdown.Item> */}
-            {/* <Dropdown.Divider /> */}
+            <Dropdown.Item onClick={() => router.push("/dashboard/mensajes")}>
+              Mensajes
+            </Dropdown.Item>
+            <Dropdown.Divider />
             <Dropdown.Item onClick={handleSignOut}>Cerrar sesión</Dropdown.Item>
           </Dropdown>
           <Navbar.Toggle />
@@ -82,7 +82,6 @@ export default function DashboardNavbar() {
         <Navbar.Collapse>
             <Navbar.Link href="/empresas">Empresas</Navbar.Link>
             <Navbar.Link href="/catalogo">Productos y Servicios</Navbar.Link>
-            {/* <Navbar.Link href="/dashboard/chat">Chat</Navbar.Link> */}
         </Navbar.Collapse>
       </div>
     </Navbar>
