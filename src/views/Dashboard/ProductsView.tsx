@@ -620,9 +620,9 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
 
 
   return (
-    <div className="flex container mx-auto mt-10">
+    <div className="flex container mx-auto mt-5 md:mt-10">
       <DashboardSidebar />
-      <main className="flex-1 ml-8">
+      <main className="w-full xl:w-3/4 px-4 md:px-0 md:pl-10">
         <Tabs>
           <Tabs.Item active title="Productos">
             <div className="mb-4 flex justify-between items-center flex-wrap space-y-2">

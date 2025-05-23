@@ -176,9 +176,9 @@ export default function UsersView() {
 
   if (!user?.uid) {
     return (
-      <div className="flex container mx-auto mt-10">
+      <div className="flex container mx-auto mt-5 md:mt-10">
         <DashboardSidebar />
-        <main className="w-full md:w-3/4 md:pl-10 mt-6 md:mt-0">
+        <main className="w-full xl:w-3/4 px-4 md:px-0 md:pl-10">
           <Alert color="failure">
             No tienes permisos para ver esta página
           </Alert>
@@ -188,9 +188,9 @@ export default function UsersView() {
   }
 
   return (
-    <div className="flex container mx-auto mt-10">
+    <div className="flex container mx-auto mt-5 md:mt-10">
       <DashboardSidebar />
-      <main className="w-full md:w-3/4 md:pl-10 mt-6 md:mt-0">
+      <main className="w-full xl:w-3/4 px-4 md:px-0 md:pl-10">
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold">Usuarios y Permisos</h1>
           <Button color="blue" onClick={() => {

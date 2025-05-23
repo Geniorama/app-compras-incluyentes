@@ -85,11 +85,11 @@ export default function SecurityForm() {
           <div className="border-t pt-6">
             <h3 className="text-lg font-semibold mb-4">Estado de la cuenta</h3>
             <div className="space-y-2">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap mb-5">
                 <span className="font-medium">Correo electrónico:</span>
                 <span>{user?.email}</span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-medium">Estado de verificación:</span>
                 <span className={user?.emailVerified ? 'text-green-600' : 'text-red-600'}>
                   {user?.emailVerified ? 'Verificado' : 'No verificado'}

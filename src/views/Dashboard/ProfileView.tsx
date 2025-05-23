@@ -464,9 +464,9 @@ export default function ProfileView({
   );
 
   return (
-    <div className="flex container mx-auto mt-10">
+    <div className="flex container mx-auto mt-5 md:mt-10">
       <DashboardSidebar />
-      <main className="w-3/3 xl:w-3/4 pl-10">
+      <main className="w-full xl:w-3/4 px-4 md:px-0 md:pl-10">
         <h1 className="text-2xl font-bold">Mi perfil</h1>
         <div className="border-b border-gray-200 mt-5">
           <Tabs className="!border-none">

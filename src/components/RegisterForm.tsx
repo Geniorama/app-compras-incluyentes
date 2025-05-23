@@ -118,7 +118,7 @@ export default function RegisterForm() {
   const numDocument = watch("numDocument");
   const pronoun = watch("pronoun");
   const position = watch("position");
-
+ 
   // Fields Step 3
   const password = watch("password");
   const confirmPassword = watch("confirmPassword");
@@ -1078,7 +1078,7 @@ export default function RegisterForm() {
                       },
                       onChange: async (e) => {
                         const value = e.target.value;
-                        setEmailError(null);
+                          setEmailError(null);
                         if (value && isValidEmail(value)) {
                           await validateEmail(value);
                         }
