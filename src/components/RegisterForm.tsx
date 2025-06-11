@@ -1211,6 +1211,7 @@ export default function RegisterForm() {
                       placeholder="**********"
                       type={showPassword ? "text" : "password"}
                       autoComplete="off"
+                      onPaste={e => e.preventDefault()}
                     />
                     <button
                       type="button"
@@ -1256,6 +1257,7 @@ export default function RegisterForm() {
                       placeholder="**********"
                       type={showConfirmPassword ? "text" : "password"}
                       autoComplete="off"
+                      onPaste={e => e.preventDefault()}
                     />
                     <button
                       type="button"
