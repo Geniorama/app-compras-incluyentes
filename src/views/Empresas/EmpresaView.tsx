@@ -13,7 +13,7 @@ import {
 import type { CompanyData } from '@/types';
 import type { SanityProductDocument, SanityServiceDocument, SanityImage, SanityCategoryDocument } from '@/types/sanity';
 import BgCover from '@/assets/img/bg-portada-empresa.png';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 
 interface EmpresaViewProps {
   company: CompanyData & {
