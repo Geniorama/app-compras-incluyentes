@@ -23,15 +23,15 @@ export default function RootLayout({
         <AuthProvider>
           {children}
           <Toaster position="top-right" />
-       
-          <footer className="bg-[#4C66F7] text-white">
-            <div className="container mx-auto px-4 py-10">
-              <div className="flex justify-between items-center flex-col lg:flex-row space-y-10 lg:space-y-0">
-                <div className="flex gap-10 flex-wrap justify-center lg:justify-start">
-                  <img src="https://comprasincluyentes.geniorama.co/wp-content/uploads/2025/04/logo-blanco-de-compras-incluyentes-2-sin-fondo.png" alt="logo" className="lg:w-auto h-auto object-contain w-26" />
-                  <img src="https://comprasincluyentes.geniorama.co/wp-content/uploads/2025/04/logo-camara-de-la-diversidad-blanco-768x288-1.png" alt="logo" className="lg:w-auto h-auto object-contain w-26" />
-                  <img src="https://comprasincluyentes.geniorama.co/wp-content/uploads/2025/04/logo-chambers-americas-768x492-1.png" alt="logo" className="lg:w-auto h-auto object-contain w-26" />
-                </div>
+        </AuthProvider>
+        <footer className="bg-[#4C66F7] text-white">
+          <div className="container mx-auto px-4 py-10">
+            <div className="flex justify-between items-center flex-col lg:flex-row space-y-10 lg:space-y-0">
+              <div className="flex gap-10 flex-wrap justify-center lg:justify-start">
+                <img src="https://comprasincluyentes.site/wp-content/uploads/2025/04/logo-blanco-de-compras-incluyentes-2-sin-fondo.webp" alt="logo" className="lg:w-auto h-auto object-contain w-26" />
+                <img src="https://comprasincluyentes.site/wp-content/uploads/2025/04/logo-camara-de-la-diversidad-blanco-768x288-1.webp" alt="logo" className="lg:w-auto h-auto object-contain w-26" />
+                <img src="https://comprasincluyentes.site/wp-content/uploads/2025/04/logo-chambers-americas-768x492-1.webp" alt="logo" className="lg:w-auto h-auto object-contain w-26" />
+              </div>
 
                 <div>
                   <h5>Síguenos en nuestras redes</h5>
