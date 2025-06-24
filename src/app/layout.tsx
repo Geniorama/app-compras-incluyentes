@@ -23,7 +23,6 @@ export default function RootLayout({
         <AuthProvider>
           {children}
           <Toaster position="top-right" />
-        </AuthProvider>
         <footer className="bg-[#4C66F7] text-white">
           <div className="container mx-auto px-4 py-10">
             <div className="flex justify-between items-center flex-col lg:flex-row space-y-10 lg:space-y-0">
