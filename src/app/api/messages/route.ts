@@ -11,8 +11,10 @@ export async function GET(req: NextRequest) {
   try {
     let query = '';
     let params = {};
+    
     if (companyId) {
-      query = `*[_type == "message" && company._ref == $companyId && !deleted] | order(createdAt desc) {
+      // Obtener mensajes recibidos por la empresa (como destinataria)
+      query = `*[_type == "message" && recipientCompany._ref == $companyId && !deleted] | order(createdAt desc) {
         _id,
         subject,
         content,
@@ -22,26 +24,38 @@ export async function GET(req: NextRequest) {
           _id, 
           firstName, 
           lastName, 
-          photo,
-          company->{
-            _id,
-            nameCompany
-          }
+          photo
         },
-        company->{ _id, nameCompany, logo }
+        senderCompany->{ 
+          _id, 
+          nameCompany, 
+          logo 
+        },
+        recipientCompany->{ 
+          _id, 
+          nameCompany, 
+          logo 
+        }
       }`;
       params = { companyId };
     } else if (senderId) {
       // Buscar el _id real del usuario en Sanity usando el UID de Firebase
       const userDoc = await client.fetch(
-        '*[_type == "user" && firebaseUid == $senderId][0]{ _id }',
+        '*[_type == "user" && firebaseUid == $senderId][0]{ _id, company->{ _id } }',
         { senderId }
       );
       if (!userDoc?._id) {
         return NextResponse.json({ message: 'El usuario no existe en Sanity' }, { status: 404 });
       }
       const senderSanityId = userDoc._id;
-      query = `*[_type == "message" && sender._ref == $senderSanityId && !deleted] | order(createdAt desc) {
+      const userCompanyId = userDoc.company?._id;
+      
+      if (!userCompanyId) {
+        return NextResponse.json({ message: 'El usuario no pertenece a ninguna empresa' }, { status: 400 });
+      }
+      
+      // Obtener mensajes enviados por la empresa del usuario
+      query = `*[_type == "message" && senderCompany._ref == $userCompanyId && !deleted] | order(createdAt desc) {
         _id,
         subject,
         content,
@@ -51,15 +65,20 @@ export async function GET(req: NextRequest) {
           _id, 
           firstName, 
           lastName, 
-          photo,
-          company->{
-            _id,
-            nameCompany
-          }
+          photo
         },
-        company->{ _id, nameCompany, logo }
+        senderCompany->{ 
+          _id, 
+          nameCompany, 
+          logo 
+        },
+        recipientCompany->{ 
+          _id, 
+          nameCompany, 
+          logo 
+        }
       }`;
-      params = { senderSanityId };
+      params = { userCompanyId };
     } else {
       return NextResponse.json({ message: 'Falta companyId o senderId' }, { status: 400 });
     }

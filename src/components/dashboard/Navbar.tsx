@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import IconLogo from "@/assets/img/logo-icon.webp";
 import { TextInput } from "flowbite-react";
 import { useAuth } from "@/context/AuthContext";
-import MessageNotification from "../MessageNotification";
 
 export default function DashboardNavbar() {
   const router = useRouter();
@@ -69,7 +68,6 @@ export default function DashboardNavbar() {
             <Dropdown.Divider />
             <Dropdown.Item onClick={() => router.push("/dashboard/mensajes")} className="flex items-center justify-between">
               <span>Mensajes</span>
-              <MessageNotification className="h-4 w-4" />
             </Dropdown.Item>
             <Dropdown.Divider />
             <Dropdown.Item onClick={handleSignOut}>Cerrar sesión</Dropdown.Item>

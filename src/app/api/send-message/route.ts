@@ -3,29 +3,39 @@ import { getAuthenticatedClient } from '@/lib/sanity.client';
 
 export async function POST(req: NextRequest) {
   const client = getAuthenticatedClient();
-  const { subject, content, senderId, companyId } = await req.json();
+  const { subject, content, senderId, recipientCompanyId } = await req.json();
 
-  if (!subject || !content || !senderId || !companyId) {
+  if (!subject || !content || !senderId || !recipientCompanyId) {
     return NextResponse.json({ message: 'Faltan campos obligatorios' }, { status: 400 });
   }
 
   // Buscar el _id real del usuario en Sanity usando el UID de Firebase
   const userDoc = await client.fetch(
-    '*[_type == "user" && firebaseUid == $senderId][0]{ _id }',
+    '*[_type == "user" && firebaseUid == $senderId][0]{ _id, company->{ _id, nameCompany } }',
     { senderId }
   );
   if (!userDoc?._id) {
     return NextResponse.json({ message: 'El usuario no existe en Sanity' }, { status: 404 });
   }
   const senderSanityId = userDoc._id;
+  const senderCompanyId = userDoc.company?._id;
 
-  // Validar que la empresa exista en Sanity
-  const companyExists = await client.fetch(
-    '*[_type == "company" && _id == $companyId][0]._id',
-    { companyId }
+  if (!senderCompanyId) {
+    return NextResponse.json({ message: 'El usuario no pertenece a ninguna empresa' }, { status: 400 });
+  }
+
+  // Validar que la empresa destinataria exista en Sanity
+  const recipientCompanyExists = await client.fetch(
+    '*[_type == "company" && _id == $recipientCompanyId][0]._id',
+    { recipientCompanyId }
   );
-  if (!companyExists) {
-    return NextResponse.json({ message: 'La empresa no existe en Sanity' }, { status: 404 });
+  if (!recipientCompanyExists) {
+    return NextResponse.json({ message: 'La empresa destinataria no existe en Sanity' }, { status: 404 });
+  }
+
+  // Evitar que una empresa se envíe mensajes a sí misma
+  if (senderCompanyId === recipientCompanyId) {
+    return NextResponse.json({ message: 'No puedes enviar mensajes a tu propia empresa' }, { status: 400 });
   }
 
   try {
@@ -34,7 +44,8 @@ export async function POST(req: NextRequest) {
       subject,
       content,
       sender: { _type: 'reference', _ref: senderSanityId },
-      company: { _type: 'reference', _ref: companyId },
+      senderCompany: { _type: 'reference', _ref: senderCompanyId },
+      recipientCompany: { _type: 'reference', _ref: recipientCompanyId },
       createdAt: new Date().toISOString(),
       read: false,
       deleted: false

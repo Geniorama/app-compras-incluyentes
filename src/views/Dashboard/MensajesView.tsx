@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { Button, TextInput, Textarea, Avatar, Modal, Tabs, Spinner, Select } from 'flowbite-react';
-import { HiOutlineMailOpen, HiPaperAirplane, HiSearch, HiReply } from 'react-icons/hi';
+import { Button, TextInput, Textarea, Avatar, Modal, Tabs, Spinner } from 'flowbite-react';
+import { HiOutlineMailOpen, HiPaperAirplane, HiSearch, HiReply, HiChevronDown } from 'react-icons/hi';
 import DashboardSidebar from '@/components/DashboardSidebar';
 
 interface Message {
@@ -19,7 +19,16 @@ interface Message {
       }
     }
   };
-  company: {
+  senderCompany: {
+    _id: string;
+    nameCompany: string;
+    logo?: {
+      asset: {
+        _ref: string;
+      }
+    }
+  };
+  recipientCompany: {
     _id: string;
     nameCompany: string;
     logo?: {
@@ -57,6 +66,9 @@ export default function MensajesView() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [empresas, setEmpresas] = useState<Company[]>([]);
   const [loadingEmpresas, setLoadingEmpresas] = useState(false);
+  const [showEmpresaDropdown, setShowEmpresaDropdown] = useState(false);
+  const [empresaSearchTerm, setEmpresaSearchTerm] = useState('');
+  const empresaDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (user) {
@@ -75,12 +87,30 @@ export default function MensajesView() {
     }
   }, [user]);
 
+  // Cerrar dropdown cuando se hace clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (empresaDropdownRef.current && !empresaDropdownRef.current.contains(event.target as Node)) {
+        setShowEmpresaDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   const fetchEmpresas = async () => {
     try {
       setLoadingEmpresas(true);
       const response = await fetch('/api/companies');
       const data = await response.json();
-      setEmpresas(data.companies || []);
+      // Filtrar para excluir la empresa del usuario actual
+      const empresasFiltradas = (data.companies || []).filter(
+        (empresa: Company) => empresa._id !== user?.company?._id
+      );
+      setEmpresas(empresasFiltradas);
     } catch (error) {
       console.error('Error al cargar empresas:', error);
     } finally {
@@ -131,7 +161,7 @@ export default function MensajesView() {
           subject: asunto,
           content: contenidoNuevo,
           senderId: user?.uid,
-          companyId: destinatarioEmpresaId
+          recipientCompanyId: destinatarioEmpresaId
         })
       });
 
@@ -143,6 +173,7 @@ export default function MensajesView() {
       setDestinatarioEmpresaId('');
       setAsunto('');
       setContenidoNuevo('');
+      setEmpresaSearchTerm('');
       await fetchMensajes();
     } catch (error) {
       console.error('Error al enviar mensaje:', error);
@@ -150,32 +181,18 @@ export default function MensajesView() {
   };
 
   const responderMensaje = (mensaje: Message) => {
-    // Para responder, necesitamos enviar el mensaje a la empresa del remitente original
-    const empresaRemitente = mensaje.sender.company?._id;
-    if (empresaRemitente) {
-      setDestinatarioEmpresaId(empresaRemitente);
-      setAsunto(`Re: ${mensaje.subject}`);
-      setShowNuevoMensaje(true);
-      setMensajeSeleccionado(null);
-    } else {
-      // Si no tenemos la empresa del remitente, buscar por el usuario
-      buscarEmpresaPorUsuario(mensaje.sender._id);
-    }
+    // Para responder, necesitamos enviar el mensaje a la empresa remitente original
+    const empresaRemitente = mensaje.senderCompany._id;
+    const empresaRemitenteNombre = mensaje.senderCompany.nameCompany;
+    setDestinatarioEmpresaId(empresaRemitente);
+    setEmpresaSearchTerm(empresaRemitenteNombre);
+    setAsunto(`Re: ${mensaje.subject}`);
+    setShowNuevoMensaje(true);
+    setMensajeSeleccionado(null);
   };
 
-  const buscarEmpresaPorUsuario = async (userId: string) => {
-    try {
-      const response = await fetch(`/api/user-company?userId=${userId}`);
-      const data = await response.json();
-      if (data.companyId) {
-        setDestinatarioEmpresaId(data.companyId);
-        setAsunto(`Re: ${mensajeSeleccionado?.subject}`);
-        setShowNuevoMensaje(true);
-        setMensajeSeleccionado(null);
-      }
-    } catch (error) {
-      console.error('Error al buscar empresa del usuario:', error);
-    }
+  const abrirEmpresa = (empresaId: string) => {
+    window.open(`/empresas/${empresaId}`, '_blank');
   };
 
   const filtrarMensajes = (mensajes: Message[]) => {
@@ -184,20 +201,38 @@ export default function MensajesView() {
     return mensajes.filter(mensaje => 
       mensaje.subject.toLowerCase().includes(termino) ||
       mensaje.content.toLowerCase().includes(termino) ||
-      `${mensaje.sender.firstName} ${mensaje.sender.lastName}`.toLowerCase().includes(termino) ||
-      `${mensaje.company.nameCompany}`.toLowerCase().includes(termino)
+      mensaje.senderCompany.nameCompany.toLowerCase().includes(termino) ||
+      mensaje.recipientCompany.nameCompany.toLowerCase().includes(termino)
     );
   };
 
-  function getImageUrl(image: any): string {
+  const filtrarEmpresas = () => {
+    if (!empresaSearchTerm) return empresas;
+    const termino = empresaSearchTerm.toLowerCase();
+    return empresas.filter(empresa => 
+      empresa.nameCompany.toLowerCase().includes(termino)
+    );
+  };
+
+  const seleccionarEmpresa = (empresa: Company) => {
+    setDestinatarioEmpresaId(empresa._id);
+    setEmpresaSearchTerm(empresa.nameCompany);
+    setShowEmpresaDropdown(false);
+  };
+
+  function getImageUrl(image: { asset?: { _ref: string } }): string {
     if (!image || !image.asset) return '/images/placeholder-product.png';
     return `https://cdn.sanity.io/images/${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID}/${process.env.NEXT_PUBLIC_SANITY_DATASET}/${image.asset._ref.replace('image-', '').replace('-jpg', '.jpg').replace('-png', '.png').replace('-webp', '.webp')}`;
   }
 
   const renderMensajeItem = (mensaje: Message, tipo: 'recibido' | 'enviado') => {
     const esMensajeSeleccionado = mensajeSeleccionado?._id === mensaje._id;
-    const nombreEmpresa = mensaje.company.nameCompany;
-    const logoEmpresa = mensaje.company.logo ? getImageUrl(mensaje.company.logo) : undefined;
+    const esMensajeInterno = tipo === 'recibido' && mensaje.senderCompany._id === user?.company?._id;
+    
+    // Para mensajes recibidos, mostrar la empresa remitente
+    // Para mensajes enviados, mostrar la empresa destinataria
+    const empresaMostrar = tipo === 'recibido' ? mensaje.senderCompany : mensaje.recipientCompany;
+    const logoEmpresa = empresaMostrar.logo ? getImageUrl(empresaMostrar.logo) : undefined;
 
     return (
       <div 
@@ -216,7 +251,23 @@ export default function MensajesView() {
           <Avatar img={logoEmpresa} rounded />
           <div className="flex-1 min-w-0">
             <div className="flex justify-between items-start">
-              <p className="font-medium truncate">{nombreEmpresa}</p>
+              <div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    abrirEmpresa(empresaMostrar._id);
+                  }}
+                  className="font-medium truncate text-left hover:text-blue-600 transition-colors"
+                  title="Ver empresa"
+                >
+                  {empresaMostrar.nameCompany}
+                </button>
+                {esMensajeInterno && (
+                  <p className="text-xs text-gray-500">
+                    Enviado por: {mensaje.sender.firstName} {mensaje.sender.lastName}
+                  </p>
+                )}
+              </div>
               <span className="text-sm text-gray-500 flex-shrink-0">
                 {new Date(mensaje.createdAt).toLocaleDateString()}
               </span>
@@ -296,8 +347,15 @@ export default function MensajesView() {
                     rounded
                   />
                   <div>
-                    <p className="font-medium">
-                      {mensajeSeleccionado?.sender.firstName} {mensajeSeleccionado?.sender.lastName}
+                    <button
+                      onClick={() => abrirEmpresa(mensajeSeleccionado?.senderCompany._id || '')}
+                      className="font-medium hover:text-blue-600 transition-colors text-left"
+                      title="Ver empresa"
+                    >
+                      {mensajeSeleccionado?.senderCompany.nameCompany}
+                    </button>
+                    <p className="text-sm text-gray-500">
+                      Enviado por: {mensajeSeleccionado?.sender.firstName} {mensajeSeleccionado?.sender.lastName}
                     </p>
                     <p className="text-sm text-gray-500">
                       {mensajeSeleccionado?.createdAt && new Date(mensajeSeleccionado.createdAt).toLocaleString()}
@@ -310,7 +368,7 @@ export default function MensajesView() {
                     onClick={() => responderMensaje(mensajeSeleccionado)}
                     className="flex items-center gap-2"
                   >
-                    <HiReply className="h-4 w-4" />
+                    <HiReply className="h-4 w-4 mr-2" />
                     Responder
                   </Button>
                 )}
@@ -337,18 +395,53 @@ export default function MensajesView() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Empresa destinataria
                 </label>
-                <Select
-                  value={destinatarioEmpresaId}
-                  onChange={(e) => setDestinatarioEmpresaId(e.target.value)}
-                  disabled={loadingEmpresas}
-                >
-                  <option value="">Selecciona una empresa</option>
-                  {empresas.map(empresa => (
-                    <option key={empresa._id} value={empresa._id}>
-                      {empresa.nameCompany}
-                    </option>
-                  ))}
-                </Select>
+                <div className="relative" ref={empresaDropdownRef}>
+                  <TextInput
+                    type="text"
+                    placeholder="Buscar empresa..."
+                    value={empresaSearchTerm}
+                    onChange={(e) => {
+                      setEmpresaSearchTerm(e.target.value);
+                      setShowEmpresaDropdown(true);
+                      if (!e.target.value) {
+                        setDestinatarioEmpresaId('');
+                      }
+                    }}
+                    onFocus={() => setShowEmpresaDropdown(true)}
+                    disabled={loadingEmpresas}
+                    icon={HiSearch}
+                    rightIcon={HiChevronDown}
+                    className="cursor-pointer"
+                  />
+                  {showEmpresaDropdown && (
+                    <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                      {filtrarEmpresas().length === 0 ? (
+                        <div className="p-3 text-gray-500 text-center">
+                          {loadingEmpresas ? 'Cargando empresas...' : 'No se encontraron empresas'}
+                        </div>
+                      ) : (
+                        filtrarEmpresas().map(empresa => (
+                          <div
+                            key={empresa._id}
+                            className="p-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                            onClick={() => seleccionarEmpresa(empresa)}
+                          >
+                            <div className="flex items-center gap-3">
+                              {empresa.logo && (
+                                <img
+                                  src={getImageUrl(empresa.logo)}
+                                  alt={empresa.nameCompany}
+                                  className="w-8 h-8 rounded-full object-cover"
+                                />
+                              )}
+                              <span className="font-medium">{empresa.nameCompany}</span>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">

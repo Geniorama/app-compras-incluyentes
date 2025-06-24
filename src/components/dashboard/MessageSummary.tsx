@@ -17,7 +17,10 @@ interface Message {
     firstName: string;
     lastName: string;
   };
-  company: {
+  senderCompany: {
+    nameCompany: string;
+  };
+  recipientCompany: {
     nameCompany: string;
   };
   createdAt: string;
@@ -91,32 +94,41 @@ export default function MessageSummary({ className = '' }: MessageSummaryProps) 
         </div>
       ) : (
         <div className="space-y-3">
-          {recentMessages.map((message) => (
-            <div 
-              key={message._id}
-              className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-                !message.read ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'
-              }`}
-              onClick={() => router.push('/dashboard/mensajes')}
-            >
-              <div className="flex justify-between items-start">
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm truncate">
-                    {message.subject}
-                  </p>
-                  <p className="text-xs text-gray-600 truncate">
-                    De: {message.sender.firstName} {message.sender.lastName}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {formatDate(message.createdAt)}
-                  </p>
+          {recentMessages.map((message) => {
+            const esMensajeInterno = message.senderCompany._id === user?.company?._id;
+            
+            return (
+              <div 
+                key={message._id}
+                className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                  !message.read ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'
+                }`}
+                onClick={() => router.push('/dashboard/mensajes')}
+              >
+                <div className="flex justify-between items-start">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate">
+                      {message.subject}
+                    </p>
+                    <p className="text-xs text-gray-600 truncate">
+                      De: {message.senderCompany.nameCompany}
+                    </p>
+                    {esMensajeInterno && (
+                      <p className="text-xs text-gray-500 truncate">
+                        Por: {message.sender.firstName} {message.sender.lastName}
+                      </p>
+                    )}
+                    <p className="text-xs text-gray-500">
+                      {formatDate(message.createdAt)}
+                    </p>
+                  </div>
+                  {!message.read && (
+                    <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 ml-2"></div>
+                  )}
                 </div>
-                {!message.read && (
-                  <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 ml-2"></div>
-                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </Card>

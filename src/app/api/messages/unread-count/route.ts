@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const count = await client.fetch(`
-      count(*[_type == "message" && company._ref == $companyId && read == false && !deleted])
+      count(*[_type == "message" && recipientCompany._ref == $companyId && read == false && !deleted])
     `, { companyId });
 
     return NextResponse.json({ count }, { status: 200 });
