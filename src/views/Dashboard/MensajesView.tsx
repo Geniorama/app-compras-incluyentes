@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { Button, TextInput, Textarea, Avatar, Modal, Tabs, Spinner } from 'flowbite-react';
-import { HiOutlineMailOpen, HiPaperAirplane, HiSearch } from 'react-icons/hi';
+import { Button, TextInput, Textarea, Avatar, Modal, Tabs, Spinner, Select } from 'flowbite-react';
+import { HiOutlineMailOpen, HiPaperAirplane, HiSearch, HiReply } from 'react-icons/hi';
 import DashboardSidebar from '@/components/DashboardSidebar';
 
 interface Message {
@@ -33,6 +33,16 @@ interface Message {
   read: boolean;
 }
 
+interface Company {
+  _id: string;
+  nameCompany: string;
+  logo?: {
+    asset: {
+      _ref: string;
+    }
+  }
+}
+
 export default function MensajesView() {
   const { user } = useAuth();
   const [mensajesRecibidos, setMensajesRecibidos] = useState<Message[]>([]);
@@ -45,12 +55,38 @@ export default function MensajesView() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [empresas, setEmpresas] = useState<Company[]>([]);
+  const [loadingEmpresas, setLoadingEmpresas] = useState(false);
 
   useEffect(() => {
     if (user) {
       fetchMensajes();
+      fetchEmpresas();
+      
+      // Verificar si hay un parámetro de empresa en la URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const empresaId = urlParams.get('empresa');
+      if (empresaId) {
+        setDestinatarioEmpresaId(empresaId);
+        setShowNuevoMensaje(true);
+        // Limpiar la URL
+        window.history.replaceState({}, '', '/dashboard/mensajes');
+      }
     }
   }, [user]);
+
+  const fetchEmpresas = async () => {
+    try {
+      setLoadingEmpresas(true);
+      const response = await fetch('/api/companies');
+      const data = await response.json();
+      setEmpresas(data.companies || []);
+    } catch (error) {
+      console.error('Error al cargar empresas:', error);
+    } finally {
+      setLoadingEmpresas(false);
+    }
+  };
 
   const fetchMensajes = async () => {
     try {
@@ -113,6 +149,35 @@ export default function MensajesView() {
     }
   };
 
+  const responderMensaje = (mensaje: Message) => {
+    // Para responder, necesitamos enviar el mensaje a la empresa del remitente original
+    const empresaRemitente = mensaje.sender.company?._id;
+    if (empresaRemitente) {
+      setDestinatarioEmpresaId(empresaRemitente);
+      setAsunto(`Re: ${mensaje.subject}`);
+      setShowNuevoMensaje(true);
+      setMensajeSeleccionado(null);
+    } else {
+      // Si no tenemos la empresa del remitente, buscar por el usuario
+      buscarEmpresaPorUsuario(mensaje.sender._id);
+    }
+  };
+
+  const buscarEmpresaPorUsuario = async (userId: string) => {
+    try {
+      const response = await fetch(`/api/user-company?userId=${userId}`);
+      const data = await response.json();
+      if (data.companyId) {
+        setDestinatarioEmpresaId(data.companyId);
+        setAsunto(`Re: ${mensajeSeleccionado?.subject}`);
+        setShowNuevoMensaje(true);
+        setMensajeSeleccionado(null);
+      }
+    } catch (error) {
+      console.error('Error al buscar empresa del usuario:', error);
+    }
+  };
+
   const filtrarMensajes = (mensajes: Message[]) => {
     if (!searchTerm) return mensajes;
     const termino = searchTerm.toLowerCase();
@@ -131,13 +196,8 @@ export default function MensajesView() {
 
   const renderMensajeItem = (mensaje: Message, tipo: 'recibido' | 'enviado') => {
     const esMensajeSeleccionado = mensajeSeleccionado?._id === mensaje._id;
-    // Para recibido, mostrar el remitente; para enviado, mostrar la empresa destinataria
-    const nombrePersona = tipo === 'recibido'
-      ? `${mensaje.sender.firstName} ${mensaje.sender.lastName}`
-      : mensaje.company.nameCompany;
-    const avatarImg = tipo === 'recibido'
-      ? (mensaje.sender.photo ? getImageUrl(mensaje.sender.photo) : undefined)
-      : (mensaje.company.logo ? getImageUrl(mensaje.company.logo) : undefined);
+    const nombreEmpresa = mensaje.company.nameCompany;
+    const logoEmpresa = mensaje.company.logo ? getImageUrl(mensaje.company.logo) : undefined;
 
     return (
       <div 
@@ -153,15 +213,10 @@ export default function MensajesView() {
         }}
       >
         <div className="flex items-center gap-4">
-          <Avatar
-            img={avatarImg}
-            rounded
-          />
+          <Avatar img={logoEmpresa} rounded />
           <div className="flex-1 min-w-0">
             <div className="flex justify-between items-start">
-              <p className="font-medium truncate">
-                {nombrePersona}
-              </p>
+              <p className="font-medium truncate">{nombreEmpresa}</p>
               <span className="text-sm text-gray-500 flex-shrink-0">
                 {new Date(mensaje.createdAt).toLocaleDateString()}
               </span>
@@ -252,13 +307,10 @@ export default function MensajesView() {
                 {mensajeSeleccionado && (
                   <Button
                     color="blue"
-                    onClick={() => {
-                      setDestinatarioEmpresaId(mensajeSeleccionado.company._id || '');
-                      setAsunto(`Re: ${mensajeSeleccionado.subject || ''}`);
-                      setShowNuevoMensaje(true);
-                      setMensajeSeleccionado(null);
-                    }}
+                    onClick={() => responderMensaje(mensajeSeleccionado)}
+                    className="flex items-center gap-2"
                   >
+                    <HiReply className="h-4 w-4" />
                     Responder
                   </Button>
                 )}
@@ -283,14 +335,20 @@ export default function MensajesView() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  ID de la empresa destinataria
+                  Empresa destinataria
                 </label>
-                <TextInput
-                  type="text"
+                <Select
                   value={destinatarioEmpresaId}
                   onChange={(e) => setDestinatarioEmpresaId(e.target.value)}
-                  placeholder="Ingresa el ID de la empresa destinataria"
-                />
+                  disabled={loadingEmpresas}
+                >
+                  <option value="">Selecciona una empresa</option>
+                  {empresas.map(empresa => (
+                    <option key={empresa._id} value={empresa._id}>
+                      {empresa.nameCompany}
+                    </option>
+                  ))}
+                </Select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">

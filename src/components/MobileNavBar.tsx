@@ -6,6 +6,7 @@ import {
   HiHome,
   HiShoppingBag,
   HiUser,
+  HiOutlineMailOpen,
   // HiOutlineBell,
 } from 'react-icons/hi';
 
@@ -19,6 +20,11 @@ const navItems = [
     href: '/dashboard/catalogo',
     icon: HiShoppingBag,
     label: 'Productos'
+  },
+  {
+    href: '/dashboard/mensajes',
+    icon: HiOutlineMailOpen,
+    label: 'Mensajes',
   },
   // {
   //   href: '/dashboard/notificaciones',
@@ -51,7 +57,7 @@ export default function MobileNavBar() {
                   isActive ? 'text-blue-600' : 'text-gray-500'
                 }`}
               >
-                <item.icon className="w-6 h-6" />
+                {<item.icon className="w-6 h-6" />}
                 <span className="text-xs mt-1">{item.label}</span>
               </div>
             </Link>

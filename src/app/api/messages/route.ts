@@ -6,6 +6,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const companyId = searchParams.get('companyId');
   const senderId = searchParams.get('senderId');
+  const limit = searchParams.get('limit');
 
   try {
     let query = '';
@@ -17,7 +18,16 @@ export async function GET(req: NextRequest) {
         content,
         createdAt,
         read,
-        sender->{ _id, firstName, lastName, photo },
+        sender->{ 
+          _id, 
+          firstName, 
+          lastName, 
+          photo,
+          company->{
+            _id,
+            nameCompany
+          }
+        },
         company->{ _id, nameCompany, logo }
       }`;
       params = { companyId };
@@ -37,7 +47,16 @@ export async function GET(req: NextRequest) {
         content,
         createdAt,
         read,
-        sender->{ _id, firstName, lastName, photo },
+        sender->{ 
+          _id, 
+          firstName, 
+          lastName, 
+          photo,
+          company->{
+            _id,
+            nameCompany
+          }
+        },
         company->{ _id, nameCompany, logo }
       }`;
       params = { senderSanityId };
@@ -45,7 +64,14 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ message: 'Falta companyId o senderId' }, { status: 400 });
     }
 
-    const messages = await client.fetch(query, params);
+    let messages = await client.fetch(query, params);
+    
+    // Aplicar límite si se especifica
+    if (limit) {
+      const limitNum = parseInt(limit);
+      messages = messages.slice(0, limitNum);
+    }
+
     return NextResponse.json({ messages }, { status: 200 });
   } catch (error) {
     return NextResponse.json({ message: 'Error al obtener mensajes', error }, { status: 500 });

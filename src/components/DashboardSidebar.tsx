@@ -11,7 +11,8 @@ import {
   HiX,
   HiShoppingBag,
   HiOutlineLogout,
-  HiOutlineUsers
+  HiOutlineUsers,
+  HiOutlineMailOpen
 } from 'react-icons/hi';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
@@ -82,6 +83,11 @@ export default function DashboardSidebar() {
       icon: HiShoppingBag,
       label: 'Productos y Servicios'
     },
+    {
+      href: '/dashboard/mensajes',
+      icon: HiOutlineMailOpen,
+      label: 'Mensajes'
+    },
     // {
     //   href: '/dashboard/notificaciones',
     //   icon: HiOutlineBell,
@@ -110,7 +116,7 @@ export default function DashboardSidebar() {
           {menuItems.map((item) => (
             <Sidebar.Item
               key={item.href}
-              icon={item.icon}
+              {...(item.icon ? { icon: item.icon } : {})}
               className={`${pathname === item.href ? 'bg-gray-100' : ''} cursor-pointer`}
               as="div"
               onClick={() => {
@@ -120,7 +126,9 @@ export default function DashboardSidebar() {
                 }
               }}
             >
-              {item.label}
+              <span className="flex items-center">
+                {item.label}
+              </span>
             </Sidebar.Item>
           ))}
         </Sidebar.ItemGroup>

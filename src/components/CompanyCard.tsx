@@ -23,35 +23,23 @@ interface CompanyCardProps {
 export default function CompanyCard({ _id, nameCompany, businessName, logo, phone }: CompanyCardProps) {
   const router = useRouter();
 
-  // Función para formatear el número de teléfono para WhatsApp
-  const formatPhoneForWhatsApp = (phone?: string) => {
-    if (!phone) return '';
-    // Eliminar todos los caracteres no numéricos
-    const cleanPhone = phone.replace(/\D/g, '');
-    // Si el número comienza con 0, reemplazarlo por 57
-    if (cleanPhone.startsWith('0')) {
-      return '57' + cleanPhone.substring(1);
-    }
-    // Si el número comienza con +57, eliminar el +
-    if (cleanPhone.startsWith('57')) {
-      return cleanPhone;
-    }
-    // Si no tiene código de país, agregar 57
-    return '57' + cleanPhone;
-  };
-
-  // Función para abrir WhatsApp
-  const handleWhatsAppClick = () => {
-    const formattedPhone = formatPhoneForWhatsApp(phone);
-    if (!formattedPhone) return;
-    const whatsappUrl = `https://wa.me/${formattedPhone}`;
-    window.open(whatsappUrl, '_blank');
-  };
-
   // Función para obtener la URL de la imagen de Sanity
   const getImageUrl = (image: SanityImage) => {
     if (!image || !image.asset) return null;
     return `https://cdn.sanity.io/images/${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID}/${process.env.NEXT_PUBLIC_SANITY_DATASET}/${image.asset._ref.replace("image-", "").replace("-jpg", ".jpg").replace("-png", ".png").replace("-webp", ".webp")}`;
+  };
+
+  const handleWhatsAppClick = () => {
+    if (phone) {
+      const cleanPhone = phone.replace(/\D/g, '');
+      const whatsappUrl = `https://wa.me/${cleanPhone}`;
+      window.open(whatsappUrl, '_blank');
+    }
+  };
+
+  const handleMessageClick = () => {
+    // Redirigir al dashboard de mensajes con la empresa pre-seleccionada
+    router.push(`/dashboard/mensajes?empresa=${_id}`);
   };
 
   return (
@@ -87,16 +75,14 @@ export default function CompanyCard({ _id, nameCompany, businessName, logo, phon
         >
           Ver Empresa
         </Button>
-        {phone && phone.trim() !== '' && (
-          <Button
-            color="light"
-            onClick={handleWhatsAppClick}
-            size="sm"
-            className="flex-1 justify-center"
-          >
-            Enviar Mensaje
-          </Button>
-        )}
+        <Button
+          color="light"
+          onClick={handleMessageClick}
+          size="sm"
+          className="flex-1 justify-center"
+        >
+          Enviar Mensaje
+        </Button>
       </div>
     </div>
   );
