@@ -622,11 +622,11 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
   return (
     <div className="flex container mx-auto mt-10">
       <DashboardSidebar />
-      <main className="flex-1 ml-8">
+      <main className="flex-1 px-3 sm:pl-10">
         <Tabs>
           <Tabs.Item active title="Productos">
             <div className="mb-4 flex justify-between items-center flex-wrap space-y-2">
-              <div className="flex space-x-4">
+              <div className="flex flex-col sm:flex-row sm:space-x-4 space-y-2 sm:space-y-0 w-full sm:w-auto mb-3 sm:mb-0">
                 <TextInput
                   icon={HiOutlineSearch}
                   placeholder="Buscar productos..."
@@ -667,8 +667,8 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
             {viewMode === "grid" ? renderGridView("product") : renderListView("product")}
           </Tabs.Item>
           <Tabs.Item title="Servicios">
-            <div className="mb-4 flex justify-between items-center">
-              <div className="flex space-x-4">
+            <div className="mb-4 flex flex-col sm:flex-row justify-between items-center">
+              <div className="flex flex-col sm:flex-row sm:space-x-4 space-y-2 sm:space-y-0 w-full sm:w-auto mb-3 sm:mb-0">
                 <TextInput
                   icon={HiOutlineSearch}
                   placeholder="Buscar servicios..."
@@ -698,7 +698,7 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
                   <option value="draft">Borrador</option>
                 </Select>
               </div>
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-4 w-full sm:w-auto">
                 {renderViewToggle(servicesViewMode, setServicesViewMode)}
                 <Button onClick={() => handleAdd("service")}>
                   <HiPlus className="mr-2 h-5 w-5" />

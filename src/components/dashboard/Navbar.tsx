@@ -150,55 +150,5 @@ export default function DashboardNavbar() {
         </div>
       </div>
     </div>
-    // <Navbar className="fixed w-full z-30 bg-white border-b border-gray-200 flex-col">
-    //   <div className="flex gap-4 md:order-2">
-    //     <TextInput
-    //       placeholder="Buscar..."
-    //       className="w-full min-w-72"
-    //     />
-    //     <div>
-    //       <Dropdown
-    //         arrowIcon={false}
-    //         inline
-    //         label={
-    //           <Avatar
-    //             alt="User settings"
-    //             img={avatarUrl}
-    //             rounded
-    //             className="w-10 h-10"
-    //           />
-    //         }
-    //       >
-    //         <Dropdown.Header>
-    //           <span className="block text-sm">{displayName}</span>
-    //           <span className="block truncate text-sm font-medium">{email}</span>
-    //         </Dropdown.Header>
-    //         <Dropdown.Item onClick={() => router.push("/dashboard/perfil")}>
-    //           Perfil
-    //         </Dropdown.Item>
-    //         <Dropdown.Divider />
-    //         <Dropdown.Item onClick={() => router.push("/dashboard/productos")}>
-    //           Mis productos y servicios
-    //         </Dropdown.Item>
-    //         <Dropdown.Divider />
-    //         <Dropdown.Item onClick={() => router.push("/dashboard/mensajes")} className="flex items-center justify-between">
-    //           <span>Mensajes</span>
-    //         </Dropdown.Item>
-    //         <Dropdown.Divider />
-    //         <Dropdown.Item onClick={handleSignOut}>Cerrar sesión</Dropdown.Item>
-    //       </Dropdown>
-    //       <Navbar.Toggle />
-    //     </div>
-    //   </div>
-    //   <div className="flex md:order-1 items-center gap-3">
-    //     <Navbar.Brand className="hidden sm:block" href="/dashboard">
-    //         <img alt="Logo" src={IconLogo.src} className="h-6 sm:h-9" />
-    //     </Navbar.Brand>
-    //     <Navbar.Collapse>
-    //         <Navbar.Link href="/empresas">Empresas</Navbar.Link>
-    //         <Navbar.Link href="/catalogo">Productos y Servicios</Navbar.Link>
-    //     </Navbar.Collapse>
-    //   </div>
-    // </Navbar>
   );
 }

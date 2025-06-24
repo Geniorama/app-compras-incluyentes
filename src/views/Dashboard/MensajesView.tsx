@@ -295,7 +295,7 @@ export default function MensajesView() {
   return (
     <div className="flex container mx-auto mt-10">
       <DashboardSidebar />
-      <main className="w-3/3 xl:w-3/4 pl-10">
+      <main className="w-3/3 xl:w-3/4 px-3 sm:pl-10">
         <div className="bg-white rounded-lg shadow-sm">
           <div className="p-4 border-b flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <h1 className="text-2xl font-bold">Mensajes</h1>
