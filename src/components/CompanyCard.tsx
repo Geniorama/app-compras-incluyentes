@@ -20,7 +20,7 @@ interface CompanyCardProps {
   phone?: string;
 }
 
-export default function CompanyCard({ _id, nameCompany, businessName, logo, phone }: CompanyCardProps) {
+export default function CompanyCard({ _id, nameCompany, businessName, logo }: CompanyCardProps) {
   const router = useRouter();
 
   // Función para obtener la URL de la imagen de Sanity
@@ -29,13 +29,13 @@ export default function CompanyCard({ _id, nameCompany, businessName, logo, phon
     return `https://cdn.sanity.io/images/${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID}/${process.env.NEXT_PUBLIC_SANITY_DATASET}/${image.asset._ref.replace("image-", "").replace("-jpg", ".jpg").replace("-png", ".png").replace("-webp", ".webp")}`;
   };
 
-  const handleWhatsAppClick = () => {
-    if (phone) {
-      const cleanPhone = phone.replace(/\D/g, '');
-      const whatsappUrl = `https://wa.me/${cleanPhone}`;
-      window.open(whatsappUrl, '_blank');
-    }
-  };
+  // const handleWhatsAppClick = () => {
+  //   if (phone) {
+  //     const cleanPhone = phone.replace(/\D/g, '');
+  //     const whatsappUrl = `https://wa.me/${cleanPhone}`;
+  //     window.open(whatsappUrl, '_blank');
+  //   }
+  // };
 
   const handleMessageClick = () => {
     // Redirigir al dashboard de mensajes con la empresa pre-seleccionada

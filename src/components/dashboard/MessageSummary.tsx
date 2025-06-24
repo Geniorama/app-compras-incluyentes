@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Card, Button, Spinner } from 'flowbite-react';
-import { HiOutlineMailOpen, HiPaperAirplane } from 'react-icons/hi';
+import { HiOutlineMailOpen } from 'react-icons/hi';
 import { useRouter } from 'next/navigation';
 
 interface MessageSummaryProps {
@@ -95,7 +95,8 @@ export default function MessageSummary({ className = '' }: MessageSummaryProps) 
       ) : (
         <div className="space-y-3">
           {recentMessages.map((message) => {
-            const esMensajeInterno = message.senderCompany._id === user?.company?._id;
+            // const esMensajeInterno = message.senderCompany._id === user?.company?._id;
+            const esMensajeInterno = true;
             
             return (
               <div 

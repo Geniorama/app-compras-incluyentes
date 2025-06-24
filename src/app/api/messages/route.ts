@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
       if (!userDoc?._id) {
         return NextResponse.json({ message: 'El usuario no existe en Sanity' }, { status: 404 });
       }
-      const senderSanityId = userDoc._id;
+      // const senderSanityId = userDoc._id;
       const userCompanyId = userDoc.company?._id;
       
       if (!userCompanyId) {

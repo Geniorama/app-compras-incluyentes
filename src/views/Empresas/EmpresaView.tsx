@@ -13,7 +13,6 @@ import {
 import type { CompanyData } from '@/types';
 import type { SanityProductDocument, SanityServiceDocument, SanityImage, SanityCategoryDocument } from '@/types/sanity';
 import BgCover from '@/assets/img/bg-portada-empresa.png';
-import { useRouter } from 'next/navigation';
 
 interface EmpresaViewProps {
   company: CompanyData & {
@@ -28,7 +27,6 @@ function getImageUrl(image: SanityImage): string {
 }
 
 export default function EmpresaView({ company }: EmpresaViewProps) {
-  const router = useRouter();
 
   const {
     nameCompany,
@@ -65,10 +63,6 @@ export default function EmpresaView({ company }: EmpresaViewProps) {
     window.open(whatsappUrl, '_blank');
   };
 
-  const handleMessageClick = () => {
-    // Redirigir al dashboard de mensajes con la empresa pre-seleccionada
-    router.push(`/dashboard/mensajes?empresa=${company._id}`);
-  };
 
   return (
     <>
@@ -162,7 +156,7 @@ export default function EmpresaView({ company }: EmpresaViewProps) {
               <li className='text-sm text-gray-600'> <b>Dirección:</b> {addressCompany}</li>
             </ul>
 
-            <Button color='light' className='mt-4' onClick={handleMessageClick}>
+            <Button color='light' className='mt-4' onClick={() => {console.log(company)}}>
               Enviar mensaje
             </Button>
           </div>
