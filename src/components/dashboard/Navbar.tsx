@@ -74,10 +74,10 @@ export default function DashboardNavbar() {
               </Link>
             </li>
             <li className={`${isMobile && "border-b border-gray-200 pb-4 w-full"}`}>
-              <Link href="/dashboard">Empresas</Link>
+              <Link href="/empresas">Empresas</Link>
             </li>
             <li className={`${isMobile && "pb-2 w-full"}`}>
-              <Link href="/dashboard">Productos y Servicios</Link>
+              <Link href="/catalogo">Productos y Servicios</Link>
             </li>
           </ul>
         </nav>
