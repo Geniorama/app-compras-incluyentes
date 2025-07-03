@@ -5,6 +5,7 @@ import { HiSearch, HiX } from 'react-icons/hi';
 import CompanyCard from '@/components/CompanyCard';
 import DashboardNavbar from '@/components/dashboard/Navbar';
 import BannerEmpresas from '@/assets/img/banner-empresas.webp';
+import { useEffect, useState } from 'react';
 
 interface SanityImage {
   _type: 'image';
@@ -63,6 +64,17 @@ export default function EmpresasView({
   onSearch,
   onRemoveFilter
 }: EmpresasViewProps) {
+  const [recentCompanies, setRecentCompanies] = useState<Company[]>([]);
+
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('recentCompanies') || '[]');
+      setRecentCompanies(stored);
+    } catch {
+      setRecentCompanies([]);
+    }
+  }, []);
+
   // Obtener los CIIU únicos de las empresas
   const ciiuOptions = Array.from(new Set(companies.map((c) => c.ciiu).filter(Boolean)));
 
@@ -211,6 +223,17 @@ export default function EmpresasView({
               </Button>
             </div>
           </div>
+          {/* Sección de empresas consultadas recientemente */}
+          {recentCompanies.length > 0 && (
+            <div className="bg-white rounded-lg border border-gray-200 mt-8 p-6">
+              <h3 className="text-lg font-semibold mb-4">Consultado recientemente</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {recentCompanies.map((company) => (
+                  <CompanyCard key={company._id} {...company} />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </main>
     </div>

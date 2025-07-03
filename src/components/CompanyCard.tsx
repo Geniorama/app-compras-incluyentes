@@ -42,6 +42,21 @@ export default function CompanyCard({ _id, nameCompany, businessName, logo }: Co
     router.push(`/dashboard/mensajes?empresa=${_id}`);
   };
 
+  const handleViewCompany = () => {
+    // Guardar empresa consultada en localStorage
+    try {
+      const recent = JSON.parse(localStorage.getItem('recentCompanies') || '[]');
+      // Evitar duplicados por _id
+      const filtered = recent.filter((c: CompanyCardProps) => c._id !== _id);
+      // Limitar a 6 empresas
+      const updated = [{ _id, nameCompany, businessName, logo }, ...filtered].slice(0, 6);
+      localStorage.setItem('recentCompanies', JSON.stringify(updated));
+    } catch {
+      // Silenciar errores
+    }
+    router.push(`/empresas/${_id}`);
+  };
+
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow">
       <div className="flex items-center mb-4">
@@ -69,7 +84,7 @@ export default function CompanyCard({ _id, nameCompany, businessName, logo }: Co
       <div className="flex gap-2">
         <Button
           color="blue"
-          onClick={() => router.push(`/empresas/${_id}`)}
+          onClick={handleViewCompany}
           size="sm"
           className="flex-1 justify-center"
         >

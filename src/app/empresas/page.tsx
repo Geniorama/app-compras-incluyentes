@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import EmpresasView from '@/views/Empresas/EmpresasView';
 import { sanityClient } from '@/lib/sanity.client';
 
@@ -43,19 +43,7 @@ export default function EmpresasPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [totalResults, setTotalResults] = useState(0);
 
-  useEffect(() => {
-    fetchCompanies();
-  }, [currentPage, sector, location]);
-
-  useEffect(() => {
-    if (searchTerm === '') {
-      setCurrentPage(1);
-      fetchCompanies();
-    }
-    // eslint-disable-next-line
-  }, [searchTerm]);
-
-  const fetchCompanies = async () => {
+  const fetchCompanies = useCallback(async () => {
     try {
       setIsLoading(true);
       // Construir la consulta base
@@ -106,7 +94,18 @@ export default function EmpresasPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [currentPage, sector, location, searchTerm]);
+
+  useEffect(() => {
+    fetchCompanies();
+  }, [currentPage, sector, location, fetchCompanies]);
+
+  useEffect(() => {
+    if (searchTerm === '') {
+      setCurrentPage(1);
+      fetchCompanies();
+    }
+  }, [searchTerm, fetchCompanies]);
 
   const handleSearch = () => {
     const newFilters = [];
