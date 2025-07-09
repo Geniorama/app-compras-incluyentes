@@ -40,6 +40,7 @@ import { registerUser } from "@/lib/auth";
 import { RiEyeLine } from "react-icons/ri";
 import { RiEyeOffLine } from "react-icons/ri";
 import ReactSelect from "react-select";
+import { getDepartamentosOptions, getCiudadesOptionsByDepartamento } from "@/utils/departamentosCiudades";
 
 interface FormData {
   nameCompany: string;
@@ -49,6 +50,8 @@ interface FormData {
   ciiu: string;
   webSite: string;
   addressCompany: string;
+  department: string;
+  city: string;
   firstName: string;
   lastName: string;
   email: string;
@@ -88,6 +91,7 @@ export default function RegisterForm() {
   const [isClient, setIsClient] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
+  const [ciudadesOptions, setCiudadesOptions] = useState<{value: string, label: string}[]>([]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -108,6 +112,8 @@ export default function RegisterForm() {
   const ciiu = watch("ciiu");
   const webSite = watch("webSite");
   const addressCompany = watch("addressCompany");
+  const department = watch("department");
+  const city = watch("city");
 
   // Fields Step 2
   const firstName = watch("firstName");
@@ -163,6 +169,14 @@ export default function RegisterForm() {
         if (!value) return 'La dirección es obligatoria';
         if (value.length < 5) return 'La dirección debe tener al menos 5 caracteres';
         if (value.length > 200) return 'La dirección no puede tener más de 200 caracteres';
+        return null;
+
+      case 'department':
+        if (!value) return 'El departamento es obligatorio';
+        return null;
+
+      case 'city':
+        if (!value) return 'La ciudad es obligatoria';
         return null;
 
       case 'firstName':
@@ -227,7 +241,9 @@ export default function RegisterForm() {
         'numDocumentCompany',
         'ciiu',
         'webSite',
-        'addressCompany'
+        'addressCompany',
+        'department',
+        'city'
       ];
 
       fieldsToValidate.forEach((field: keyof FormData) => {
@@ -313,6 +329,8 @@ export default function RegisterForm() {
     ciiu,
     webSite,
     addressCompany,
+    department,
+    city,
     firstName,
     lastName,
     email,
@@ -358,6 +376,18 @@ export default function RegisterForm() {
       setOptionsCIIU(options);
     }
   },[dataCIIU])
+
+  // Actualizar opciones de ciudades cuando cambie el departamento
+  useEffect(() => {
+    if (department) {
+      const ciudades = getCiudadesOptionsByDepartamento(department);
+      setCiudadesOptions(ciudades);
+      // Limpiar la ciudad seleccionada cuando cambie el departamento
+      setValue('city', '');
+    } else {
+      setCiudadesOptions([]);
+    }
+  }, [department, setValue]);
 
   const handleRegister = async (data: FormData) => {
     try {
@@ -811,6 +841,71 @@ export default function RegisterForm() {
                         />
                         {validationErrors.addressCompany && (
                           <p className="text-red-500 text-sm mt-1">{validationErrors.addressCompany}</p>
+                        )}
+                      </div>
+                      <div className="w-full md:w-1/2 lg:w-1/2 px-2 space-y-1">
+                        <Label htmlFor="department">Departamento <span className="text-red-500">*</span></Label>
+                                                 <Select
+                           {...register("department", {
+                             required: "El departamento es obligatorio",
+                             onChange: (e) => {
+                               const error = validateField('department', e.target.value);
+                               if (error) {
+                                 setValidationErrors(prev => ({ ...prev, department: error }));
+                               } else {
+                                 setValidationErrors(prev => {
+                                   const { ...rest } = prev;
+                                   return rest;
+                                 });
+                               }
+                             }
+                           })}
+                           id="department"
+                           className="w-full"
+                           color="blue"
+                         >
+                           <option value="">Selecciona un departamento</option>
+                           {getDepartamentosOptions().map(option => (
+                             <option key={option.value} value={option.value}>
+                               {option.label}
+                             </option>
+                           ))}
+                         </Select>
+                        {validationErrors.department && (
+                          <p className="text-red-500 text-sm mt-1">{validationErrors.department}</p>
+                        )}
+                      </div>
+                      <div className="w-full md:w-1/2 lg:w-1/2 px-2 space-y-1">
+                        <Label htmlFor="city">Ciudad <span className="text-red-500">*</span></Label>
+                                                 <Select
+                           {...register("city", {
+                             required: "La ciudad es obligatoria",
+                             onChange: (e) => {
+                               const error = validateField('city', e.target.value);
+                               if (error) {
+                                 setValidationErrors(prev => ({ ...prev, city: error }));
+                               } else {
+                                 setValidationErrors(prev => {
+                                   const { ...rest } = prev;
+                                   return rest;
+                                 });
+                               }
+                             }
+                           })}
+                           id="city"
+                           className="w-full"
+                           color="blue"
+                           disabled={!department}
+                         >
+                           <option value="">Selecciona una ciudad</option>
+                           {ciudadesOptions.map(option => (
+                             <option key={option.value} value={option.value}>
+                               {option.label}
+                             </option>
+                           ))}
+                         </Select>
+                        {validationErrors.city && (
+                          <p className="text-red-500 text-sm mt-1">{validationErrors.city}</p>
                         )}
                       </div>
                     </div>

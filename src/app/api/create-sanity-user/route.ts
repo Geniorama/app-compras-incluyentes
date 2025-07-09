@@ -29,7 +29,9 @@ export async function POST(request: Request) {
       xtwitter,
       firebaseUid,
       logo,
-      photo
+      photo,
+      department,
+      city,
     } = await request.json()
 
     if (!logo || !photo) {
@@ -61,6 +63,8 @@ export async function POST(request: Request) {
       pinterest,
       linkedin,
       xtwitter,
+      department,
+      city,
       active: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
