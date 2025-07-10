@@ -18,6 +18,7 @@ import { updateEmail, sendEmailVerification, getAuth } from "firebase/auth";
 import { FirebaseError } from "firebase/app";
 import DashboardSidebar from "@/components/DashboardSidebar";
 import type { UserProfile, SanityImage } from "@/types";
+import { getDepartamentosOptions, getCiudadesOptionsByDepartamento } from "@/utils/departamentosCiudades";
 
 interface ProfileViewProps {
   initialProfile?: UserProfile | null;
@@ -41,6 +42,10 @@ export default function ProfileView({
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
+  
+  // Estados para departamentos y ciudades
+  const [departamentosOptions] = useState(() => getDepartamentosOptions());
+  const [ciudadesOptions, setCiudadesOptions] = useState<{ value: string; label: string; }[]>([]);
 
   useEffect(() => {
     if (initialProfile) {
@@ -55,6 +60,8 @@ export default function ProfileView({
         ciiu: initialProfile.company?.ciiu || "",
         webSite: initialProfile.company?.webSite || "",
         addressCompany: initialProfile.company?.addressCompany || "",
+        department: initialProfile.company?.department || "",
+        city: initialProfile.company?.city || "",
         logo: initialProfile.company?.logo,
         facebook: initialProfile.company?.facebook || "",
         instagram: initialProfile.company?.instagram || "",
@@ -72,9 +79,24 @@ export default function ProfileView({
     }
   }, [initialProfile]);
 
+  // Actualizar opciones de ciudades cuando cambie el departamento
+  useEffect(() => {
+    if (profile?.department) {
+      const ciudades = getCiudadesOptionsByDepartamento(profile.department);
+      setCiudadesOptions(ciudades);
+    } else {
+      setCiudadesOptions([]);
+    }
+  }, [profile?.department]);
+
   const handleChange = (field: keyof UserProfile, value: string) => {
     if (profile) {
-      setProfile({ ...profile, [field]: value });
+      // Si cambia el departamento, limpiar la ciudad
+      if (field === 'department') {
+        setProfile({ ...profile, [field]: value, city: '' });
+      } else {
+        setProfile({ ...profile, [field]: value });
+      }
     }
   };
 
@@ -97,6 +119,8 @@ export default function ProfileView({
       "numDocumentCompany",
       "webSite",
       "addressCompany",
+      "department",
+      "city",
       "photo",
       "logo",
     ];
@@ -210,6 +234,8 @@ export default function ProfileView({
         ciiu: profile.ciiu,
         webSite: profile.webSite,
         addressCompany: profile.addressCompany,
+        department: profile.department,
+        city: profile.city,
         facebook: profile.facebook,
         instagram: profile.instagram,
         tiktok: profile.tiktok,
@@ -834,6 +860,56 @@ export default function ProfileView({
                         },
                       }}
                     />
+                  </div>
+
+                  <div className="w-full md:w-1/2 px-2 space-y-1">
+                    <Label htmlFor="department">Departamento</Label>
+                    <Select
+                      id="department"
+                      value={profile?.department || ""}
+                      onChange={(e) => handleChange("department", e.target.value)}
+                      color="blue"
+                      disabled={isUserOnly}
+                      theme={{
+                        field: {
+                          select: {
+                            base: `border-slate-200 focus:border-blue-600 w-full ${isUserOnly ? "bg-gray-100 text-gray-500" : ""}`,
+                          },
+                        },
+                      }}
+                    >
+                      <option value="">Seleccionar departamento</option>
+                      {departamentosOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+
+                  <div className="w-full md:w-1/2 px-2 space-y-1">
+                    <Label htmlFor="city">Ciudad</Label>
+                    <Select
+                      id="city"
+                      value={profile?.city || ""}
+                      onChange={(e) => handleChange("city", e.target.value)}
+                      color="blue"
+                      disabled={isUserOnly || !profile?.department}
+                      theme={{
+                        field: {
+                          select: {
+                            base: `border-slate-200 focus:border-blue-600 w-full ${isUserOnly || !profile?.department ? "bg-gray-100 text-gray-500" : ""}`,
+                          },
+                        },
+                      }}
+                    >
+                      <option value="">Seleccionar ciudad</option>
+                      {ciudadesOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </Select>
                   </div>
                 </div>
 

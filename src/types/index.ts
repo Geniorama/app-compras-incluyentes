@@ -36,6 +36,8 @@ export interface CompanyData {
     ciiu?: string;
     webSite?: string;
     addressCompany?: string;
+    department?: string;
+    city?: string;
     logo?: string;
     facebook?: string;
     instagram?: string;
@@ -74,6 +76,8 @@ export interface UserProfile extends UserData {
     ciiu?: string;
     webSite?: string;
     addressCompany?: string;
+    department?: string;
+    city?: string;
     logo?: string | import('./sanity').SanityImage;
     facebook?: string;
     instagram?: string;
