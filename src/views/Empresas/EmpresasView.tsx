@@ -6,6 +6,7 @@ import CompanyCard from '@/components/CompanyCard';
 import DashboardNavbar from '@/components/dashboard/Navbar';
 import BannerEmpresas from '@/assets/img/banner-empresas.webp';
 import { useEffect, useState } from 'react';
+import { getDepartamentosOptions, getCiudadesOptionsByDepartamento } from '@/utils/departamentosCiudades';
 
 interface SanityImage {
   _type: 'image';
@@ -26,6 +27,8 @@ interface Company {
   typeDocumentCompany: string;
   numDocumentCompany: string;
   ciiu: string;
+  department?: string;
+  city?: string;
   active: boolean;
   facebook?: string;
   instagram?: string;
@@ -42,9 +45,13 @@ interface EmpresasViewProps {
   currentPage: number;
   searchTerm: string;
   sector: string;
+  department: string;
+  city: string;
   selectedFilters: string[];
   onSearchTermChange: (value: string) => void;
   onSectorChange: (value: string) => void;
+  onDepartmentChange: (value: string) => void;
+  onCityChange: (value: string) => void;
   onPageChange: (page: number) => void;
   onSearch: () => void;
   onRemoveFilter: (filter: string) => void;
@@ -57,14 +64,22 @@ export default function EmpresasView({
   currentPage,
   searchTerm,
   sector,
+  department,
+  city,
   selectedFilters,
   onSearchTermChange,
   onSectorChange,
+  onDepartmentChange,
+  onCityChange,
   onPageChange,
   onSearch,
   onRemoveFilter
 }: EmpresasViewProps) {
   const [recentCompanies, setRecentCompanies] = useState<Company[]>([]);
+  
+  // Estados para departamentos y ciudades
+  const [departamentosOptions] = useState(() => getDepartamentosOptions());
+  const [ciudadesOptions, setCiudadesOptions] = useState<{ value: string; label: string; }[]>([]);
 
   useEffect(() => {
     try {
@@ -74,6 +89,16 @@ export default function EmpresasView({
       setRecentCompanies([]);
     }
   }, []);
+
+  // Actualizar opciones de ciudades cuando cambie el departamento
+  useEffect(() => {
+    if (department) {
+      const ciudades = getCiudadesOptionsByDepartamento(department);
+      setCiudadesOptions(ciudades);
+    } else {
+      setCiudadesOptions([]);
+    }
+  }, [department]);
 
   // Obtener los CIIU únicos de las empresas
   const ciiuOptions = Array.from(new Set(companies.map((c) => c.ciiu).filter(Boolean)));
@@ -137,6 +162,41 @@ export default function EmpresasView({
                 <option value="">Todos los sectores (CIIU)</option>
                 {ciiuOptions.map((ciiu) => (
                   <option key={ciiu} value={ciiu}>{ciiu}</option>
+                ))}
+              </Select>
+              <Select 
+                value={department} 
+                onChange={(e) => onDepartmentChange(e.target.value)}
+                className="min-w-[150px]"
+                theme={{
+                  field: {
+                    select: {
+                      base: "bg-white border-gray-200 text-sm"
+                    }
+                  }
+                }}
+              >
+                <option value="">Todos los departamentos</option>
+                {departamentosOptions.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </Select>
+              <Select 
+                value={city} 
+                onChange={(e) => onCityChange(e.target.value)}
+                className="min-w-[150px]"
+                disabled={!department}
+                theme={{
+                  field: {
+                    select: {
+                      base: `bg-white border-gray-200 text-sm ${!department ? "bg-gray-100 text-gray-500" : ""}`
+                    }
+                  }
+                }}
+              >
+                <option value="">Todas las ciudades</option>
+                {ciudadesOptions.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
                 ))}
               </Select>
               <Select

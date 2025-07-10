@@ -23,6 +23,8 @@ interface Company {
   typeDocumentCompany: string;
   numDocumentCompany: string;
   ciiu: string;
+  department?: string;
+  city?: string;
   active: boolean;
   phone: string;
   facebook?: string;
@@ -36,7 +38,8 @@ interface Company {
 export default function EmpresasPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [sector, setSector] = useState('');
-  const [location, setLocation] = useState('');
+  const [department, setDepartment] = useState('');
+  const [city, setCity] = useState('');
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -53,7 +56,8 @@ export default function EmpresasPage() {
       const filters = [];
       if (searchTerm) filters.push(`(nameCompany match "${searchTerm}*" || businessName match "${searchTerm}*")`);
       if (sector) filters.push(`ciiu == "${sector}"`);
-      if (location) filters.push(`addressCompany match "${location}*"`);
+      if (department) filters.push(`department == "${department}"`);
+      if (city) filters.push(`city == "${city}"`);
       
       if (filters.length > 0) {
         query += ` && ${filters.join(" && ")}`;
@@ -69,6 +73,8 @@ export default function EmpresasPage() {
         typeDocumentCompany,
         numDocumentCompany,
         ciiu,
+        department,
+        city,
         phone,
         facebook,
         instagram,
@@ -94,11 +100,11 @@ export default function EmpresasPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, sector, location, searchTerm]);
+  }, [currentPage, sector, department, city, searchTerm]);
 
   useEffect(() => {
     fetchCompanies();
-  }, [currentPage, sector, location, fetchCompanies]);
+  }, [currentPage, sector, department, city, searchTerm]);
 
   useEffect(() => {
     if (searchTerm === '') {
@@ -106,6 +112,13 @@ export default function EmpresasPage() {
       fetchCompanies();
     }
   }, [searchTerm, fetchCompanies]);
+
+  // Limpiar ciudad cuando cambie el departamento
+  useEffect(() => {
+    if (department === '') {
+      setCity('');
+    }
+  }, [department]);
 
   const handleSearch = () => {
     const newFilters = [];
@@ -115,8 +128,11 @@ export default function EmpresasPage() {
     if (sector) {
       newFilters.push(sector);
     }
-    if (location) {
-      newFilters.push(location);
+    if (department) {
+      newFilters.push(department);
+    }
+    if (city) {
+      newFilters.push(city);
     }
     setSelectedFilters(newFilters);
     setCurrentPage(1);
@@ -127,7 +143,8 @@ export default function EmpresasPage() {
     setSelectedFilters(selectedFilters.filter(f => f !== filter));
     if (filter === sector) setSector('');
     if (filter === searchTerm) setSearchTerm('');
-    if (filter === location) setLocation('');
+    if (filter === department) setDepartment('');
+    if (filter === city) setCity('');
     setCurrentPage(1);
   };
 
@@ -139,9 +156,13 @@ export default function EmpresasPage() {
       currentPage={currentPage}
       searchTerm={searchTerm}
       sector={sector}
+      department={department}
+      city={city}
       selectedFilters={selectedFilters}
       onSearchTermChange={setSearchTerm}
       onSectorChange={setSector}
+      onDepartmentChange={setDepartment}
+      onCityChange={setCity}
       onPageChange={setCurrentPage}
       onSearch={handleSearch}
       onRemoveFilter={handleRemoveFilter}
