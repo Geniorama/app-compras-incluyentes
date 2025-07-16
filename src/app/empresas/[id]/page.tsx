@@ -139,6 +139,7 @@ export default function EmpresaPage() {
   }
 
   if (company) {
+    console.log('company', company);
     const companyData = {
       ...company,
       logo: getSanityImageUrl(company.logo),

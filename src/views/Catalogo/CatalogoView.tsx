@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from 'react';
-import { TextInput, Select, Spinner } from 'flowbite-react';
-import { HiOutlineSearch, HiX, HiTag, HiOfficeBuilding, HiAdjustments } from 'react-icons/hi';
+import { TextInput, Select, Spinner, Button } from 'flowbite-react';
+import { HiOutlineSearch, HiX, HiTag, HiOfficeBuilding, HiAdjustments, HiMail } from 'react-icons/hi';
 import DashboardNavbar from '@/components/dashboard/Navbar';
 import { SanityProductDocument, SanityServiceDocument, SanityCategoryDocument } from '@/types/sanity';
 import BgProduct from '@/assets/img/bg-productos.webp';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 
 interface Company {
   _id: string;
@@ -21,6 +23,8 @@ interface CatalogoViewProps {
 }
 
 export default function CatalogoView({ products, services, categories, companies, isLoading }: CatalogoViewProps) {
+  const router = useRouter();
+  const { user } = useAuth();
   const [search, setSearch] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [category, setCategory] = useState('');
@@ -54,6 +58,16 @@ export default function CatalogoView({ products, services, categories, companies
 
   const handleSearch = () => {
     setSearchTerm(search);
+  };
+
+  const handleContactCompany = (companyId: string) => {
+    // Redirigir al dashboard de mensajes con la empresa pre-seleccionada
+    router.push(`/dashboard/mensajes?empresa=${companyId}`);
+  };
+
+  // Función para verificar si la empresa es la del usuario actual
+  const isUserCompany = (companyId: string) => {
+    return user?.company?._id === companyId;
   };
 
   const getCategoryImageUrl = (cat: SanityCategoryDocument): string | null => {
@@ -278,12 +292,26 @@ export default function CatalogoView({ products, services, categories, companies
                             )}
                           </div>
 
-                          <div className="flex justify-between items-center">
+                          <div className="flex justify-between items-center mb-3">
                             <span className={`leading-4 py-1 rounded-full text-sm font-semibold ${item.price ? 'text-green-600' : 'text-slate-400'}`}>
                               {item.price ? `$${item.price.toLocaleString()}` : 'Precio no especificado'}
                             </span>
                             <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">Activo</span>
                           </div>
+
+                          {/* Botón Contactar Empresa */}
+                          {item.company && !isUserCompany(getCompanyId(item.company)) && (
+                            <Button
+                              color="light"
+                              size="sm"
+                              onClick={() => handleContactCompany(getCompanyId(item.company))}
+                              fullSized
+                              // className="w-full flex items-center justify-center gap-3"
+                            >
+                              <HiMail className="w-4 h-4 mr-2 mt-0.5" />
+                              Contactar empresa
+                            </Button>
+                          )}
                         </div>
                       </div>
                     ))

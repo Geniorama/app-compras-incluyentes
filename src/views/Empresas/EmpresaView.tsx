@@ -1,3 +1,5 @@
+'use client';
+
 import DashboardNavbar from '@/components/dashboard/Navbar';
 import { Button } from 'flowbite-react';
 import { HiOutlineGlobeAlt, HiTag } from 'react-icons/hi';
@@ -13,11 +15,13 @@ import {
 import type { CompanyData } from '@/types';
 import type { SanityProductDocument, SanityServiceDocument, SanityImage, SanityCategoryDocument } from '@/types/sanity';
 import BgCover from '@/assets/img/bg-portada-empresa.png';
+import { useRouter } from 'next/navigation';
 
 interface EmpresaViewProps {
   company: CompanyData & {
     products?: SanityProductDocument[];
     services?: SanityServiceDocument[];
+    _id: string;
   };
 }
 
@@ -27,7 +31,7 @@ function getImageUrl(image: SanityImage): string {
 }
 
 export default function EmpresaView({ company }: EmpresaViewProps) {
-
+  const router = useRouter();
   const {
     nameCompany,
     businessName,
@@ -46,6 +50,7 @@ export default function EmpresaView({ company }: EmpresaViewProps) {
     xtwitter,
     products = [],
     services = [],
+    _id,
   } = company;
 
   const formatPhoneForWhatsApp = (phone?: string) => {
@@ -61,6 +66,10 @@ export default function EmpresaView({ company }: EmpresaViewProps) {
     if (!formattedPhone) return;
     const whatsappUrl = `https://wa.me/${formattedPhone}`;
     window.open(whatsappUrl, '_blank');
+  };
+
+  const handleContactCompany = () => {
+    router.push(`/dashboard/mensajes?empresa=${_id}`);
   };
 
 
@@ -156,7 +165,7 @@ export default function EmpresaView({ company }: EmpresaViewProps) {
               <li className='text-sm text-gray-600'> <b>Dirección:</b> {addressCompany}</li>
             </ul>
 
-            <Button color='light' className='mt-4' onClick={() => {console.log(company)}}>
+            <Button color='light' className='mt-4' onClick={handleContactCompany}>
               Enviar mensaje
             </Button>
           </div>

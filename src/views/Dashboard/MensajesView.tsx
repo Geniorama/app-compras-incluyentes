@@ -79,13 +79,22 @@ export default function MensajesView() {
       const urlParams = new URLSearchParams(window.location.search);
       const empresaId = urlParams.get('empresa');
       if (empresaId) {
+        console.log('empresas', empresas);
         setDestinatarioEmpresaId(empresaId);
+        // setEmpresaSearchTerm(empresas.find(empresa => empresa._id === empresaId)?.nameCompany || '');
         setShowNuevoMensaje(true);
         // Limpiar la URL
         window.history.replaceState({}, '', '/dashboard/mensajes');
       }
     }
   }, [user]);
+
+  useEffect(() => {
+    if (empresas.length > 0) {
+      console.log('empresas', empresas);
+      setEmpresaSearchTerm(empresas.find(empresa => empresa._id === destinatarioEmpresaId)?.nameCompany || '');
+    }
+  }, [empresas, destinatarioEmpresaId]);
 
   // Cerrar dropdown cuando se hace clic fuera
   useEffect(() => {
@@ -293,7 +302,7 @@ export default function MensajesView() {
   }
 
   return (
-    <div className="flex container mx-auto mt-10">
+    <div className="flex container mx-auto my-10">
       <DashboardSidebar />
       <main className="w-3/3 xl:w-3/4 px-3 sm:pl-10">
         <div className="bg-white rounded-lg shadow-sm">
