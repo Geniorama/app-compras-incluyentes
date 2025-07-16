@@ -302,7 +302,7 @@ export default function CatalogoView({ products, services, categories, companies
                           {/* Botón Contactar Empresa */}
                           {item.company && !isUserCompany(getCompanyId(item.company)) && (
                             <Button
-                              color="light"
+                              color="blue"
                               size="sm"
                               onClick={() => handleContactCompany(getCompanyId(item.company))}
                               fullSized
