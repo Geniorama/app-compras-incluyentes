@@ -32,6 +32,7 @@ export async function POST(request: Request) {
       photo,
       department,
       city,
+      membership,
     } = await request.json()
 
     if (!logo || !photo) {
@@ -91,6 +92,7 @@ export async function POST(request: Request) {
       },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      membership: membership === 'yes' ? true : false
     })
 
     return NextResponse.json(

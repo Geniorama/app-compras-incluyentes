@@ -1,17 +1,5 @@
 "use client";
 
-/**
- * TODO:
- * - Validar que el correo electrónico no esté en uso
- * - Validar que el número de teléfono no esté en uso
- * - Validar que el número de documento no esté en uso
- * - Validar que el nombre de la empresa no esté en uso
- * - Validar que el nombre de la empresa no sea demasiado largo
- * - Validar que el nombre de la empresa no contenga caracteres especiales
- * - Manejar los errores de la API de Firebase
- * - Manejar los errores de la API de Sanity
- */
-
 import {
   Label,
   TextInput,
@@ -19,7 +7,7 @@ import {
   Spinner,
   Select,
   Modal,
-  Checkbox,
+  Radio,
 } from "flowbite-react";
 import {
   SlSocialLinkedin,
@@ -79,6 +67,7 @@ interface FormData {
   pinterest?: string;
   linkedin?: string;
   xtwitter?: string;
+  membership?: string;
 }
 
 // Agregar interfaces para validaciones
@@ -87,7 +76,7 @@ interface ValidationErrors {
 }
 
 export default function RegisterForm() {
-  const [stepActive, setStepActive] = useState(1);
+  const [stepActive, setStepActive] = useState(2);
   const [activeNextButton, setActiveNextButton] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isCheckingEmail, setIsCheckingEmail] = useState(false);
@@ -136,7 +125,7 @@ export default function RegisterForm() {
   const numDocument = watch("numDocument");
   const pronoun = watch("pronoun");
   const position = watch("position");
-
+  const membership = watch("membership");
   // Fields Step 3
   const password = watch("password");
   const confirmPassword = watch("confirmPassword");
@@ -393,6 +382,7 @@ export default function RegisterForm() {
     logo,
     photo,
     emailError,
+    membership,
   ]);
 
   useEffect(() => {
@@ -1510,17 +1500,34 @@ export default function RegisterForm() {
                   )}
                 </div>
 
-                <div className="w-full px-2 space-y-1 lg:text-center py-5 gap-2 bg-blue-100 rounded-lg flex lg:items-center justify-center">
-                  <Checkbox
-                    id="descriptionCompany"
-                    className="w-5 h-5 lg:mr-2 mt-2 lg:mt-1"
-                    color="blue"
-                    defaultChecked={false}
-                  ></Checkbox>
-                  <Label className="lg:text-lg font-normal" htmlFor="descriptionCompany">
-                    Tengo afiliación o membresía activa en la Cámara de la
-                    Diversidad <span className="text-red-500">*</span>
-                  </Label>
+                <div className="w-full px-4 space-y-4 text-center py-5 gap-2 bg-blue-100 rounded-lg">
+                  <p className="lg:text-lg font-normal">
+                    ¿Tienes una afiliación o membresía activa en la Cámara de la
+                    Diversidad? <span className="text-red-500">*</span>
+                  </p>
+                  <div className="flex items-center gap-8 justify-center">
+                    <div className="flex items-center gap-2 lg:gap-0">
+                      <Radio
+                        {...register("membership")}
+                        id="yesMembership"
+                        className="w-5 h-5 lg:mr-2 lg:mt-1"
+                        color="blue"
+                        value="yes"
+                      />
+                      <Label htmlFor="yesMembership">Si</Label>
+                    </div>
+                    <div className="flex items-center gap-2 lg:gap-0">
+                      <Radio
+                      {...register("membership")}
+                      id="noMembership"
+                      className="w-5 h-5 lg:mr-2 lg:mt-1"
+                      color="blue"
+                      value="no"
+                      defaultChecked={true}
+                      />
+                      <Label htmlFor="noMembership">No</Label>
+                    </div>
+                  </div>
                 </div>
               </div>
             </fieldset>
