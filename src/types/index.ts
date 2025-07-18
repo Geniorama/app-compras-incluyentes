@@ -39,6 +39,8 @@ export interface CompanyData {
     department?: string;
     city?: string;
     companySize?: string;
+    peopleGroup?: string;
+    otherPeopleGroup?: string;
     logo?: string;
     facebook?: string;
     instagram?: string;
@@ -80,6 +82,8 @@ export interface UserProfile extends UserData {
     department?: string;
     city?: string;
     companySize?: string;
+    peopleGroup?: string;
+    otherPeopleGroup?: string;
     logo?: string | import('./sanity').SanityImage;
     facebook?: string;
     instagram?: string;

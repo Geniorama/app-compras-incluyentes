@@ -33,6 +33,8 @@ async function getProfile(userId: string) {
           department,
           city,
           companySize,
+          peopleGroup,
+          otherPeopleGroup,
           logo,
           facebook,
           instagram,

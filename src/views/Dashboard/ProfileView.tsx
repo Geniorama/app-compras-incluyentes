@@ -63,6 +63,8 @@ export default function ProfileView({
         department: initialProfile.company?.department || "",
         city: initialProfile.company?.city || "",
         companySize: initialProfile.company?.companySize || "",
+        peopleGroup: initialProfile.company?.peopleGroup || "",
+        otherPeopleGroup: initialProfile.company?.otherPeopleGroup || "",
         logo: initialProfile.company?.logo,
         facebook: initialProfile.company?.facebook || "",
         instagram: initialProfile.company?.instagram || "",
@@ -95,6 +97,10 @@ export default function ProfileView({
       // Si cambia el departamento, limpiar la ciudad
       if (field === 'department') {
         setProfile({ ...profile, [field]: value, city: '' });
+      } 
+      // Si cambia el grupo poblacional y no es "otro", limpiar otherPeopleGroup
+      else if (field === 'peopleGroup' && value !== 'otro') {
+        setProfile({ ...profile, [field]: value, otherPeopleGroup: '' });
       } else {
         setProfile({ ...profile, [field]: value });
       }
@@ -122,6 +128,8 @@ export default function ProfileView({
       "addressCompany",
       "department",
       "city",
+      "peopleGroup",
+      "otherPeopleGroup",
       "photo",
       "logo",
     ];
@@ -237,6 +245,8 @@ export default function ProfileView({
         addressCompany: profile.addressCompany,
         department: profile.department,
         city: profile.city,
+        peopleGroup: profile.peopleGroup,
+        otherPeopleGroup: profile.otherPeopleGroup,
         facebook: profile.facebook,
         instagram: profile.instagram,
         tiktok: profile.tiktok,
@@ -929,6 +939,56 @@ export default function ProfileView({
                       }}
                     />
                   </div>
+
+                  <div className="w-full md:w-1/2 px-2 space-y-1">
+                    <Label htmlFor="peopleGroup">¿El 50% de los accionistas de la empresa pertenece a algún grupo poblacional?</Label>
+                    <Select
+                      id="peopleGroup"
+                      value={profile?.peopleGroup || ""}
+                      onChange={(e) => handleChange("peopleGroup", e.target.value)}
+                      color="blue"
+                      disabled={isUserOnly}
+                      theme={{
+                        field: {
+                          select: {
+                            base: `border-slate-200 focus:border-blue-600 w-full ${isUserOnly ? "bg-gray-100 text-gray-500" : ""}`,
+                          },
+                        },
+                      }}
+                    >
+                      <option value="">Selecciona una opción</option>
+                      <option value="diversidad-sexual">Diversidad Sexual</option>
+                      <option value="personas-discapacidad">Personas con discapacidad</option>
+                      <option value="etnia-raza-afro">Etnia, raza o afro</option>
+                      <option value="personas-migrantes">Personas migrantes</option>
+                      <option value="generacional">Generacional</option>
+                      <option value="equidad-genero">Equidad de Género</option>
+                      <option value="pospenados-reinsertados">Pospenados o reinsertados</option>
+                      <option value="ninguno">Ninguno</option>
+                      <option value="otro">Otro</option>
+                    </Select>
+                  </div>
+
+                  {profile?.peopleGroup === "otro" && (
+                    <div className="w-full md:w-1/2 px-2 space-y-1">
+                      <Label htmlFor="otherPeopleGroup">Especificar otro grupo poblacional</Label>
+                      <TextInput
+                        id="otherPeopleGroup"
+                        value={profile?.otherPeopleGroup || ""}
+                        onChange={(e) => handleChange("otherPeopleGroup", e.target.value)}
+                        color="blue"
+                        disabled={isUserOnly}
+                        theme={{
+                          field: {
+                            input: {
+                              base: `border-slate-200 focus:border-blue-600 w-full ${isUserOnly ? "bg-gray-100 text-gray-500" : ""}`,
+                            },
+                          },
+                        }}
+                        placeholder="Especificar grupo poblacional"
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div className="mt-8">{saveButton}</div>

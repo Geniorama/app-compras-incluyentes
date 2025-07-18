@@ -50,6 +50,8 @@ export async function GET(request: Request) {
           department,
           city,
           companySize,
+          peopleGroup,
+          otherPeopleGroup,
           logo,
           facebook,
           instagram,

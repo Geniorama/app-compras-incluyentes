@@ -34,6 +34,8 @@ export async function POST(request: Request) {
       city,
       membership,
       companySize,
+      peopleGroup,
+      otherPeopleGroup,
     } = await request.json()
 
     if (!logo || !photo) {
@@ -68,6 +70,8 @@ export async function POST(request: Request) {
       department,
       city,
       companySize,
+      peopleGroup,
+      otherPeopleGroup,
       active: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),

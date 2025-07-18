@@ -69,6 +69,8 @@ interface FormData {
   xtwitter?: string;
   membership?: string;
   companySize?: "micro" | "mediana" | "grande";
+  peopleGroup?: string;
+  otherPeopleGroup?: string;
 }
 
 // Agregar interfaces para validaciones
@@ -117,6 +119,8 @@ export default function RegisterForm() {
   const department = watch("department");
   const city = watch("city");
   const companySize = watch("companySize");
+  const peopleGroup = watch("peopleGroup");
+  const otherPeopleGroup = watch("otherPeopleGroup");
 
   // Fields Step 2
   const firstName = watch("firstName");
@@ -204,6 +208,16 @@ export default function RegisterForm() {
         if (!value) return "El tamaño de la empresa es obligatorio";
         return null;
 
+      case "peopleGroup":
+        // No es obligatorio por defecto
+        return null;
+
+      case "otherPeopleGroup":
+        if (peopleGroup === "otro" && !value) {
+          return "Debe especificar el grupo poblacional cuando selecciona 'Otro'";
+        }
+        return null;
+
       case "firstName":
         if (!value) return "El nombre es obligatorio";
         if (value.length < 2)
@@ -284,7 +298,13 @@ export default function RegisterForm() {
         "addressCompany",
         "department",
         "city",
+        "companySize",
       ];
+
+      // Validar otherPeopleGroup solo si peopleGroup es "otro"
+      if (peopleGroup === "otro") {
+        fieldsToValidate.push("otherPeopleGroup");
+      }
 
       fieldsToValidate.forEach((field: keyof FormData) => {
         const value = watch(field);
@@ -390,6 +410,8 @@ export default function RegisterForm() {
     emailError,
     membership,
     companySize,
+    peopleGroup,
+    otherPeopleGroup,
   ]);
 
   useEffect(() => {
@@ -1063,7 +1085,7 @@ export default function RegisterForm() {
                         )}
                       </div>
 
-                      <div className="w-full md:w-1/2 lg:w-1/2 px-2 space-y-1">
+                      <div className="w-full md:w-1/2 lg:w-1/2 px-2 space-y-1 md:mt-6">
                         <Label htmlFor="companySize">
                           Tamaño de la empresa <span className="text-red-500">*</span>
                         </Label>
@@ -1081,6 +1103,91 @@ export default function RegisterForm() {
                           <option value="grande">Grande</option>
                         </Select>
                       </div>
+
+                      <div className="w-full md:w-1/2 lg:w-1/2 px-2 space-y-1">
+                        <Label htmlFor="peopleGroup">
+                         ¿El 50% de los accionistas de la empresa pertenece a algún grupo poblacional?
+                        </Label>
+                        <Select
+                          {...register("peopleGroup", {
+                            onChange: (e) => {
+                              const error = validateField(
+                                "peopleGroup",
+                                e.target.value
+                              );
+                              if (error) {
+                                setValidationErrors((prev) => ({
+                                  ...prev,
+                                  peopleGroup: error,
+                                }));
+                              } else {
+                                setValidationErrors((prev) => {
+                                  const { ...rest } = prev;
+                                  return rest;
+                                });
+                              }
+                            },
+                          })}
+                          id="peopleGroup"
+                          className="w-full"
+                          color={validationErrors.peopleGroup ? "failure" : "blue"}
+                        >
+                          <option value="">Selecciona una opción</option>
+                          <option value="diversidad-sexual">Diversidad Sexual</option>
+                          <option value="personas-discapacidad">Personas con discapacidad</option>
+                          <option value="etnia-raza-afro">Etnia, raza o afro</option>
+                          <option value="personas-migrantes">Personas migrantes</option>
+                          <option value="generacional">Generacional</option>
+                          <option value="equidad-genero">Equidad de Género</option>
+                          <option value="pospenados-reinsertados">Pospenados o reinsertados</option>
+                          <option value="ninguno">Ninguno</option>
+                          <option value="otro">Otro</option>
+                        </Select>
+                        {validationErrors.peopleGroup && (
+                          <p className="text-red-500 text-sm mt-1">
+                            {validationErrors.peopleGroup}
+                          </p>
+                        )}
+                      </div>
+
+                      {peopleGroup === "otro" && (
+                        <div className="w-full md:w-1/2 lg:w-1/2 px-2 space-y-1">
+                          <Label htmlFor="otherPeopleGroup">
+                            Especificar otro grupo poblacional <span className="text-red-500">*</span>
+                          </Label>
+                          <TextInput
+                            {...register("otherPeopleGroup", {
+                              required: peopleGroup === "otro" ? "Debe especificar el grupo poblacional" : false,
+                              onChange: (e) => {
+                                const error = validateField(
+                                  "otherPeopleGroup",
+                                  e.target.value
+                                );
+                                if (error) {
+                                  setValidationErrors((prev) => ({
+                                    ...prev,
+                                    otherPeopleGroup: error,
+                                  }));
+                                } else {
+                                  setValidationErrors((prev) => {
+                                    const { ...rest } = prev;
+                                    return rest;
+                                  });
+                                }
+                              },
+                            })}
+                            id="otherPeopleGroup"
+                            className="w-full"
+                            color={validationErrors.otherPeopleGroup ? "failure" : "blue"}
+                            placeholder="Especificar grupo poblacional"
+                          />
+                          {validationErrors.otherPeopleGroup && (
+                            <p className="text-red-500 text-sm mt-1">
+                              {validationErrors.otherPeopleGroup}
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </AccordionContent>
                 </AccordionPanel>
