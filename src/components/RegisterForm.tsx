@@ -68,6 +68,7 @@ interface FormData {
   linkedin?: string;
   xtwitter?: string;
   membership?: string;
+  companySize?: "micro" | "mediana" | "grande";
 }
 
 // Agregar interfaces para validaciones
@@ -76,7 +77,7 @@ interface ValidationErrors {
 }
 
 export default function RegisterForm() {
-  const [stepActive, setStepActive] = useState(2);
+  const [stepActive, setStepActive] = useState(1);
   const [activeNextButton, setActiveNextButton] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isCheckingEmail, setIsCheckingEmail] = useState(false);
@@ -115,6 +116,7 @@ export default function RegisterForm() {
   const addressCompany = watch("addressCompany");
   const department = watch("department");
   const city = watch("city");
+  const companySize = watch("companySize");
 
   // Fields Step 2
   const firstName = watch("firstName");
@@ -196,6 +198,10 @@ export default function RegisterForm() {
 
       case "city":
         if (!value) return "La ciudad es obligatoria";
+        return null;
+
+      case "companySize":
+        if (!value) return "El tamaño de la empresa es obligatorio";
         return null;
 
       case "firstName":
@@ -383,6 +389,7 @@ export default function RegisterForm() {
     photo,
     emailError,
     membership,
+    companySize,
   ]);
 
   useEffect(() => {
@@ -1054,6 +1061,25 @@ export default function RegisterForm() {
                             {validationErrors.city}
                           </p>
                         )}
+                      </div>
+
+                      <div className="w-full md:w-1/2 lg:w-1/2 px-2 space-y-1">
+                        <Label htmlFor="companySize">
+                          Tamaño de la empresa <span className="text-red-500">*</span>
+                        </Label>
+                        <Select
+                          {...register("companySize", {
+                            required: "El tamaño de la empresa es obligatorio",
+                          })}
+                          id="companySize"
+                          className="w-full"
+                          color="blue"
+                        >
+                          <option value="">Selecciona una opción</option>
+                          <option value="micro">Micro</option>
+                          <option value="mediana">Mediana</option>
+                          <option value="grande">Grande</option>
+                        </Select>
                       </div>
                     </div>
                   </AccordionContent>

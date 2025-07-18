@@ -33,6 +33,7 @@ export async function POST(request: Request) {
       department,
       city,
       membership,
+      companySize,
     } = await request.json()
 
     if (!logo || !photo) {
@@ -66,6 +67,7 @@ export async function POST(request: Request) {
       xtwitter,
       department,
       city,
+      companySize,
       active: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),

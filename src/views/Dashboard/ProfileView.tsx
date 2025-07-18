@@ -62,6 +62,7 @@ export default function ProfileView({
         addressCompany: initialProfile.company?.addressCompany || "",
         department: initialProfile.company?.department || "",
         city: initialProfile.company?.city || "",
+        companySize: initialProfile.company?.companySize || "",
         logo: initialProfile.company?.logo,
         facebook: initialProfile.company?.facebook || "",
         instagram: initialProfile.company?.instagram || "",
@@ -910,6 +911,23 @@ export default function ProfileView({
                         </option>
                       ))}
                     </Select>
+                  </div>
+
+                  <div className="w-full md:w-1/2 px-2 space-y-1">
+                    <Label htmlFor="companySize">Tamaño de la empresa</Label>
+                    <TextInput
+                      id="companySize"
+                      value={profile?.companySize === "micro" ? "Micro" : profile?.companySize === "mediana" ? "Mediana" : "Grande"}
+                      disabled={true}
+                      color="blue"
+                      theme={{
+                        field: {
+                          input: {
+                            base: "border-slate-200 focus:border-blue-600 w-full bg-gray-100 text-gray-500",
+                          },
+                        },
+                      }}
+                    />
                   </div>
                 </div>
 
