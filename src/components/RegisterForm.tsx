@@ -40,6 +40,7 @@ import {
   getDepartamentosOptions,
   getCiudadesOptionsByDepartamento,
 } from "@/utils/departamentosCiudades";
+import { getSectorFromCIIU } from "@/utils/ciiuOptions";
 
 interface FormData {
   nameCompany: string;
@@ -68,7 +69,7 @@ interface FormData {
   linkedin?: string;
   xtwitter?: string;
   membership?: string;
-  companySize?: "micro" | "mediana" | "grande";
+  companySize?: "micro" | "pequena" | "mediana" | "grande" | "indefinido";
   peopleGroup?: string;
   otherPeopleGroup?: string;
   dataTreatmentConsent: boolean;
@@ -103,6 +104,8 @@ export default function RegisterForm() {
   const [ciudadesOptions, setCiudadesOptions] = useState<
     { value: string; label: string }[]
   >([]);
+  const [annualRevenue, setAnnualRevenue] = useState<string>("");
+  const [sector, setSector] = useState<string>("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -487,6 +490,46 @@ export default function RegisterForm() {
     }
   }, [department, setValue]);
 
+  // Actualizar sector cuando cambie el CIIU
+  useEffect(() => {
+    if (ciiu) {
+      const sectorResult = getSectorFromCIIU(ciiu);
+      setSector(sectorResult || "");
+    } else {
+      setSector("");
+    }
+  }, [ciiu]);
+
+  // Calcular companySize automáticamente
+  useEffect(() => {
+    if (!sector || !annualRevenue) {
+      setValue("companySize", undefined);
+      return;
+    }
+    // Para el cálculo, usar el valor numérico limpio
+    const revenueNum = parseInt(annualRevenue.replace(/[^\d]/g, ""), 10);
+    let size: "micro" | "pequena" | "mediana" | "grande" | "indefinido" | undefined = undefined;
+    if (sector === "COMERCIO") {
+      if (revenueNum <= 1163000000) size = "micro";
+      else if (revenueNum > 1163000000 && revenueNum <= 4074000000) size = "pequena";
+      else if (revenueNum > 4074000000 && revenueNum <= 15563000000) size = "mediana";
+      else if (revenueNum > 15563000000) size = "grande";
+    } else if (sector === "MANUFACTURA") {
+      if (revenueNum <= 652000000) size = "micro";
+      else if (revenueNum > 652000000 && revenueNum <= 2601000000) size = "pequena";
+      else if (revenueNum > 2601000000 && revenueNum <= 23563000000) size = "mediana";
+      else if (revenueNum > 23563000000) size = "grande";
+    } else if (sector === "SERVICIOS") {
+      if (revenueNum <= 519000000) size = "micro";
+      else if (revenueNum > 519000000 && revenueNum <= 1877000000) size = "pequena";
+      else if (revenueNum > 1877000000 && revenueNum <= 7523000000) size = "mediana";
+      else if (revenueNum > 7523000000) size = "grande";
+    } else {
+      size = "indefinido";
+    }
+    setValue("companySize", size);
+  }, [sector, annualRevenue, setValue]);
+
   const handleRegister = async (data: FormData) => {
     try {
       setIsLoading(true); // Iniciamos el estado de carga
@@ -648,6 +691,21 @@ export default function RegisterForm() {
       setIsCheckingEmail(false);
     }
   };
+
+  // Formatear a moneda COP
+  function formatCOP(value: string): string {
+    if (!value) return "";
+    // Eliminar todo lo que no sea número
+    const numeric = value.replace(/[^\d]/g, "");
+    if (!numeric) return "";
+    return parseInt(numeric, 10).toLocaleString("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
+  }
+
+  // Manejar el cambio en el input de ingresos anuales
+  function handleAnnualRevenueChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const raw = e.target.value.replace(/[^\d]/g, "");
+    setAnnualRevenue(raw);
+  }
 
   return (
     <div className="flex flex-col xl:flex-row xl:gap-10">
@@ -1117,22 +1175,24 @@ export default function RegisterForm() {
                       </div>
 
                       <div className="w-full md:w-1/2 lg:w-1/2 px-2 space-y-1 md:mt-6">
-                        <Label htmlFor="companySize">
-                          Tamaño de la empresa <span className="text-red-500">*</span>
+                        <Label htmlFor="annualRevenue">
+                          Ingresos anuales (en millones de pesos COP) <span className="text-red-500">*</span>
                         </Label>
-                        <Select
-                          {...register("companySize", {
-                            required: "El tamaño de la empresa es obligatorio",
-                          })}
-                          id="companySize"
-                          className="w-full"
-                          color="blue"
-                        >
-                          <option value="">Selecciona una opción</option>
-                          <option value="micro">Micro</option>
-                          <option value="mediana">Mediana</option>
-                          <option value="grande">Grande</option>
-                        </Select>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          id="annualRevenue"
+                          name="annualRevenue"
+                          className="w-full border rounded px-3 py-2"
+                          placeholder="Ej: $1.200.000"
+                          value={formatCOP(annualRevenue)}
+                          onChange={handleAnnualRevenueChange}
+                          min={0}
+                          required
+                        />
+                        {sector && (
+                          <p className="text-xs text-gray-500 mt-1">Sector detectado: <b>{sector}</b></p>
+                        )}
                       </div>
 
                       <div className="w-full md:w-1/2 lg:w-1/2 px-2 space-y-1">

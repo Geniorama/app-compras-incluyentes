@@ -74,8 +74,6 @@ export async function POST(request: Request) {
       companySize,
       peopleGroup,
       otherPeopleGroup,
-      infoVisibilityConsent,
-      dataTreatmentConsent,
       active: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
