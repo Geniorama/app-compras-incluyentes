@@ -13,5 +13,12 @@ export const getCIIUOptions = (): CIIUOption[] => {
 };
 
 export const findCIIUByValue = (value: string): CIIUOption | undefined => {
-  return dataCIIU.find(item => item.clasificacion_ciiu === value);
+  const found = dataCIIU.find(item => item.clasificacion_ciiu === value);
+  if (found) {
+    return {
+      value: found.clasificacion_ciiu,
+      label: found.clasificacion_ciiu
+    };
+  }
+  return undefined;
 }; 
