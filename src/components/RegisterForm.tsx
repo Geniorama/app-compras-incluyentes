@@ -71,6 +71,8 @@ interface FormData {
   companySize?: "micro" | "mediana" | "grande";
   peopleGroup?: string;
   otherPeopleGroup?: string;
+  dataTreatmentConsent: boolean;
+  infoVisibilityConsent: boolean;
 }
 
 // Agregar interfaces para validaciones
@@ -135,6 +137,8 @@ export default function RegisterForm() {
   // Fields Step 3
   const password = watch("password");
   const confirmPassword = watch("confirmPassword");
+  const dataTreatmentConsent = watch("dataTreatmentConsent");
+  const infoVisibilityConsent = watch("infoVisibilityConsent");
 
   const isPasswordValid = (password: string) => {
     return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(
@@ -149,51 +153,59 @@ export default function RegisterForm() {
   // Función para validar campos específicos
   const validateField = (
     name: string,
-    value: string | undefined
+    value: string | boolean | undefined
   ): string | null => {
     if (value === undefined) return "Este campo es obligatorio";
     switch (name) {
       case "nameCompany":
         if (!value) return "El nombre de la marca es obligatorio";
-        if (value.length < 3)
-          return "El nombre de la marca debe tener al menos 3 caracteres";
-        if (value.length > 50)
-          return "El nombre de la marca no puede tener más de 50 caracteres";
-        if (!/^[a-zA-Z0-9\s-]+$/.test(value))
-          return "El nombre de la marca solo puede contener letras, números, espacios y guiones";
+        if (typeof value === "string") {
+          if (value.length < 3)
+            return "El nombre de la marca debe tener al menos 3 caracteres";
+          if (value.length > 50)
+            return "El nombre de la marca no puede tener más de 50 caracteres";
+          if (!/^[a-zA-Z0-9\s-]+$/.test(value))
+            return "El nombre de la marca solo puede contener letras, números, espacios y guiones";
+        }
         return null;
 
       case "businessName":
         if (!value) return "La razón social es obligatoria";
-        if (value.length < 3)
-          return "La razón social debe tener al menos 3 caracteres";
-        if (value.length > 100)
-          return "La razón social no puede tener más de 100 caracteres";
+        if (typeof value === "string") {
+          if (value.length < 3)
+            return "La razón social debe tener al menos 3 caracteres";
+          if (value.length > 100)
+            return "La razón social no puede tener más de 100 caracteres";
+        }
         return null;
 
       case "numDocumentCompany":
         if (!value) return "El número de documento es obligatorio";
-        if (typeDocumentCompany === "nit" && !/^\d{9,10}$/.test(value))
-          return "El NIT debe tener entre 9 y 10 dígitos";
-        if (
-          (typeDocumentCompany === "cc" || typeDocumentCompany === "ce") &&
-          !/^\d{8,10}$/.test(value)
-        )
-          return "El documento debe tener entre 8 y 10 dígitos";
+        if (typeof value === "string") {
+          if (typeDocumentCompany === "nit" && !/^\d{9,10}$/.test(value))
+            return "El NIT debe tener entre 9 y 10 dígitos";
+          if (
+            (typeDocumentCompany === "cc" || typeDocumentCompany === "ce") &&
+            !/^\d{8,10}$/.test(value)
+          )
+            return "El documento debe tener entre 8 y 10 dígitos";
+        }
         return null;
 
       case "webSite":
         if (!value) return "La página web es obligatoria";
-        if (!/^https?:\/\/.+/.test(value))
+        if (typeof value === "string" && !/^https?:\/\/.+/.test(value))
           return "La URL debe comenzar con http:// o https://";
         return null;
 
       case "addressCompany":
         if (!value) return "La dirección es obligatoria";
-        if (value.length < 5)
-          return "La dirección debe tener al menos 5 caracteres";
-        if (value.length > 200)
-          return "La dirección no puede tener más de 200 caracteres";
+        if (typeof value === "string") {
+          if (value.length < 5)
+            return "La dirección debe tener al menos 5 caracteres";
+          if (value.length > 200)
+            return "La dirección no puede tener más de 200 caracteres";
+        }
         return null;
 
       case "department":
@@ -220,61 +232,75 @@ export default function RegisterForm() {
 
       case "firstName":
         if (!value) return "El nombre es obligatorio";
-        if (value.length < 2)
-          return "El nombre debe tener al menos 2 caracteres";
-        if (value.length > 50)
-          return "El nombre no puede tener más de 50 caracteres";
-        if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s-]+$/.test(value))
-          return "El nombre solo puede contener letras, espacios y guiones";
+        if (typeof value === "string") {
+          if (value.length < 2)
+            return "El nombre debe tener al menos 2 caracteres";
+          if (value.length > 50)
+            return "El nombre no puede tener más de 50 caracteres";
+          if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s-]+$/.test(value))
+            return "El nombre solo puede contener letras, espacios y guiones";
+        }
         return null;
 
       case "lastName":
         if (!value) return "El apellido es obligatorio";
-        if (value.length < 2)
-          return "El apellido debe tener al menos 2 caracteres";
-        if (value.length > 50)
-          return "El apellido no puede tener más de 50 caracteres";
-        if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s-]+$/.test(value))
-          return "El apellido solo puede contener letras, espacios y guiones";
+        if (typeof value === "string") {
+          if (value.length < 2)
+            return "El apellido debe tener al menos 2 caracteres";
+          if (value.length > 50)
+            return "El apellido no puede tener más de 50 caracteres";
+          if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s-]+$/.test(value))
+            return "El apellido solo puede contener letras, espacios y guiones";
+        }
         return null;
 
       case "position":
         if (!value) return "El cargo es obligatorio";
-        if (value.length < 2)
-          return "El cargo debe tener al menos 2 caracteres";
-        if (value.length > 50)
-          return "El cargo no puede tener más de 50 caracteres";
+        if (typeof value === "string") {
+          if (value.length < 2)
+            return "El cargo debe tener al menos 2 caracteres";
+          if (value.length > 50)
+            return "El cargo no puede tener más de 50 caracteres";
+        }
         return null;
 
       case "phone":
         if (!value) return "El número de teléfono es obligatorio";
-        if (!/^\+?\d{10,15}$/.test(value.replace(/\D/g, "")))
+        if (typeof value === "string" && !/^\+?\d{10,15}$/.test(value.replace(/\D/g, "")))
           return "El número de teléfono debe tener entre 10 y 15 dígitos";
         return null;
 
       case "numDocument":
         if (!value) return "El número de documento es obligatorio";
-        if (!/^\d{8,10}$/.test(value))
+        if (typeof value === "string" && !/^\d{8,10}$/.test(value))
           return "El documento debe tener entre 8 y 10 dígitos";
         return null;
 
       case "password":
         if (!value) return "La contraseña es obligatoria";
-        if (value.length < 10)
-          return "La contraseña debe tener al menos 10 caracteres";
-        if (!/[A-Z]/.test(value))
-          return "La contraseña debe contener al menos una mayúscula";
-        if (!/[a-z]/.test(value))
-          return "La contraseña debe contener al menos una minúscula";
-        if (!/\d/.test(value))
-          return "La contraseña debe contener al menos un número";
-        if (!/[!@#$%^&*(),.?":{}|<>]/.test(value))
-          return "La contraseña debe contener al menos un carácter especial";
+        if (typeof value === "string") {
+          if (value.length < 10)
+            return "La contraseña debe tener al menos 10 caracteres";
+          if (!/[A-Z]/.test(value))
+            return "La contraseña debe contener al menos una mayúscula";
+          if (!/[a-z]/.test(value))
+            return "La contraseña debe contener al menos una minúscula";
+          if (!/\d/.test(value))
+            return "La contraseña debe contener al menos un número";
+          if (!/[!@#$%^&*(),.?":{}|<>]/.test(value))
+            return "La contraseña debe contener al menos un carácter especial";
+        }
         return null;
 
       case "confirmPassword":
         if (!value) return "La confirmación de contraseña es obligatoria";
-        if (value !== password) return "Las contraseñas no coinciden";
+        if (typeof value === "string" && value !== password) return "Las contraseñas no coinciden";
+        return null;
+      case "dataTreatmentConsent":
+        if (value !== true) return "Debes aceptar el tratamiento de datos personales";
+        return null;
+      case "infoVisibilityConsent":
+        // Ya no es obligatorio, así que no retorna error si no está seleccionado
         return null;
 
       default:
@@ -308,7 +334,8 @@ export default function RegisterForm() {
 
       fieldsToValidate.forEach((field: keyof FormData) => {
         const value = watch(field);
-        const error = validateField(field, value);
+        // Ajustar para pasar correctamente el tipo de dato
+        const error = validateField(field, typeof value === "boolean" ? value : value as string | undefined);
         if (error) {
           currentErrors[field] = error;
           isValid = false;
@@ -333,7 +360,7 @@ export default function RegisterForm() {
 
       fieldsToValidate.forEach((field: keyof FormData) => {
         const value = watch(field);
-        const error = validateField(field, value);
+        const error = validateField(field, typeof value === "boolean" ? value : value as string | undefined);
         if (error) {
           currentErrors[field] = error;
           isValid = false;
@@ -353,10 +380,12 @@ export default function RegisterForm() {
       const fieldsToValidate: (keyof FormData)[] = [
         "password",
         "confirmPassword",
+        "dataTreatmentConsent",
+        "infoVisibilityConsent",
       ];
       fieldsToValidate.forEach((field: keyof FormData) => {
         const value = watch(field);
-        const error = validateField(field, value);
+        const error = validateField(field, typeof value === "boolean" ? value : value as string | undefined);
         if (error) {
           currentErrors[field] = error;
           isValid = false;
@@ -412,6 +441,8 @@ export default function RegisterForm() {
     companySize,
     peopleGroup,
     otherPeopleGroup,
+    dataTreatmentConsent,
+    infoVisibilityConsent,
   ]);
 
   useEffect(() => {
@@ -1741,7 +1772,7 @@ export default function RegisterForm() {
                         required:
                           "La confirmación de contraseña es obligatoria",
                         validate: (value) => {
-                          if (password !== value) {
+                          if (typeof value === "string" && value !== password) {
                             return "Las contraseñas no coinciden";
                           }
                         },
@@ -1769,6 +1800,52 @@ export default function RegisterForm() {
                       {validationErrors.confirmPassword}
                     </p>
                   )}
+                </div>
+              </div>
+              {/* Consentimientos */}
+              <div className="flex flex-col gap-4 mt-6">
+                <div className="flex items-start">
+                  <input
+                    type="checkbox"
+                    id="dataTreatmentConsent"
+                    {...register("dataTreatmentConsent", { required: true })}
+                    className="mt-1 mr-2"
+                  />
+                  <div>
+                    <Label htmlFor="dataTreatmentConsent" className="font-medium">
+                      Aceptación de <a href="https://camaradeladiversidad.com/home/politica-de-privacidad/" target="_blank" rel="noopener noreferrer" className="text-blue-600">tratamiento de datos personales</a> <span className="text-red-500">*</span>
+                    </Label>
+                    <p className="text-xs text-gray-600">
+                      Debes aceptar el tratamiento de tus datos personales para registrarte.
+                    </p>
+                    {validationErrors.dataTreatmentConsent && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {validationErrors.dataTreatmentConsent}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-start">
+                  <input
+                    type="checkbox"
+                    id="infoVisibilityConsent"
+                    {...register("infoVisibilityConsent")}
+                    className="mt-1 mr-2"
+                    defaultChecked={true}
+                  />
+                  <div>
+                    <Label htmlFor="infoVisibilityConsent" className="font-medium">
+                      Autorización de visibilidad de información (Opcional)
+                    </Label>
+                    <p className="text-xs text-gray-600">
+                      Autorizo que mi información sea visible en la plataforma para otros usuarios y empresas.
+                    </p>
+                    {validationErrors.infoVisibilityConsent && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {validationErrors.infoVisibilityConsent}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             </fieldset>
@@ -1807,7 +1884,7 @@ export default function RegisterForm() {
                 <Button
                   className="w-full md:w-auto min-w-32"
                   type="submit"
-                  disabled={!activeNextButton || isLoading}
+                  disabled={!activeNextButton || isLoading || !dataTreatmentConsent}
                 >
                   {isLoading ? (
                     <>
