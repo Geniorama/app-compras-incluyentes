@@ -87,6 +87,8 @@ export default function RegisterForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [isCheckingEmail, setIsCheckingEmail] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
+  const [isCheckingCompanyDocument, setIsCheckingCompanyDocument] = useState(false);
+  const [companyDocumentError, setCompanyDocumentError] = useState<string | null>(null);
   const [logo, setLogo] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [photo, setPhoto] = useState<File | null>(null);
@@ -116,8 +118,6 @@ export default function RegisterForm() {
   // Fields Step 1
   const nameCompany = watch("nameCompany");
   const businessName = watch("businessName");
-  const typeDocumentCompany = watch("typeDocumentCompany");
-  const numDocumentCompany = watch("numDocumentCompany");
   const ciiu = watch("ciiu");
   const webSite = watch("webSite");
   const addressCompany = watch("addressCompany");
@@ -185,10 +185,11 @@ export default function RegisterForm() {
       case "numDocumentCompany":
         if (!value) return "El número de documento es obligatorio";
         if (typeof value === "string") {
-          if (typeDocumentCompany === "nit" && !/^\d{9,10}$/.test(value))
+          const currentTypeDoc = watch("typeDocumentCompany");
+          if (currentTypeDoc === "nit" && !/^\d{9,10}$/.test(value))
             return "El NIT debe tener entre 9 y 10 dígitos";
           if (
-            (typeDocumentCompany === "cc" || typeDocumentCompany === "ce") &&
+            (currentTypeDoc === "cc" || currentTypeDoc === "ce") &&
             !/^\d{8,10}$/.test(value)
           )
             return "El documento debe tener entre 8 y 10 dígitos";
@@ -356,6 +357,11 @@ export default function RegisterForm() {
         currentErrors.logo = "El logo es obligatorio";
         isValid = false;
       }
+
+      if (companyDocumentError) {
+        currentErrors.numDocumentCompany = companyDocumentError;
+        isValid = false;
+      }
     } else if (stepActive === 2) {
       const fieldsToValidate: (keyof FormData)[] = [
         "firstName",
@@ -409,7 +415,10 @@ export default function RegisterForm() {
 
   // Modificar la función handleNextStep
   const handleNextStep = async () => {
-    if (stepActive === 2) {
+    if (stepActive === 1) {
+      const isCompanyDocumentValid = await validateCompanyDocument(watch("typeDocumentCompany"), watch("numDocumentCompany"));
+      if (!isCompanyDocumentValid) return;
+    } else if (stepActive === 2) {
       const isEmailValid = await validateEmail(email);
       if (!isEmailValid) return;
     }
@@ -426,8 +435,6 @@ export default function RegisterForm() {
   }, [
     nameCompany,
     businessName,
-    typeDocumentCompany,
-    numDocumentCompany,
     ciiu,
     webSite,
     addressCompany,
@@ -447,6 +454,7 @@ export default function RegisterForm() {
     logo,
     photo,
     emailError,
+    companyDocumentError,
     membership,
     companySize,
     peopleGroup,
@@ -707,6 +715,44 @@ export default function RegisterForm() {
     }
   };
 
+  const validateCompanyDocument = async (docType: string, docNumber: string) => {
+    if (!docType || !docNumber) return false;
+
+    setIsCheckingCompanyDocument(true);
+    setCompanyDocumentError(null);
+
+    try {
+      const response = await fetch("/api/check-company-document", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ typeDocumentCompany: docType, numDocumentCompany: docNumber }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setCompanyDocumentError(data.message || "Error al verificar el documento de la empresa");
+        return false;
+      }
+
+      if (data.exists) {
+        setCompanyDocumentError("Ya existe una empresa registrada con este documento");
+        return false;
+      }
+
+      return true;
+    } catch (error: unknown) {
+      setCompanyDocumentError(
+        error instanceof Error ? error.message : "Error al verificar el documento de la empresa"
+      );
+      return false;
+    } finally {
+      setIsCheckingCompanyDocument(false);
+    }
+  };
+
   // Formatear a moneda COP
   function formatCOP(value: string): string {
     if (!value) return "";
@@ -940,10 +986,11 @@ export default function RegisterForm() {
                           <Select
                             {...register("typeDocumentCompany", {
                               required: "El tipo de documento es obligatorio",
-                              onChange: (e) => {
+                              onChange: async (e) => {
+                                const value = e.target.value;
                                 const error = validateField(
                                   "typeDocumentCompany",
-                                  e.target.value
+                                  value
                                 );
                                 if (error) {
                                   setValidationErrors((prev) => ({
@@ -952,9 +999,17 @@ export default function RegisterForm() {
                                   }));
                                 } else {
                                   setValidationErrors((prev) => {
-                                    const { ...rest } = prev;
-                                    return rest;
+                                    const newErrors = { ...prev };
+                                    delete newErrors.typeDocumentCompany;
+                                    return newErrors;
                                   });
+                                }
+                                
+                                // Validar documento de empresa si ambos campos están completos
+                                if (value && watch("numDocumentCompany") && watch("numDocumentCompany").length >= 8) {
+                                  await validateCompanyDocument(value, watch("numDocumentCompany"));
+                                } else {
+                                  setCompanyDocumentError(null);
                                 }
                               },
                             })}
@@ -969,10 +1024,11 @@ export default function RegisterForm() {
                           <TextInput
                             {...register("numDocumentCompany", {
                               required: "El número de documento es obligatorio",
-                              onChange: (e) => {
+                              onChange: async (e) => {
+                                const value = e.target.value;
                                 const error = validateField(
                                   "numDocumentCompany",
-                                  e.target.value
+                                  value
                                 );
                                 if (error) {
                                   setValidationErrors((prev) => ({
@@ -981,22 +1037,35 @@ export default function RegisterForm() {
                                   }));
                                 } else {
                                   setValidationErrors((prev) => {
-                                    const { ...rest } = prev;
-                                    return rest;
+                                    const newErrors = { ...prev };
+                                    delete newErrors.numDocumentCompany;
+                                    return newErrors;
                                   });
+                                }
+                                
+                                // Validar documento de empresa si ambos campos están completos
+                                if (watch("typeDocumentCompany") && value && value.length >= 8) {
+                                  await validateCompanyDocument(watch("typeDocumentCompany"), value);
+                                } else {
+                                  setCompanyDocumentError(null);
                                 }
                               },
                             })}
                             className="w-auto flex-grow"
-                            color="blue"
+                            color={validationErrors.numDocumentCompany || companyDocumentError ? "failure" : "blue"}
                             id="numDocumentCompany"
                             placeholder="Número de documento"
                             type="number"
                           />
                         </div>
-                        {validationErrors.numDocumentCompany && (
+                        {(validationErrors.numDocumentCompany || companyDocumentError) && (
                           <p className="text-red-500 text-sm mt-1">
-                            {validationErrors.numDocumentCompany}
+                            {validationErrors.numDocumentCompany || companyDocumentError}
+                          </p>
+                        )}
+                        {isCheckingCompanyDocument && (
+                          <p className="text-blue-500 text-sm mt-1">
+                            Verificando documento de empresa...
                           </p>
                         )}
                       </div>
