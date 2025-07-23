@@ -19,6 +19,7 @@ import { FirebaseError } from "firebase/app";
 import DashboardSidebar from "@/components/DashboardSidebar";
 import type { UserProfile, SanityImage } from "@/types";
 import { getDepartamentosOptions, getCiudadesOptionsByDepartamento } from "@/utils/departamentosCiudades";
+import { getCIIUOptions } from "@/utils/ciiuOptions";
 
 interface ProfileViewProps {
   initialProfile?: UserProfile | null;
@@ -46,6 +47,9 @@ export default function ProfileView({
   // Estados para departamentos y ciudades
   const [departamentosOptions] = useState(() => getDepartamentosOptions());
   const [ciudadesOptions, setCiudadesOptions] = useState<{ value: string; label: string; }[]>([]);
+  
+  // Estados para CIIU
+  const [ciiuOptions] = useState(() => getCIIUOptions());
 
   useEffect(() => {
     if (initialProfile) {
@@ -124,6 +128,7 @@ export default function ProfileView({
       "businessName",
       "typeDocumentCompany",
       "numDocumentCompany",
+      "ciiu",
       "webSite",
       "addressCompany",
       "department",
@@ -850,6 +855,31 @@ export default function ProfileView({
                         },
                       }}
                     />
+                  </div>
+
+                  <div className="w-full md:w-1/2 px-2 space-y-1">
+                    <Label htmlFor="ciiu">Código CIIU</Label>
+                    <Select
+                      id="ciiu"
+                      value={profile?.ciiu || ""}
+                      onChange={(e) => handleChange("ciiu", e.target.value)}
+                      color="blue"
+                      disabled={isUserOnly}
+                      theme={{
+                        field: {
+                          select: {
+                            base: `border-slate-200 focus:border-blue-600 w-full ${isUserOnly ? "bg-gray-100 text-gray-500" : ""}`,
+                          },
+                        },
+                      }}
+                    >
+                      <option value="">Seleccionar código CIIU</option>
+                      {ciiuOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </Select>
                   </div>
 
                   <div className="w-full md:w-1/2 px-2 space-y-1">
