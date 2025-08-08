@@ -1279,66 +1279,64 @@ export default function RegisterForm() {
                         )}
                       </div>
 
-                      <div className="w-full md:w-1/2 lg:w-1/2 px-2 space-y-1">
-                        
-                        {companySize === "grande" && (
-                          <>
+                                              {companySize !== "grande" && (
+                          <div className="w-full md:w-1/2 lg:w-1/2 px-2 space-y-1">
+                            
                             <Label htmlFor="peopleGroup">
-                            ¿El 50% de los accionistas de la empresa pertenece a algún grupo poblacional?
+                              ¿El 50% de los accionistas de la empresa pertenece a algún grupo poblacional? <span className="text-red-500">*</span>
                             </Label>
                             <Select
-                            {...register("peopleGroup", {
-                              onChange: (e) => {
-                                const error = validateField(
-                                  "peopleGroup",
-                                  e.target.value
-                                );
-                                if (error) {
-                                  setValidationErrors((prev) => ({
-                                    ...prev,
-                                    peopleGroup: error,
-                                  }));
-                                } else {
-                                  setValidationErrors((prev) => {
-                                    const { ...rest } = prev;
-                                    return rest;
-                                  });
-                                }
-                              },
-                            })}
-                            id="peopleGroup"
-                            className="w-full"
-                            color={validationErrors.peopleGroup ? "failure" : "blue"}
-                          >
-                            <option value="">Selecciona una opción</option>
-                            <option value="diversidad-sexual">Diversidad Sexual</option>
-                            <option value="personas-discapacidad">Personas con discapacidad</option>
-                            <option value="etnia-raza-afro">Etnia, raza o afro</option>
-                            <option value="personas-migrantes">Personas migrantes</option>
-                            <option value="generacional">Generacional</option>
-                            <option value="equidad-genero">Equidad de Género</option>
-                            <option value="pospenados-reinsertados">Pospenados o reinsertados</option>
-                            <option value="ninguno">Ninguno</option>
-                            <option value="otro">Otro</option>
-                          </Select>
-                          </>
-                          
+                              {...register("peopleGroup", {
+                                required: "Debe seleccionar una opción para empresas pequeñas y medianas",
+                                onChange: (e) => {
+                                  const error = validateField(
+                                    "peopleGroup",
+                                    e.target.value
+                                  );
+                                  if (error) {
+                                    setValidationErrors((prev) => ({
+                                      ...prev,
+                                      peopleGroup: error,
+                                    }));
+                                  } else {
+                                    setValidationErrors((prev) => {
+                                      const { ...rest } = prev;
+                                      return rest;
+                                    });
+                                  }
+                                },
+                              })}
+                              id="peopleGroup"
+                              className="w-full"
+                              color={validationErrors.peopleGroup ? "failure" : "blue"}
+                            >
+                              <option value="">Selecciona una opción</option>
+                              <option value="diversidad-sexual">Diversidad Sexual</option>
+                              <option value="personas-discapacidad">Personas con discapacidad</option>
+                              <option value="etnia-raza-afro">Etnia, raza o afro</option>
+                              <option value="personas-migrantes">Personas migrantes</option>
+                              <option value="generacional">Generacional</option>
+                              <option value="equidad-genero">Equidad de Género</option>
+                              <option value="pospenados-reinsertados">Pospenados o reinsertados</option>
+                              <option value="ninguno">Ninguno</option>
+                              <option value="otro">Otro</option>
+                            </Select>
+                            {validationErrors.peopleGroup && (
+                              <p className="text-red-500 text-sm mt-1">
+                                {validationErrors.peopleGroup}
+                              </p>
+                            )}
+                          </div>
                         )}
-                        {validationErrors.peopleGroup && (
-                          <p className="text-red-500 text-sm mt-1">
-                            {validationErrors.peopleGroup}
-                          </p>
-                        )}
-                      </div>
 
-                      {companySize === "grande" && peopleGroup === "otro" && (
+                      {companySize !== "grande" && peopleGroup === "otro" && (
                         <div className="w-full md:w-1/2 lg:w-1/2 px-2 space-y-1">
                           <Label htmlFor="otherPeopleGroup">
                             Especificar otro grupo poblacional <span className="text-red-500">*</span>
                           </Label>
                           <TextInput
                             {...register("otherPeopleGroup", {
-                              required: peopleGroup === "otro" ? "Debe especificar el grupo poblacional" : false,
+                              required: "Debe especificar el grupo poblacional",
                               onChange: (e) => {
                                 const error = validateField(
                                   "otherPeopleGroup",
