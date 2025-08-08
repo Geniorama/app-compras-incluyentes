@@ -225,16 +225,22 @@ export default function RegisterForm() {
         return null;
 
       case "peopleGroup":
-        // Solo es obligatorio si la empresa es grande
-        if (companySize === "grande" && !value) {
-          return "Debe seleccionar una opción para empresas grandes";
+        // Solo es obligatorio si la empresa NO es grande
+        console.log("Validating peopleGroup - companySize:", companySize, "value:", value);
+        if (companySize !== "grande" && !value) {
+          console.log("peopleGroup validation failed - required for non-grande companies");
+          return "Debe seleccionar una opción para empresas pequeñas y medianas";
         }
+        console.log("peopleGroup validation passed");
         return null;
 
       case "otherPeopleGroup":
+        console.log("Validating otherPeopleGroup - peopleGroup:", peopleGroup, "value:", value);
         if (peopleGroup === "otro" && !value) {
+          console.log("otherPeopleGroup validation failed - required when peopleGroup is 'otro'");
           return "Debe especificar el grupo poblacional cuando selecciona 'Otro'";
         }
+        console.log("otherPeopleGroup validation passed");
         return null;
 
       case "firstName":
@@ -321,6 +327,14 @@ export default function RegisterForm() {
     let isValid = true;
 
     if (stepActive === 1) {
+      // Asegurar que companySize tenga un valor válido antes de la validación
+      const currentCompanySize = watch("companySize");
+      console.log("Current companySize before validation:", currentCompanySize);
+      if (!currentCompanySize) {
+        console.log("Setting companySize to 'indefinido'");
+        setValue("companySize", "indefinido");
+      }
+
       const fieldsToValidate: (keyof FormData)[] = [
         "nameCompany",
         "businessName",
@@ -338,30 +352,46 @@ export default function RegisterForm() {
       if (peopleGroup === "otro") {
         fieldsToValidate.push("otherPeopleGroup");
       }
-      // Validar peopleGroup solo si companySize es "grande"
-      if (companySize === "grande") {
+      // Validar peopleGroup solo si companySize NO es "grande"
+      if (companySize !== "grande") {
         fieldsToValidate.push("peopleGroup");
       }
 
+      console.log("=== DEBUG VALIDATION ===");
+      console.log("stepActive:", stepActive);
+      console.log("companySize:", companySize);
+      console.log("peopleGroup:", peopleGroup);
+      console.log("fieldsToValidate:", fieldsToValidate);
+      console.log("logo:", logo);
+      console.log("companyDocumentError:", companyDocumentError);
+
       fieldsToValidate.forEach((field: keyof FormData) => {
         const value = watch(field);
+        console.log(`Validating ${field}:`, value);
         // Ajustar para pasar correctamente el tipo de dato
         const error = validateField(field, typeof value === "boolean" ? value : value as string | undefined);
         if (error) {
+          console.log(`Error in ${field}:`, error);
           currentErrors[field] = error;
           isValid = false;
         }
       });
 
       if (!logo) {
+        console.log("Logo error: El logo es obligatorio");
         currentErrors.logo = "El logo es obligatorio";
         isValid = false;
       }
 
       if (companyDocumentError) {
+        console.log("Company document error:", companyDocumentError);
         currentErrors.numDocumentCompany = companyDocumentError;
         isValid = false;
       }
+
+      console.log("Final validation result:", isValid);
+      console.log("Current errors:", currentErrors);
+      console.log("=== END DEBUG ===");
     } else if (stepActive === 2) {
       const fieldsToValidate: (keyof FormData)[] = [
         "firstName",
@@ -430,7 +460,13 @@ export default function RegisterForm() {
 
   // Modificar el useEffect para validar el paso actual
   useEffect(() => {
+    console.log("=== useEffect validation triggered ===");
+    console.log("Current stepActive:", stepActive);
+    console.log("Current companySize:", companySize);
+    console.log("Current peopleGroup:", peopleGroup);
+    
     const isValid = validateCurrentStep();
+    console.log("Setting activeNextButton to:", isValid);
     setActiveNextButton(isValid);
   }, [
     nameCompany,
@@ -515,15 +551,23 @@ export default function RegisterForm() {
     }
   }, [ciiu]);
 
+  // Inicializar companySize como "indefinido" por defecto
+  useEffect(() => {
+    console.log("Initializing companySize to 'indefinido'");
+    setValue("companySize", "indefinido");
+  }, []); // Sin dependencias para que se ejecute solo una vez al montar
+
   // Calcular companySize automáticamente
   useEffect(() => {
+    console.log("Calculating companySize - sector:", sector, "annualRevenue:", annualRevenue);
     if (!sector || !annualRevenue) {
-      setValue("companySize", undefined);
+      console.log("No sector or annualRevenue, setting companySize to 'indefinido'");
+      setValue("companySize", "indefinido");
       return;
     }
     // Para el cálculo, usar el valor numérico limpio
     const revenueNum = parseInt(annualRevenue.replace(/[^\d]/g, ""), 10);
-    let size: "micro" | "pequena" | "mediana" | "grande" | "indefinido" | undefined = undefined;
+    let size: "micro" | "pequena" | "mediana" | "grande" | "indefinido" = "indefinido";
     if (sector === "COMERCIO") {
       if (revenueNum <= 1163000000) size = "micro";
       else if (revenueNum > 1163000000 && revenueNum <= 4074000000) size = "pequena";
@@ -542,16 +586,124 @@ export default function RegisterForm() {
     } else {
       size = "indefinido";
     }
+    console.log("Calculated companySize:", size);
     setValue("companySize", size);
   }, [sector, annualRevenue, setValue]);
 
   // Limpiar campos de grupo poblacional si no es empresa grande
   useEffect(() => {
+    console.log("Cleaning peopleGroup fields - companySize:", companySize);
     if (companySize !== "grande") {
+      console.log("Clearing peopleGroup and otherPeopleGroup");
       setValue("peopleGroup", "");
       setValue("otherPeopleGroup", "");
     }
   }, [companySize, setValue]);
+
+  // Log cuando cambia companySize
+  useEffect(() => {
+    console.log("companySize changed to:", companySize);
+  }, [companySize]);
+
+  // Log cuando cambia peopleGroup
+  useEffect(() => {
+    console.log("peopleGroup changed to:", peopleGroup);
+  }, [peopleGroup]);
+
+  // Log cuando cambia otherPeopleGroup
+  useEffect(() => {
+    console.log("otherPeopleGroup changed to:", otherPeopleGroup);
+  }, [otherPeopleGroup]);
+
+  // Log cuando cambia sector
+  useEffect(() => {
+    console.log("sector changed to:", sector);
+  }, [sector]);
+
+  // Log cuando cambia annualRevenue
+  useEffect(() => {
+    console.log("annualRevenue changed to:", annualRevenue);
+  }, [annualRevenue]);
+
+  // Log cuando cambia ciiu
+  useEffect(() => {
+    console.log("ciiu changed to:", ciiu);
+  }, [ciiu]);
+
+  // Log cuando cambia logo
+  useEffect(() => {
+    console.log("logo changed to:", logo);
+  }, [logo]);
+
+  // Log cuando cambia photo
+  useEffect(() => {
+    console.log("photo changed to:", photo);
+  }, [photo]);
+
+  // Log cuando cambia stepActive
+  useEffect(() => {
+    console.log("stepActive changed to:", stepActive);
+  }, [stepActive]);
+
+  // Log cuando cambia activeNextButton
+  useEffect(() => {
+    console.log("activeNextButton changed to:", activeNextButton);
+  }, [activeNextButton]);
+
+  // Log cuando cambia isLoading
+  useEffect(() => {
+    console.log("isLoading changed to:", isLoading);
+  }, [isLoading]);
+
+  // Log cuando cambia isCheckingEmail
+  useEffect(() => {
+    console.log("isCheckingEmail changed to:", isCheckingEmail);
+  }, [isCheckingEmail]);
+
+  // Log cuando cambia emailError
+  useEffect(() => {
+    console.log("emailError changed to:", emailError);
+  }, [emailError]);
+
+  // Log cuando cambia isCheckingCompanyDocument
+  useEffect(() => {
+    console.log("isCheckingCompanyDocument changed to:", isCheckingCompanyDocument);
+  }, [isCheckingCompanyDocument]);
+
+  // Log cuando cambia companyDocumentError
+  useEffect(() => {
+    console.log("companyDocumentError changed to:", companyDocumentError);
+  }, [companyDocumentError]);
+
+  // Log cuando cambia logoPreview
+  useEffect(() => {
+    console.log("logoPreview changed to:", logoPreview);
+  }, [logoPreview]);
+
+  // Log cuando cambia photoPreview
+  useEffect(() => {
+    console.log("photoPreview changed to:", photoPreview);
+  }, [logoPreview]);
+
+  // Log cuando cambia optionsCIIU
+  useEffect(() => {
+    console.log("optionsCIIU changed to:", optionsCIIU);
+  }, [optionsCIIU]);
+
+  // Log cuando cambia showPassword
+  useEffect(() => {
+    console.log("showPassword changed to:", showPassword);
+  }, [showPassword]);
+
+  // Log cuando cambia showConfirmPassword
+  useEffect(() => {
+    console.log("showConfirmPassword changed to:", showConfirmPassword);
+  }, [showConfirmPassword]);
+
+  // Log cuando cambia showSuccessModal
+  useEffect(() => {
+    console.log("showSuccessModal changed to:", showSuccessModal);
+  }, [showSuccessModal]);
 
   const handleRegister = async (data: FormData) => {
     try {
