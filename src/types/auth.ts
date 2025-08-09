@@ -3,7 +3,8 @@ import { SanityImage } from './sanity';
 
 export interface Company {
   _id: string;
-  name: string;
+  nameCompany: string;
+  companySize?: string;
 }
 
 export interface User extends FirebaseUser {

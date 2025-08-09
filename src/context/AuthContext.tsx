@@ -26,7 +26,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               photo,
               company->{
                 _id,
-                name
+                nameCompany,
+                companySize
               }
             }`,
             { firebaseUid: firebaseUser.uid }

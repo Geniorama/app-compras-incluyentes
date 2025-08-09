@@ -20,6 +20,9 @@ export default function DashboardSidebar() {
   const { user } = useAuth();
   const [userRole, setUserRole] = useState<string | null>(null);
 
+  // Verificar si la empresa es grande
+  const isLargeCompany = user?.company?.companySize === "grande";
+
   // Obtener el rol del usuario
   useEffect(() => {
     const fetchUserRole = async () => {
@@ -89,19 +92,39 @@ export default function DashboardSidebar() {
     <Sidebar className="w-full md:w-64">
       <Sidebar.Items>
         <Sidebar.ItemGroup>
-          {menuItems.map((item) => (
-            <Sidebar.Item
-              key={item.href}
-              {...(item.icon ? { icon: item.icon } : {})}
-              className={`${pathname === item.href ? 'bg-gray-100' : ''} cursor-pointer`}
-              as="div"
-              onClick={() => router.push(item.href)}
-            >
-              <span className="flex items-center">
-                {item.label}
-              </span>
-            </Sidebar.Item>
-          ))}
+          {menuItems.map((item) => {
+            const isProductsPage = item.href === '/dashboard/productos';
+            const isDisabled = isProductsPage && isLargeCompany;
+            
+            return (
+              <Sidebar.Item
+                key={item.href}
+                {...(item.icon ? { icon: item.icon } : {})}
+                className={`${
+                  pathname === item.href ? 'bg-gray-100' : ''
+                } ${
+                  isDisabled 
+                    ? 'cursor-not-allowed opacity-50' 
+                    : 'cursor-pointer'
+                }`}
+                as="div"
+                onClick={() => {
+                  if (!isDisabled) {
+                    router.push(item.href);
+                  }
+                }}
+              >
+                <span className="flex flex-col items-start justify-between w-full">
+                  <span>{item.label}</span>
+                  {isDisabled && (
+                    <span className="text-xs text-gray-400">
+                      No disponible
+                    </span>
+                  )}
+                </span>
+              </Sidebar.Item>
+            );
+          })}
         </Sidebar.ItemGroup>
         <Sidebar.ItemGroup>
           <Sidebar.Item

@@ -45,13 +45,11 @@ export default function DashboardNavbar() {
   // Obtener la URL de la imagen de perfil desde Sanity si existe
   const avatarUrl =
     user?.photo && user?.photo.asset?._ref
-      ? `https://cdn.sanity.io/images/${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID}/${process.env.NEXT_PUBLIC_SANITY_DATASET}/${user.photo.asset._ref
+      && `https://cdn.sanity.io/images/${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID}/${process.env.NEXT_PUBLIC_SANITY_DATASET}/${user.photo.asset._ref
           .replace("image-", "")
           .replace("-jpg", ".jpg")
           .replace("-png", ".png")
           .replace("-webp", ".webp")}`
-      : "https://flowbite.com/docs/images/people/profile-picture-5.jpg";
-
   const handleSignOut = async () => {
     try {
       await logout();
@@ -108,7 +106,7 @@ export default function DashboardNavbar() {
         </div>
 
         <div className="relative flex justify-center items-center">
-          <button className="outline-none" onClick={() => {
+          <button className="outline-none h-10 w-10" onClick={() => {
             setIsMenuOpen(!isMenuOpen)
             if(isMobile) {
               setIsSecondaryMenuOpen(false)
@@ -118,7 +116,9 @@ export default function DashboardNavbar() {
               alt="User settings"
               img={avatarUrl}
               rounded
-              className="w-10 h-10"
+              bordered
+              // color="gray"
+              size="md"
             />
           </button>
 
