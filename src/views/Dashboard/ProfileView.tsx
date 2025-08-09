@@ -19,11 +19,23 @@ import { FirebaseError } from "firebase/app";
 import DashboardSidebar from "@/components/DashboardSidebar";
 import type { UserProfile, SanityImage } from "@/types";
 import { getDepartamentosOptions, getCiudadesOptionsByDepartamento } from "@/utils/departamentosCiudades";
-import { getCIIUOptions } from "@/utils/ciiuOptions";
+import { getCIIUOptions, getSectorFromCIIU } from "@/utils/ciiuOptions";
 
 interface ProfileViewProps {
   initialProfile?: UserProfile | null;
   error?: string;
+}
+
+// Función para formatear a moneda COP
+function formatCOP(value: string): string {
+  if (!value) return "";
+  const numeric = value.replace(/[^\d]/g, "");
+  if (!numeric) return "";
+  return parseInt(numeric, 10).toLocaleString("es-CO", {
+    style: "currency",
+    currency: "COP",
+    maximumFractionDigits: 0,
+  });
 }
 
 export default function ProfileView({
@@ -50,6 +62,10 @@ export default function ProfileView({
   
   // Estados para CIIU
   const [ciiuOptions] = useState(() => getCIIUOptions());
+  
+  // Estados para annualRevenue y sector
+  const [annualRevenueDisplay, setAnnualRevenueDisplay] = useState<string>("");
+  const [sector, setSector] = useState<string>("");
 
   useEffect(() => {
     if (initialProfile) {
@@ -69,6 +85,9 @@ export default function ProfileView({
         companySize: initialProfile.company?.companySize || "",
         peopleGroup: initialProfile.company?.peopleGroup || "",
         otherPeopleGroup: initialProfile.company?.otherPeopleGroup || "",
+        friendlyBizz: initialProfile.company?.friendlyBizz || false,
+        membership: initialProfile.company?.membership || false,
+        annualRevenue: initialProfile.company?.annualRevenue || 0,
         logo: initialProfile.company?.logo,
         facebook: initialProfile.company?.facebook || "",
         instagram: initialProfile.company?.instagram || "",
@@ -83,6 +102,15 @@ export default function ProfileView({
       };
       setProfile(typedCombinedProfile);
       setOriginalProfile(typedCombinedProfile);
+      
+      // Inicializar annualRevenueDisplay y sector
+      if (typedCombinedProfile.annualRevenue) {
+        setAnnualRevenueDisplay(typedCombinedProfile.annualRevenue.toString());
+      }
+      if (typedCombinedProfile.ciiu) {
+        const sectorResult = getSectorFromCIIU(typedCombinedProfile.ciiu);
+        setSector(sectorResult || "");
+      }
     }
   }, [initialProfile]);
 
@@ -95,6 +123,46 @@ export default function ProfileView({
       setCiudadesOptions([]);
     }
   }, [profile?.department]);
+
+  // Actualizar sector cuando cambie el CIIU
+  useEffect(() => {
+    if (profile?.ciiu) {
+      const sectorResult = getSectorFromCIIU(profile.ciiu);
+      setSector(sectorResult || "");
+    } else {
+      setSector("");
+    }
+  }, [profile?.ciiu]);
+
+  // Calcular companySize automáticamente
+  useEffect(() => {
+    if (!sector || !annualRevenueDisplay || !profile) return;
+    
+    const revenueNum = parseInt(annualRevenueDisplay.replace(/[^\d]/g, ""), 10);
+    let size: "micro" | "pequena" | "mediana" | "grande" | "indefinido" = "indefinido";
+    
+    if (sector === "COMERCIO") {
+      if (revenueNum <= 1163000000) size = "micro";
+      else if (revenueNum > 1163000000 && revenueNum <= 4074000000) size = "pequena";
+      else if (revenueNum > 4074000000 && revenueNum <= 15563000000) size = "mediana";
+      else if (revenueNum > 15563000000) size = "grande";
+    } else if (sector === "MANUFACTURA") {
+      if (revenueNum <= 652000000) size = "micro";
+      else if (revenueNum > 652000000 && revenueNum <= 2601000000) size = "pequena";
+      else if (revenueNum > 2601000000 && revenueNum <= 23563000000) size = "mediana";
+      else if (revenueNum > 23563000000) size = "grande";
+    } else if (sector === "SERVICIOS") {
+      if (revenueNum <= 519000000) size = "micro";
+      else if (revenueNum > 519000000 && revenueNum <= 1877000000) size = "pequena";
+      else if (revenueNum > 1877000000 && revenueNum <= 7523000000) size = "mediana";
+      else if (revenueNum > 7523000000) size = "grande";
+    }
+    
+    // Solo actualizar si el tamaño o revenue han cambiado
+    if (profile.companySize !== size || profile.annualRevenue !== revenueNum) {
+      setProfile({ ...profile, companySize: size, annualRevenue: revenueNum });
+    }
+  }, [sector, annualRevenueDisplay]); // Remover profile de las dependencias
 
   const handleChange = (field: keyof UserProfile, value: string) => {
     if (profile) {
@@ -109,6 +177,12 @@ export default function ProfileView({
         setProfile({ ...profile, [field]: value });
       }
     }
+  };
+
+  // Función para manejar el cambio de ingresos anuales
+  const handleAnnualRevenueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/[^\d]/g, "");
+    setAnnualRevenueDisplay(raw);
   };
 
   // Función para detectar si hay cambios en el perfil
@@ -133,8 +207,12 @@ export default function ProfileView({
       "addressCompany",
       "department",
       "city",
+      "companySize",
       "peopleGroup",
       "otherPeopleGroup",
+      "friendlyBizz",
+      "membership",
+      "annualRevenue",
       "photo",
       "logo",
     ];
@@ -142,10 +220,14 @@ export default function ProfileView({
     // Si hay una nueva foto o logo seleccionados, hay cambios
     if (photoFile || logoFile) return true;
 
+    // Verificar si annualRevenueDisplay ha cambiado
+    const originalAnnualRevenueDisplay = originalProfile.annualRevenue ? originalProfile.annualRevenue.toString() : "";
+    if (annualRevenueDisplay !== originalAnnualRevenueDisplay) return true;
+
     return fieldsToCompare.some(
       (field) => profile[field] !== originalProfile[field]
     );
-  }, [profile, originalProfile, photoFile, logoFile]);
+  }, [profile, originalProfile, photoFile, logoFile, annualRevenueDisplay]);
 
   // Al seleccionar nueva foto
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -240,6 +322,11 @@ export default function ProfileView({
         photo: photoSanity,
       };
 
+      // Asegurar que annualRevenue tenga el valor más reciente
+      const currentAnnualRevenue = annualRevenueDisplay ? parseInt(annualRevenueDisplay.replace(/[^\d]/g, ""), 10) : (profile.annualRevenue || 0);
+      
+      console.log('Sending annualRevenue:', currentAnnualRevenue, 'from annualRevenueDisplay:', annualRevenueDisplay, 'profile.annualRevenue:', profile.annualRevenue);
+      
       const companyData = {
         nameCompany: profile.nameCompany,
         businessName: profile.businessName,
@@ -250,8 +337,12 @@ export default function ProfileView({
         addressCompany: profile.addressCompany,
         department: profile.department,
         city: profile.city,
+        companySize: profile.companySize,
         peopleGroup: profile.peopleGroup,
         otherPeopleGroup: profile.otherPeopleGroup,
+        friendlyBizz: profile.friendlyBizz,
+        membership: profile.membership,
+        annualRevenue: currentAnnualRevenue,
         facebook: profile.facebook,
         instagram: profile.instagram,
         tiktok: profile.tiktok,
@@ -259,6 +350,7 @@ export default function ProfileView({
         linkedin: profile.linkedin,
         xtwitter: profile.xtwitter,
         logo: logoSanity,
+        updatedAt: new Date().toISOString(),
       };
 
       // Llamar al endpoint de actualización
@@ -289,6 +381,11 @@ export default function ProfileView({
         };
         setProfile(updatedProfile);
         setOriginalProfile(updatedProfile);
+        
+        // Actualizar annualRevenueDisplay con el valor guardado
+        if (updatedProfile.annualRevenue) {
+          setAnnualRevenueDisplay(updatedProfile.annualRevenue.toString());
+        }
 
         toast.success(
           profile.email !== originalProfile?.email
@@ -855,6 +952,28 @@ export default function ProfileView({
                         },
                       }}
                     />
+                  </div>
+
+                  <div className="w-full md:w-1/2 px-2 space-y-1">
+                    <Label htmlFor="annualRevenue">
+                      Ingresos anuales (en millones de pesos COP)
+                    </Label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      id="annualRevenue"
+                      name="annualRevenue"
+                      className={`w-full border rounded px-3 py-2 border-slate-200 focus:border-blue-600 ${isUserOnly ? "bg-gray-100 text-gray-500" : ""}`}
+                      placeholder="Ej: $1.200.000"
+                      value={formatCOP(annualRevenueDisplay)}
+                      onChange={handleAnnualRevenueChange}
+                      disabled={isUserOnly}
+                    />
+                    {sector && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Sector detectado: <b>{sector}</b>
+                      </p>
+                    )}
                   </div>
 
                   <div className="w-full md:w-1/2 px-2 space-y-1">
