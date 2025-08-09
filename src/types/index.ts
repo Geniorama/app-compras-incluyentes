@@ -41,6 +41,9 @@ export interface CompanyData {
     companySize?: string;
     peopleGroup?: string;
     otherPeopleGroup?: string;
+    friendlyBizz?: boolean;
+    membership?: boolean;
+    annualRevenue?: number;
     logo?: string;
     facebook?: string;
     instagram?: string;
@@ -84,6 +87,9 @@ export interface UserProfile extends UserData {
     companySize?: string;
     peopleGroup?: string;
     otherPeopleGroup?: string;
+    friendlyBizz?: boolean;
+    membership?: boolean;
+    annualRevenue?: number;
     logo?: string | import('./sanity').SanityImage;
     facebook?: string;
     instagram?: string;

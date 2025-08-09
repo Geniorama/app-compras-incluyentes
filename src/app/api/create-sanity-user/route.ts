@@ -38,6 +38,8 @@ export async function POST(request: Request) {
       otherPeopleGroup,
       infoVisibilityConsent,
       dataTreatmentConsent,
+      friendlyBizz,
+      annualRevenue,
     } = await request.json()
 
     if (!logo || !photo) {
@@ -74,6 +76,9 @@ export async function POST(request: Request) {
       companySize,
       peopleGroup,
       otherPeopleGroup,
+      friendlyBizz: friendlyBizz || false,
+      membership: membership === 'yes' ? true : false,
+      annualRevenue: annualRevenue || 0,
       active: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -100,7 +105,6 @@ export async function POST(request: Request) {
       },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      membership: membership === 'yes' ? true : false,
       infoVisibilityConsent: infoVisibilityConsent || false,
       dataTreatmentConsent,
     })

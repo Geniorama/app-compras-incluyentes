@@ -74,6 +74,8 @@ interface FormData {
   otherPeopleGroup?: string;
   dataTreatmentConsent: boolean;
   infoVisibilityConsent: boolean;
+  friendlyBizz: boolean;
+  annualRevenue: number;
 }
 
 // Agregar interfaces para validaciones
@@ -87,8 +89,11 @@ export default function RegisterForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [isCheckingEmail, setIsCheckingEmail] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
-  const [isCheckingCompanyDocument, setIsCheckingCompanyDocument] = useState(false);
-  const [companyDocumentError, setCompanyDocumentError] = useState<string | null>(null);
+  const [isCheckingCompanyDocument, setIsCheckingCompanyDocument] =
+    useState(false);
+  const [companyDocumentError, setCompanyDocumentError] = useState<
+    string | null
+  >(null);
   const [logo, setLogo] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [photo, setPhoto] = useState<File | null>(null);
@@ -126,6 +131,7 @@ export default function RegisterForm() {
   const companySize = watch("companySize");
   const peopleGroup = watch("peopleGroup");
   const otherPeopleGroup = watch("otherPeopleGroup");
+  const friendlyBizz = watch("friendlyBizz");
 
   // Fields Step 2
   const firstName = watch("firstName");
@@ -226,18 +232,32 @@ export default function RegisterForm() {
 
       case "peopleGroup":
         // Solo es obligatorio si la empresa NO es grande
-        console.log("Validating peopleGroup - companySize:", companySize, "value:", value);
+        console.log(
+          "Validating peopleGroup - companySize:",
+          companySize,
+          "value:",
+          value
+        );
         if (companySize !== "grande" && !value) {
-          console.log("peopleGroup validation failed - required for non-grande companies");
+          console.log(
+            "peopleGroup validation failed - required for non-grande companies"
+          );
           return "Debe seleccionar una opción para empresas pequeñas y medianas";
         }
         console.log("peopleGroup validation passed");
         return null;
 
       case "otherPeopleGroup":
-        console.log("Validating otherPeopleGroup - peopleGroup:", peopleGroup, "value:", value);
+        console.log(
+          "Validating otherPeopleGroup - peopleGroup:",
+          peopleGroup,
+          "value:",
+          value
+        );
         if (peopleGroup === "otro" && !value) {
-          console.log("otherPeopleGroup validation failed - required when peopleGroup is 'otro'");
+          console.log(
+            "otherPeopleGroup validation failed - required when peopleGroup is 'otro'"
+          );
           return "Debe especificar el grupo poblacional cuando selecciona 'Otro'";
         }
         console.log("otherPeopleGroup validation passed");
@@ -279,7 +299,10 @@ export default function RegisterForm() {
 
       case "phone":
         if (!value) return "El número de teléfono es obligatorio";
-        if (typeof value === "string" && !/^\+?\d{10,15}$/.test(value.replace(/\D/g, "")))
+        if (
+          typeof value === "string" &&
+          !/^\+?\d{10,15}$/.test(value.replace(/\D/g, ""))
+        )
           return "El número de teléfono debe tener entre 10 y 15 dígitos";
         return null;
 
@@ -307,10 +330,12 @@ export default function RegisterForm() {
 
       case "confirmPassword":
         if (!value) return "La confirmación de contraseña es obligatoria";
-        if (typeof value === "string" && value !== password) return "Las contraseñas no coinciden";
+        if (typeof value === "string" && value !== password)
+          return "Las contraseñas no coinciden";
         return null;
       case "dataTreatmentConsent":
-        if (value !== true) return "Debes aceptar el tratamiento de datos personales";
+        if (value !== true)
+          return "Debes aceptar el tratamiento de datos personales";
         return null;
       case "infoVisibilityConsent":
         // Ya no es obligatorio, así que no retorna error si no está seleccionado
@@ -369,7 +394,10 @@ export default function RegisterForm() {
         const value = watch(field);
         console.log(`Validating ${field}:`, value);
         // Ajustar para pasar correctamente el tipo de dato
-        const error = validateField(field, typeof value === "boolean" ? value : value as string | undefined);
+        const error = validateField(
+          field,
+          typeof value === "boolean" ? value : (value as string | undefined)
+        );
         if (error) {
           console.log(`Error in ${field}:`, error);
           currentErrors[field] = error;
@@ -406,7 +434,10 @@ export default function RegisterForm() {
 
       fieldsToValidate.forEach((field: keyof FormData) => {
         const value = watch(field);
-        const error = validateField(field, typeof value === "boolean" ? value : value as string | undefined);
+        const error = validateField(
+          field,
+          typeof value === "boolean" ? value : (value as string | undefined)
+        );
         if (error) {
           currentErrors[field] = error;
           isValid = false;
@@ -431,7 +462,10 @@ export default function RegisterForm() {
       ];
       fieldsToValidate.forEach((field: keyof FormData) => {
         const value = watch(field);
-        const error = validateField(field, typeof value === "boolean" ? value : value as string | undefined);
+        const error = validateField(
+          field,
+          typeof value === "boolean" ? value : (value as string | undefined)
+        );
         if (error) {
           currentErrors[field] = error;
           isValid = false;
@@ -446,7 +480,10 @@ export default function RegisterForm() {
   // Modificar la función handleNextStep
   const handleNextStep = async () => {
     if (stepActive === 1) {
-      const isCompanyDocumentValid = await validateCompanyDocument(watch("typeDocumentCompany"), watch("numDocumentCompany"));
+      const isCompanyDocumentValid = await validateCompanyDocument(
+        watch("typeDocumentCompany"),
+        watch("numDocumentCompany")
+      );
       if (!isCompanyDocumentValid) return;
     } else if (stepActive === 2) {
       const isEmailValid = await validateEmail(email);
@@ -464,7 +501,7 @@ export default function RegisterForm() {
     console.log("Current stepActive:", stepActive);
     console.log("Current companySize:", companySize);
     console.log("Current peopleGroup:", peopleGroup);
-    
+
     const isValid = validateCurrentStep();
     console.log("Setting activeNextButton to:", isValid);
     setActiveNextButton(isValid);
@@ -497,6 +534,7 @@ export default function RegisterForm() {
     otherPeopleGroup,
     dataTreatmentConsent,
     infoVisibilityConsent,
+    friendlyBizz,
   ]);
 
   useEffect(() => {
@@ -559,29 +597,43 @@ export default function RegisterForm() {
 
   // Calcular companySize automáticamente
   useEffect(() => {
-    console.log("Calculating companySize - sector:", sector, "annualRevenue:", annualRevenue);
+    console.log(
+      "Calculating companySize - sector:",
+      sector,
+      "annualRevenue:",
+      annualRevenue
+    );
     if (!sector || !annualRevenue) {
-      console.log("No sector or annualRevenue, setting companySize to 'indefinido'");
+      console.log(
+        "No sector or annualRevenue, setting companySize to 'indefinido'"
+      );
       setValue("companySize", "indefinido");
       return;
     }
     // Para el cálculo, usar el valor numérico limpio
     const revenueNum = parseInt(annualRevenue.replace(/[^\d]/g, ""), 10);
-    let size: "micro" | "pequena" | "mediana" | "grande" | "indefinido" = "indefinido";
+    let size: "micro" | "pequena" | "mediana" | "grande" | "indefinido" =
+      "indefinido";
     if (sector === "COMERCIO") {
       if (revenueNum <= 1163000000) size = "micro";
-      else if (revenueNum > 1163000000 && revenueNum <= 4074000000) size = "pequena";
-      else if (revenueNum > 4074000000 && revenueNum <= 15563000000) size = "mediana";
+      else if (revenueNum > 1163000000 && revenueNum <= 4074000000)
+        size = "pequena";
+      else if (revenueNum > 4074000000 && revenueNum <= 15563000000)
+        size = "mediana";
       else if (revenueNum > 15563000000) size = "grande";
     } else if (sector === "MANUFACTURA") {
       if (revenueNum <= 652000000) size = "micro";
-      else if (revenueNum > 652000000 && revenueNum <= 2601000000) size = "pequena";
-      else if (revenueNum > 2601000000 && revenueNum <= 23563000000) size = "mediana";
+      else if (revenueNum > 652000000 && revenueNum <= 2601000000)
+        size = "pequena";
+      else if (revenueNum > 2601000000 && revenueNum <= 23563000000)
+        size = "mediana";
       else if (revenueNum > 23563000000) size = "grande";
     } else if (sector === "SERVICIOS") {
       if (revenueNum <= 519000000) size = "micro";
-      else if (revenueNum > 519000000 && revenueNum <= 1877000000) size = "pequena";
-      else if (revenueNum > 1877000000 && revenueNum <= 7523000000) size = "mediana";
+      else if (revenueNum > 519000000 && revenueNum <= 1877000000)
+        size = "pequena";
+      else if (revenueNum > 1877000000 && revenueNum <= 7523000000)
+        size = "mediana";
       else if (revenueNum > 7523000000) size = "grande";
     } else {
       size = "indefinido";
@@ -667,7 +719,10 @@ export default function RegisterForm() {
 
   // Log cuando cambia isCheckingCompanyDocument
   useEffect(() => {
-    console.log("isCheckingCompanyDocument changed to:", isCheckingCompanyDocument);
+    console.log(
+      "isCheckingCompanyDocument changed to:",
+      isCheckingCompanyDocument
+    );
   }, [isCheckingCompanyDocument]);
 
   // Log cuando cambia companyDocumentError
@@ -732,6 +787,7 @@ export default function RegisterForm() {
             firebaseUid: firebaseUser.uid,
             logo: logoSanity,
             photo: photoSanity,
+            annualRevenue: parseInt(annualRevenue.replace(/[^\d]/g, ""), 10) || 0,
           }),
           headers: {
             "Content-Type": "application/json",
@@ -867,7 +923,10 @@ export default function RegisterForm() {
     }
   };
 
-  const validateCompanyDocument = async (docType: string, docNumber: string) => {
+  const validateCompanyDocument = async (
+    docType: string,
+    docNumber: string
+  ) => {
     if (!docType || !docNumber) return false;
 
     setIsCheckingCompanyDocument(true);
@@ -879,25 +938,34 @@ export default function RegisterForm() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ typeDocumentCompany: docType, numDocumentCompany: docNumber }),
+        body: JSON.stringify({
+          typeDocumentCompany: docType,
+          numDocumentCompany: docNumber,
+        }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        setCompanyDocumentError(data.message || "Error al verificar el documento de la empresa");
+        setCompanyDocumentError(
+          data.message || "Error al verificar el documento de la empresa"
+        );
         return false;
       }
 
       if (data.exists) {
-        setCompanyDocumentError("Ya existe una empresa registrada con este documento");
+        setCompanyDocumentError(
+          "Ya existe una empresa registrada con este documento"
+        );
         return false;
       }
 
       return true;
     } catch (error: unknown) {
       setCompanyDocumentError(
-        error instanceof Error ? error.message : "Error al verificar el documento de la empresa"
+        error instanceof Error
+          ? error.message
+          : "Error al verificar el documento de la empresa"
       );
       return false;
     } finally {
@@ -911,7 +979,11 @@ export default function RegisterForm() {
     // Eliminar todo lo que no sea número
     const numeric = value.replace(/[^\d]/g, "");
     if (!numeric) return "";
-    return parseInt(numeric, 10).toLocaleString("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
+    return parseInt(numeric, 10).toLocaleString("es-CO", {
+      style: "currency",
+      currency: "COP",
+      maximumFractionDigits: 0,
+    });
   }
 
   // Manejar el cambio en el input de ingresos anuales
@@ -1156,10 +1228,17 @@ export default function RegisterForm() {
                                     return newErrors;
                                   });
                                 }
-                                
+
                                 // Validar documento de empresa si ambos campos están completos
-                                if (value && watch("numDocumentCompany") && watch("numDocumentCompany").length >= 8) {
-                                  await validateCompanyDocument(value, watch("numDocumentCompany"));
+                                if (
+                                  value &&
+                                  watch("numDocumentCompany") &&
+                                  watch("numDocumentCompany").length >= 8
+                                ) {
+                                  await validateCompanyDocument(
+                                    value,
+                                    watch("numDocumentCompany")
+                                  );
                                 } else {
                                   setCompanyDocumentError(null);
                                 }
@@ -1194,25 +1273,39 @@ export default function RegisterForm() {
                                     return newErrors;
                                   });
                                 }
-                                
+
                                 // Validar documento de empresa si ambos campos están completos
-                                if (watch("typeDocumentCompany") && value && value.length >= 8) {
-                                  await validateCompanyDocument(watch("typeDocumentCompany"), value);
+                                if (
+                                  watch("typeDocumentCompany") &&
+                                  value &&
+                                  value.length >= 8
+                                ) {
+                                  await validateCompanyDocument(
+                                    watch("typeDocumentCompany"),
+                                    value
+                                  );
                                 } else {
                                   setCompanyDocumentError(null);
                                 }
                               },
                             })}
                             className="w-auto flex-grow"
-                            color={validationErrors.numDocumentCompany || companyDocumentError ? "failure" : "blue"}
+                            color={
+                              validationErrors.numDocumentCompany ||
+                              companyDocumentError
+                                ? "failure"
+                                : "blue"
+                            }
                             id="numDocumentCompany"
                             placeholder="Número de documento"
                             type="number"
                           />
                         </div>
-                        {(validationErrors.numDocumentCompany || companyDocumentError) && (
+                        {(validationErrors.numDocumentCompany ||
+                          companyDocumentError) && (
                           <p className="text-red-500 text-sm mt-1">
-                            {validationErrors.numDocumentCompany || companyDocumentError}
+                            {validationErrors.numDocumentCompany ||
+                              companyDocumentError}
                           </p>
                         )}
                         {isCheckingCompanyDocument && (
@@ -1412,7 +1505,8 @@ export default function RegisterForm() {
 
                       <div className="w-full md:w-1/2 lg:w-1/2 px-2 space-y-1 md:mt-6">
                         <Label htmlFor="annualRevenue">
-                          Ingresos anuales (en millones de pesos COP) <span className="text-red-500">*</span>
+                          Ingresos anuales (en millones de pesos COP){" "}
+                          <span className="text-red-500">*</span>
                         </Label>
                         <input
                           type="text"
@@ -1427,64 +1521,83 @@ export default function RegisterForm() {
                           required
                         />
                         {sector && (
-                          <p className="text-xs text-gray-500 mt-1">Sector detectado: <b>{sector}</b></p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Sector detectado: <b>{sector}</b>
+                          </p>
                         )}
                       </div>
 
-                                              {companySize !== "grande" && (
-                          <div className="w-full md:w-1/2 lg:w-1/2 px-2 space-y-1">
-                            
-                            <Label htmlFor="peopleGroup">
-                              ¿El 50% de los accionistas de la empresa pertenece a algún grupo poblacional? <span className="text-red-500">*</span>
-                            </Label>
-                            <Select
-                              {...register("peopleGroup", {
-                                required: "Debe seleccionar una opción para empresas pequeñas y medianas",
-                                onChange: (e) => {
-                                  const error = validateField(
-                                    "peopleGroup",
-                                    e.target.value
-                                  );
-                                  if (error) {
-                                    setValidationErrors((prev) => ({
-                                      ...prev,
-                                      peopleGroup: error,
-                                    }));
-                                  } else {
-                                    setValidationErrors((prev) => {
-                                      const { ...rest } = prev;
-                                      return rest;
-                                    });
-                                  }
-                                },
-                              })}
-                              id="peopleGroup"
-                              className="w-full"
-                              color={validationErrors.peopleGroup ? "failure" : "blue"}
-                            >
-                              <option value="">Selecciona una opción</option>
-                              <option value="diversidad-sexual">Diversidad Sexual</option>
-                              <option value="personas-discapacidad">Personas con discapacidad</option>
-                              <option value="etnia-raza-afro">Etnia, raza o afro</option>
-                              <option value="personas-migrantes">Personas migrantes</option>
-                              <option value="generacional">Generacional</option>
-                              <option value="equidad-genero">Equidad de Género</option>
-                              <option value="pospenados-reinsertados">Pospenados o reinsertados</option>
-                              <option value="ninguno">Ninguno</option>
-                              <option value="otro">Otro</option>
-                            </Select>
-                            {validationErrors.peopleGroup && (
-                              <p className="text-red-500 text-sm mt-1">
-                                {validationErrors.peopleGroup}
-                              </p>
-                            )}
-                          </div>
-                        )}
+                      {companySize !== "grande" && (
+                        <div className="w-full md:w-1/2 lg:w-1/2 px-2 space-y-1">
+                          <Label htmlFor="peopleGroup">
+                            ¿El 50% de los accionistas de la empresa pertenece a
+                            algún grupo poblacional?{" "}
+                            <span className="text-red-500">*</span>
+                          </Label>
+                          <Select
+                            {...register("peopleGroup", {
+                              required:
+                                "Debe seleccionar una opción para empresas pequeñas y medianas",
+                              onChange: (e) => {
+                                const error = validateField(
+                                  "peopleGroup",
+                                  e.target.value
+                                );
+                                if (error) {
+                                  setValidationErrors((prev) => ({
+                                    ...prev,
+                                    peopleGroup: error,
+                                  }));
+                                } else {
+                                  setValidationErrors((prev) => {
+                                    const { ...rest } = prev;
+                                    return rest;
+                                  });
+                                }
+                              },
+                            })}
+                            id="peopleGroup"
+                            className="w-full"
+                            color={
+                              validationErrors.peopleGroup ? "failure" : "blue"
+                            }
+                          >
+                            <option value="">Selecciona una opción</option>
+                            <option value="diversidad-sexual">
+                              Diversidad Sexual
+                            </option>
+                            <option value="personas-discapacidad">
+                              Personas con discapacidad
+                            </option>
+                            <option value="etnia-raza-afro">
+                              Etnia, raza o afro
+                            </option>
+                            <option value="personas-migrantes">
+                              Personas migrantes
+                            </option>
+                            <option value="generacional">Generacional</option>
+                            <option value="equidad-genero">
+                              Equidad de Género
+                            </option>
+                            <option value="pospenados-reinsertados">
+                              Pospenados o reinsertados
+                            </option>
+                            <option value="ninguno">Ninguno</option>
+                            <option value="otro">Otro</option>
+                          </Select>
+                          {validationErrors.peopleGroup && (
+                            <p className="text-red-500 text-sm mt-1">
+                              {validationErrors.peopleGroup}
+                            </p>
+                          )}
+                        </div>
+                      )}
 
                       {companySize !== "grande" && peopleGroup === "otro" && (
                         <div className="w-full md:w-1/2 lg:w-1/2 px-2 space-y-1">
                           <Label htmlFor="otherPeopleGroup">
-                            Especificar otro grupo poblacional <span className="text-red-500">*</span>
+                            Especificar otro grupo poblacional{" "}
+                            <span className="text-red-500">*</span>
                           </Label>
                           <TextInput
                             {...register("otherPeopleGroup", {
@@ -1509,7 +1622,11 @@ export default function RegisterForm() {
                             })}
                             id="otherPeopleGroup"
                             className="w-full"
-                            color={validationErrors.otherPeopleGroup ? "failure" : "blue"}
+                            color={
+                              validationErrors.otherPeopleGroup
+                                ? "failure"
+                                : "blue"
+                            }
                             placeholder="Especificar grupo poblacional"
                           />
                           {validationErrors.otherPeopleGroup && (
@@ -1519,6 +1636,58 @@ export default function RegisterForm() {
                           )}
                         </div>
                       )}
+
+                                             <div className="w-full px-2 space-y-1 md:mt-6">
+                         <div className="flex items-center space-x-2">
+                           <input
+                             type="checkbox"
+                             id="friendlyBizz"
+                             {...register("friendlyBizz")}
+                             className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                           />
+                           <Label
+                             htmlFor="friendlyBizz"
+                             className="text-sm font-medium"
+                           >
+                             ¿La empresa está certificada con el sello Friendly
+                             Bizz?
+                           </Label>
+                         </div>
+                         <p className="text-xs text-gray-500 mt-1">
+                           Marca esta opción si tu empresa cuenta con la
+                           certificación Friendly Bizz
+                         </p>
+                       </div>
+
+                       <div className="w-full px-2 space-y-4 text-center py-5 gap-2 bg-blue-100 rounded-lg md:mt-6">
+                         <p className="lg:text-lg font-normal">
+                           ¿Tienes una afiliación o membresía activa en la Cámara de la
+                           Diversidad? <span className="text-red-500">*</span>
+                         </p>
+                         <div className="flex items-center gap-8 justify-center">
+                           <div className="flex items-center gap-2 lg:gap-0">
+                             <Radio
+                               {...register("membership")}
+                               id="yesMembership"
+                               className="w-5 h-5 lg:mr-2 lg:mt-1"
+                               color="blue"
+                               value="yes"
+                             />
+                             <Label htmlFor="yesMembership">Si</Label>
+                           </div>
+                           <div className="flex items-center gap-2 lg:gap-0">
+                             <Radio
+                               {...register("membership")}
+                               id="noMembership"
+                               className="w-5 h-5 lg:mr-2 lg:mt-1"
+                               color="blue"
+                               value="no"
+                               defaultChecked={true}
+                             />
+                             <Label htmlFor="noMembership">No</Label>
+                           </div>
+                         </div>
+                       </div>
                     </div>
                   </AccordionContent>
                 </AccordionPanel>
@@ -1964,35 +2133,7 @@ export default function RegisterForm() {
                   )}
                 </div>
 
-                <div className="w-full px-4 space-y-4 text-center py-5 gap-2 bg-blue-100 rounded-lg">
-                  <p className="lg:text-lg font-normal">
-                    ¿Tienes una afiliación o membresía activa en la Cámara de la
-                    Diversidad? <span className="text-red-500">*</span>
-                  </p>
-                  <div className="flex items-center gap-8 justify-center">
-                    <div className="flex items-center gap-2 lg:gap-0">
-                      <Radio
-                        {...register("membership")}
-                        id="yesMembership"
-                        className="w-5 h-5 lg:mr-2 lg:mt-1"
-                        color="blue"
-                        value="yes"
-                      />
-                      <Label htmlFor="yesMembership">Si</Label>
-                    </div>
-                    <div className="flex items-center gap-2 lg:gap-0">
-                      <Radio
-                      {...register("membership")}
-                      id="noMembership"
-                      className="w-5 h-5 lg:mr-2 lg:mt-1"
-                      color="blue"
-                      value="no"
-                      defaultChecked={true}
-                      />
-                      <Label htmlFor="noMembership">No</Label>
-                    </div>
-                  </div>
-                </div>
+
               </div>
             </fieldset>
           )}
@@ -2112,11 +2253,24 @@ export default function RegisterForm() {
                     className="mt-1 mr-2"
                   />
                   <div>
-                    <Label htmlFor="dataTreatmentConsent" className="font-medium">
-                      Aceptación de <a href="https://camaradeladiversidad.com/home/politica-de-privacidad/" target="_blank" rel="noopener noreferrer" className="text-blue-600">tratamiento de datos personales</a> <span className="text-red-500">*</span>
+                    <Label
+                      htmlFor="dataTreatmentConsent"
+                      className="font-medium"
+                    >
+                      Aceptación de{" "}
+                      <a
+                        href="https://camaradeladiversidad.com/home/politica-de-privacidad/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600"
+                      >
+                        tratamiento de datos personales
+                      </a>{" "}
+                      <span className="text-red-500">*</span>
                     </Label>
                     <p className="text-xs text-gray-600">
-                      Debes aceptar el tratamiento de tus datos personales para registrarte.
+                      Debes aceptar el tratamiento de tus datos personales para
+                      registrarte.
                     </p>
                     {validationErrors.dataTreatmentConsent && (
                       <p className="text-red-500 text-sm mt-1">
@@ -2134,11 +2288,15 @@ export default function RegisterForm() {
                     defaultChecked={true}
                   />
                   <div>
-                    <Label htmlFor="infoVisibilityConsent" className="font-medium">
+                    <Label
+                      htmlFor="infoVisibilityConsent"
+                      className="font-medium"
+                    >
                       Autorización de visibilidad de información (Opcional)
                     </Label>
                     <p className="text-xs text-gray-600">
-                      Autorizo que mi información sea visible en la plataforma para otros usuarios y empresas.
+                      Autorizo que mi información sea visible en la plataforma
+                      para otros usuarios y empresas.
                     </p>
                     {validationErrors.infoVisibilityConsent && (
                       <p className="text-red-500 text-sm mt-1">
@@ -2184,7 +2342,9 @@ export default function RegisterForm() {
                 <Button
                   className="w-full md:w-auto min-w-32"
                   type="submit"
-                  disabled={!activeNextButton || isLoading || !dataTreatmentConsent}
+                  disabled={
+                    !activeNextButton || isLoading || !dataTreatmentConsent
+                  }
                 >
                   {isLoading ? (
                     <>
