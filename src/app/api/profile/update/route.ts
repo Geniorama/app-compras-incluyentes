@@ -102,16 +102,10 @@ export async function POST(request: Request) {
 
     // Actualizar datos de la empresa si se proporcionaron
     if (companyData && userDoc.company?._id) {
-      console.log('Updating company with data:', companyData);
-      console.log('annualRevenue value:', companyData.annualRevenue, 'type:', typeof companyData.annualRevenue);
-      
       const companyResult = await client
         .patch(userDoc.company._id)
         .set(companyData)
         .commit() as SanityCompanyDocument;
-      
-      console.log('Company updated successfully:', companyResult);
-      console.log('Updated annualRevenue:', companyResult.annualRevenue);
       
       result.company = companyResult;
     }

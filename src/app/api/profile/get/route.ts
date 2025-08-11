@@ -74,6 +74,10 @@ export async function GET(request: Request) {
       });
     }
 
+    console.log('Profile API - Full userDoc:', JSON.stringify(userDoc, null, 2));
+    console.log('Profile API - Company data:', JSON.stringify(userDoc.company, null, 2));
+    console.log('Profile API - annualRevenue from DB:', userDoc.company?.annualRevenue, 'type:', typeof userDoc.company?.annualRevenue);
+
     return NextResponse.json({
       success: true,
       data: {

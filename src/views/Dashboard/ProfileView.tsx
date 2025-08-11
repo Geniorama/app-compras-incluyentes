@@ -69,6 +69,10 @@ export default function ProfileView({
 
   useEffect(() => {
     if (initialProfile) {
+      console.log('ProfileView - initialProfile received:', initialProfile);
+      console.log('ProfileView - initialProfile.company:', initialProfile.company);
+      console.log('ProfileView - initialProfile.company.annualRevenue:', initialProfile.company?.annualRevenue);
+      
       // Si tenemos datos iniciales, combinar los datos del usuario y la empresa
       const combinedProfile = {
         ...initialProfile,
@@ -87,7 +91,7 @@ export default function ProfileView({
         otherPeopleGroup: initialProfile.company?.otherPeopleGroup || "",
         friendlyBizz: initialProfile.company?.friendlyBizz || false,
         membership: initialProfile.company?.membership || false,
-        annualRevenue: initialProfile.company?.annualRevenue || 0,
+        annualRevenue: initialProfile.company?.annualRevenue ?? 0,
         logo: initialProfile.company?.logo,
         facebook: initialProfile.company?.facebook || "",
         instagram: initialProfile.company?.instagram || "",
@@ -100,12 +104,20 @@ export default function ProfileView({
         ...combinedProfile,
         logo: combinedProfile.logo as SanityImage | undefined,
       };
+      
+      console.log('ProfileView - combinedProfile.annualRevenue:', combinedProfile.annualRevenue);
+      console.log('ProfileView - typedCombinedProfile.annualRevenue:', typedCombinedProfile.annualRevenue);
+      
       setProfile(typedCombinedProfile);
       setOriginalProfile(typedCombinedProfile);
       
       // Inicializar annualRevenueDisplay y sector
-      if (typedCombinedProfile.annualRevenue) {
+      console.log('Initializing annualRevenue:', typedCombinedProfile.annualRevenue, 'type:', typeof typedCombinedProfile.annualRevenue);
+      if (typedCombinedProfile.annualRevenue !== undefined && typedCombinedProfile.annualRevenue !== null) {
+        console.log('Setting annualRevenueDisplay to:', typedCombinedProfile.annualRevenue.toString());
         setAnnualRevenueDisplay(typedCombinedProfile.annualRevenue.toString());
+      } else {
+        console.log('annualRevenue is undefined or null, not setting display value');
       }
       if (typedCombinedProfile.ciiu) {
         const sectorResult = getSectorFromCIIU(typedCombinedProfile.ciiu);
@@ -325,7 +337,7 @@ export default function ProfileView({
       // Asegurar que annualRevenue tenga el valor más reciente
       const currentAnnualRevenue = annualRevenueDisplay ? parseInt(annualRevenueDisplay.replace(/[^\d]/g, ""), 10) : (profile.annualRevenue || 0);
       
-      console.log('Sending annualRevenue:', currentAnnualRevenue, 'from annualRevenueDisplay:', annualRevenueDisplay, 'profile.annualRevenue:', profile.annualRevenue);
+
       
       const companyData = {
         nameCompany: profile.nameCompany,

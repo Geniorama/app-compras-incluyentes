@@ -39,6 +39,8 @@ export default function PerfilPage() {
         const profileData = await getProfile(user.uid);
         if (profileData) {
           console.log('profileData', profileData);
+          console.log('profileData.company:', profileData.company);
+          console.log('profileData.company.annualRevenue:', profileData.company?.annualRevenue, 'type:', typeof profileData.company?.annualRevenue);
           setProfile(profileData);
         } else {
           setError("No se pudo cargar el perfil");
