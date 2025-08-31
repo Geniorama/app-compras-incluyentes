@@ -24,7 +24,12 @@ import { SanityImage } from "@/types/index";
 import { SanityProductDocument, SanityServiceDocument } from "@/types/sanity";
 import { sanityClient } from "@/lib/sanity.client";
 import type { SanityCategoryDocument } from "@/types/sanity";
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4 } from "uuid";
+import {
+  getFirstImageUrl,
+  isValidImage,
+  type SanityImage as SanityImageUtils,
+} from "@/utils/sanityImage";
 
 interface ProductServiceData {
   _id?: string;
@@ -53,8 +58,6 @@ interface ProductsViewProps {
     };
   };
 }
-
-type SanityImageWithKey = SanityImage & { _key?: string };
 
 const getStatusLabel = (status: string): string => {
   const statusMap: { [key: string]: string } = {
@@ -110,35 +113,65 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Estado para manejar la edición
-  const [itemToEdit, setItemToEdit] = useState<SanityProductDocument | SanityServiceDocument | null>(null);
+  const [itemToEdit, setItemToEdit] = useState<
+    SanityProductDocument | SanityServiceDocument | null
+  >(null);
 
-  const [productCategories, setProductCategories] = useState<SanityCategoryDocument[]>([]);
-  const [serviceCategories, setServiceCategories] = useState<SanityCategoryDocument[]>([]);
+  const [productCategories, setProductCategories] = useState<
+    SanityCategoryDocument[]
+  >([]);
+  const [serviceCategories, setServiceCategories] = useState<
+    SanityCategoryDocument[]
+  >([]);
 
   // Add this useEffect to fetch categories
   useEffect(() => {
     const fetchCategories = async () => {
       try {
+        // Usar caché local para evitar consultas repetidas
+        const cachedProductCats = sessionStorage.getItem("productCategories");
+        const cachedServiceCats = sessionStorage.getItem("serviceCategories");
+
+        if (cachedProductCats && cachedServiceCats) {
+          setProductCategories(JSON.parse(cachedProductCats));
+          setServiceCategories(JSON.parse(cachedServiceCats));
+          return;
+        }
+
         const [productCats, serviceCats] = await Promise.all([
           sanityClient.fetch<SanityCategoryDocument[]>(`
-            *[_type == "category" && "product" in types] {
-              _id,
-              name,
-              slug
-            }
-          `),
+             *[_type == "category" && "product" in types] {
+               _id,
+               name,
+               slug
+             }
+           `),
           sanityClient.fetch<SanityCategoryDocument[]>(`
-            *[_type == "category" && "service" in types] {
-              _id,
-              name,
-              slug
-            }
-          `)
+             *[_type == "category" && "service" in types] {
+               _id,
+               name,
+               slug
+             }
+           `),
         ]);
+
+        // Guardar en caché por 5 minutos
+        sessionStorage.setItem(
+          "productCategories",
+          JSON.stringify(productCats)
+        );
+        sessionStorage.setItem(
+          "serviceCategories",
+          JSON.stringify(serviceCats)
+        );
+
         setProductCategories(productCats);
         setServiceCategories(serviceCats);
       } catch (error) {
         console.error("Error fetching categories:", error);
+        // Limpiar caché en caso de error
+        sessionStorage.removeItem("productCategories");
+        sessionStorage.removeItem("serviceCategories");
       }
     };
 
@@ -152,32 +185,37 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
   };
 
   const handleEdit = (item: SanityProductDocument | SanityServiceDocument) => {
-    if(!item) return;
-    
+    if (!item) return;
+
     // Filtrar solo imágenes válidas
-    const validImages = item.images?.filter(img => img && img.asset && img.asset._ref);
-    const imagesPreviews = validImages?.map(img =>
-      `https://cdn.sanity.io/images/${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID}/${process.env.NEXT_PUBLIC_SANITY_DATASET}/${img.asset._ref
-        .replace("image-", "")
-        .replace("-jpg", ".jpg")
-        .replace("-png", ".png")
-        .replace("-webp", ".webp")}`
+    const validImages = item.images?.filter(
+      (img) => img && img.asset && img.asset._ref
     );
-    
+    const imagesPreviews = validImages?.map(
+      (img) =>
+        `https://cdn.sanity.io/images/${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID}/${process.env.NEXT_PUBLIC_SANITY_DATASET}/${img.asset._ref
+          .replace("image-", "")
+          .replace("-jpg", ".jpg")
+          .replace("-png", ".png")
+          .replace("-webp", ".webp")}`
+    );
+
     // Determinar si es producto o servicio
     const isProduct = "sku" in item;
     setFormType(isProduct ? "product" : "service");
-    
+
     // Obtener las categorías correctamente
-    const categories = Array.isArray(item.category) 
-      ? item.category.map(cat => {
-          if (typeof cat === 'string') return cat;
-          if (cat._ref) return cat._ref;
-          if (cat._id) return cat._id;
-          return '';
-        }).filter(Boolean)
+    const categories = Array.isArray(item.category)
+      ? item.category
+          .map((cat) => {
+            if (typeof cat === "string") return cat;
+            if (cat._ref) return cat._ref;
+            if (cat._id) return cat._id;
+            return "";
+          })
+          .filter(Boolean)
       : [];
-    
+
     // Crear un objeto compatible con ProductServiceData
     const formData: Partial<ProductServiceData> = {
       _id: item._id,
@@ -187,11 +225,11 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
       status: item.status,
       images: validImages as (File | SanityImage)[],
       imagesPreviews: imagesPreviews,
-      category: categories
+      category: categories,
     };
-    
+
     // Agregar campos específicos según el tipo
-    if (isProduct && 'sku' in item) {
+    if (isProduct && "sku" in item) {
       formData.sku = item.sku;
     } else if (!isProduct) {
       const serviceItem = item as SanityServiceDocument;
@@ -199,12 +237,14 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
       formData.modality = serviceItem.modality;
       formData.availability = serviceItem.availability;
     }
-    
+
     setItemToEdit(item);
     setShowModal(true);
   };
 
-  const handleDeleteClick = (item: SanityProductDocument | SanityServiceDocument) => {
+  const handleDeleteClick = (
+    item: SanityProductDocument | SanityServiceDocument
+  ) => {
     setItemToDelete(item);
     setShowConfirmModal(true);
   };
@@ -216,15 +256,18 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
     try {
       const isProduct = "sku" in itemToDelete;
 
-      const response = await fetch(`/api/${isProduct ? 'products' : 'services'}`, {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          id: itemToDelete._id
-        }),
-      });
+      const response = await fetch(
+        `/api/${isProduct ? "products" : "services"}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            id: itemToDelete._id,
+          }),
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Error al eliminar");
@@ -232,9 +275,9 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
 
       // Actualizar el estado local
       if (isProduct) {
-        setProducts(products.filter(p => p._id !== itemToDelete._id));
+        setProducts(products.filter((p) => p._id !== itemToDelete._id));
       } else {
-        setServices(services.filter(s => s._id !== itemToDelete._id));
+        setServices(services.filter((s) => s._id !== itemToDelete._id));
       }
 
       toast.success("Elemento eliminado correctamente");
@@ -254,7 +297,10 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
   };
 
   // Función para limpiar los datos antes de enviar al backend
-  function cleanRequestData(data: ProductServiceData, type: "product" | "service") {
+  function cleanRequestData(
+    data: ProductServiceData,
+    type: "product" | "service"
+  ) {
     const commonFields = {
       name: data.name,
       description: data.description,
@@ -283,83 +329,101 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
     try {
       const isProduct = formType === "product";
 
-      // Si hay imágenes, procesarlas primero
+      // Si hay imágenes, procesarlas primero con procesamiento optimizado
       let processedImages = data.images;
       if (data.images.length > 0) {
-        const imageAssets = await Promise.all(
-          data.images.map(async (image) => {
-            if (image instanceof File) {
-              // Subir la imagen usando el endpoint de la API local
-              const formData = new FormData();
-              formData.append("image", image);
-              const uploadRes = await fetch("/api/upload-image", {
-                method: "POST",
-                body: formData,
-              });
-              if (!uploadRes.ok) throw new Error("Error al subir la imagen");
-              const uploadData = await uploadRes.json();
-              // Guardar la estructura completa de imagen y agregar _key único
-              return {
-                _type: "image",
-                asset: uploadData.asset,
-                _key: crypto.randomUUID(),
-              };
-            }
-            // Si ya es una imagen de Sanity, asegúrate de que tenga _key
-            const imgTyped = image as SanityImageWithKey;
+        // Separar imágenes nuevas de las existentes para procesamiento más eficiente
+        const newImages = data.images.filter(
+          (img) => img instanceof File
+        ) as File[];
+        const existingImages = data.images.filter(
+          (img) => !(img instanceof File)
+        ) as SanityImage[];
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let processedNewImages: any[] = [];
+
+        // Procesar imágenes nuevas en paralelo para mejor rendimiento
+        if (newImages.length > 0) {
+          const uploadPromises = newImages.map(async (image) => {
+            const formData = new FormData();
+            formData.append("image", image);
+            const uploadRes = await fetch("/api/upload-image", {
+              method: "POST",
+              body: formData,
+            });
+            if (!uploadRes.ok) throw new Error("Error al subir la imagen");
+            const uploadData = await uploadRes.json();
             return {
-              ...imgTyped,
-              _key: imgTyped._key || crypto.randomUUID(),
+              _type: "image",
+              asset: uploadData.asset,
+              _key: crypto.randomUUID(),
             };
-          })
-        ) as (SanityImage | File)[];
-        processedImages = imageAssets;
+          });
+
+          processedNewImages = await Promise.all(uploadPromises);
+        }
+
+        // Procesar imágenes existentes
+        const processedExistingImages = existingImages.map((img) => ({
+          ...img,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          _key: (img as any)._key || crypto.randomUUID(),
+        }));
+
+        processedImages = [...processedNewImages, ...processedExistingImages];
       }
 
       // Limpiar los datos antes de enviar
-      const cleaned = cleanRequestData({
-        ...data,
-        images: processedImages,
-        price: data.price ? Number(data.price) : undefined,
-      }, formType);
+      const cleaned = cleanRequestData(
+        {
+          ...data,
+          images: processedImages,
+          price: data.price ? Number(data.price) : undefined,
+        },
+        formType
+      );
 
       const requestData = {
         ...cleaned,
         category: Array.isArray(data.category)
-          ? data.category.map(id => ({
-              _type: 'reference',
+          ? data.category.map((id) => ({
+              _type: "reference",
               _ref: id,
-              _key: uuidv4()
+              _key: uuidv4(),
             }))
           : [],
       };
 
       if (itemToEdit) {
         // Actualizar
-        const response = await fetch(`/api/${formType === 'product' ? 'products' : 'services'}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            id: itemToEdit._id,
-            data: requestData,
-            userId: user?.uid
-          }),
-        });
+        const response = await fetch(
+          `/api/${formType === "product" ? "products" : "services"}`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              id: itemToEdit._id,
+              data: requestData,
+              userId: user?.uid,
+            }),
+          }
+        );
 
         if (!response.ok) {
           throw new Error("Error al actualizar");
         }
 
         const result = await response.json();
-        
+
         // Actualizar estado local
         if (isProduct) {
           setProducts(
             products.map((p) =>
               p._id === itemToEdit._id
-                ? result.data as SanityProductDocument
+                ? (result.data as SanityProductDocument)
                 : p
             )
           );
@@ -367,32 +431,38 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
           setServices(
             services.map((s) =>
               s._id === itemToEdit._id
-                ? result.data as SanityServiceDocument
+                ? (result.data as SanityServiceDocument)
                 : s
             )
           );
         }
 
         toast.success("Elemento actualizado correctamente");
+
+        // Emitir evento de actualización del catálogo
+        window.dispatchEvent(new CustomEvent("catalog-updated"));
       } else {
         // Crear
-        const response = await fetch(`/api/${formType === 'product' ? 'products' : 'services'}`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            data: requestData,
-            userId: user?.uid
-          }),
-        });
+        const response = await fetch(
+          `/api/${formType === "product" ? "products" : "services"}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              data: requestData,
+              userId: user?.uid,
+            }),
+          }
+        );
 
         if (!response.ok) {
           throw new Error("Error al crear");
         }
 
         const result = await response.json();
-        
+
         // Actualizar estado local
         if (isProduct) {
           setProducts([...products, result.data as SanityProductDocument]);
@@ -401,6 +471,17 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
         }
 
         toast.success("Elemento creado correctamente");
+
+        // Emitir evento de actualización del catálogo
+        window.dispatchEvent(new CustomEvent("catalog-updated"));
+
+        // Notificar al usuario que puede actualizar el catálogo para ver los cambios
+        toast.success(
+          "El producto aparecerá en el catálogo en unos momentos. Puedes usar el botón 'Actualizar catálogo' para verlo inmediatamente.",
+          {
+            duration: 5000,
+          }
+        );
       }
 
       setShowModal(false);
@@ -423,15 +504,15 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
       const matchesSearch = item.name
         .toLowerCase()
         .includes(search.toLowerCase());
-      const matchesCategory = !category || (
-        Array.isArray(item.category) &&
-        item.category
-          .map((cat: { _ref?: string; _id?: string } | string) =>
-            typeof cat === 'string' ? cat : cat._ref || cat._id || ''
-          )
-          .filter(Boolean)
-          .includes(category)
-      );
+      const matchesCategory =
+        !category ||
+        (Array.isArray(item.category) &&
+          item.category
+            .map((cat: { _ref?: string; _id?: string } | string) =>
+              typeof cat === "string" ? cat : cat._ref || cat._id || ""
+            )
+            .filter(Boolean)
+            .includes(category));
       const matchesStatus = !status || item.status === status;
       return matchesSearch && matchesCategory && matchesStatus;
     });
@@ -444,21 +525,28 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
             className="bg-white rounded-lg shadow-md overflow-hidden"
           >
             <div className="relative h-48">
-              {item.images && item.images.length > 0 && item.images[0].asset && item.images[0].asset._ref ? (
+              {isValidImage(item.images?.[0] as unknown as SanityImageUtils) ? (
                 <img
-                  src={`https://cdn.sanity.io/images/${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID}/${process.env.NEXT_PUBLIC_SANITY_DATASET}/${item.images[0].asset._ref
-                    .replace("image-", "")
-                    .replace("-jpg", ".jpg")
-                    .replace("-png", ".png")
-                    .replace("-webp", ".webp")}`}
+                  src={getFirstImageUrl(
+                    item.images as unknown as SanityImageUtils[]
+                  )}
                   alt={item.name}
                   className="w-full h-full object-cover"
+                  onError={(e) => {
+                    console.error("Error loading image:", e);
+                    e.currentTarget.style.display = "none";
+                    e.currentTarget.nextElementSibling?.classList.remove(
+                      "hidden"
+                    );
+                  }}
                 />
-              ) : (
-                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                  <span className="text-gray-400">Sin imagen</span>
-                </div>
-              )}
+              ) : null}
+                             <div
+                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                 className={`w-full h-full bg-gray-200 flex items-center justify-center ${isValidImage(item.images?.[0] as any) ? "hidden" : ""}`}
+              >
+                <span className="text-gray-400">Sin imagen</span>
+              </div>
             </div>
             <div className="p-4">
               <h3 className="text-lg font-semibold mb-2">{item.name}</h3>
@@ -466,7 +554,9 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
                 {item.description || "Sin descripción"}
               </p>
               <div className="flex justify-between items-center">
-                <span className={`leading-4 py-1 rounded-full text-sm font-semibold ${item.price ? "text-green-600" : "text-slate-400"}`	}>
+                <span
+                  className={`leading-4 py-1 rounded-full text-sm font-semibold ${item.price ? "text-green-600" : "text-slate-400"}`}
+                >
                   {item.price
                     ? `$${item.price.toLocaleString()}`
                     : "Precio no especificado"}
@@ -480,11 +570,7 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
                 </span>
               </div>
               <div className="mt-4 flex justify-end space-x-2">
-                <Button
-                  size="xs"
-                  color="info"
-                  onClick={() => handleEdit(item)}
-                >
+                <Button size="xs" color="info" onClick={() => handleEdit(item)}>
                   Editar
                 </Button>
                 <Button
@@ -512,15 +598,15 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
       const matchesSearch = item.name
         .toLowerCase()
         .includes(search.toLowerCase());
-      const matchesCategory = !category || (
-        Array.isArray(item.category) &&
-        item.category
-          .map((cat: { _ref?: string; _id?: string } | string) =>
-            typeof cat === 'string' ? cat : cat._ref || cat._id || ''
-          )
-          .filter(Boolean)
-          .includes(category)
-      );
+      const matchesCategory =
+        !category ||
+        (Array.isArray(item.category) &&
+          item.category
+            .map((cat: { _ref?: string; _id?: string } | string) =>
+              typeof cat === "string" ? cat : cat._ref || cat._id || ""
+            )
+            .filter(Boolean)
+            .includes(category));
       const matchesStatus = !status || item.status === status;
       return matchesSearch && matchesCategory && matchesStatus;
     });
@@ -538,22 +624,29 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
         <Table.Body>
           {filteredItems.map((item) => (
             <Table.Row key={item._id}>
-              <Table.Cell>
-                {item.images && item.images.length > 0 && item.images[0].asset && item.images[0].asset._ref ? (
-                  <img
-                    src={`https://cdn.sanity.io/images/${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID}/${process.env.NEXT_PUBLIC_SANITY_DATASET}/${item.images[0].asset._ref
-                      .replace("image-", "")
-                      .replace("-jpg", ".jpg")
-                      .replace("-png", ".png")
-                      .replace("-webp", ".webp")}`}
+                             <Table.Cell>
+                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                 {isValidImage(item.images?.[0] as any) ? (
+                   <img
+                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                     src={getFirstImageUrl(item.images as any)}
                     alt={item.name}
                     className="w-16 h-16 object-cover rounded"
+                    onError={(e) => {
+                      console.error("Error loading image:", e);
+                      e.currentTarget.style.display = "none";
+                      e.currentTarget.nextElementSibling?.classList.remove(
+                        "hidden"
+                      );
+                    }}
                   />
-                ) : (
-                  <div className="w-16 h-16 bg-gray-200 rounded flex items-center justify-center">
-                    <span className="text-gray-400 text-xs">Sin imagen</span>
-                  </div>
-                )}
+                ) : null}
+                                 <div
+                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                   className={`w-16 h-16 bg-gray-200 rounded flex items-center justify-center ${isValidImage(item.images?.[0] as any) ? "hidden" : ""}`}
+                >
+                  <span className="text-gray-400 text-xs">Sin imagen</span>
+                </div>
               </Table.Cell>
               <Table.Cell>{item.name}</Table.Cell>
               <Table.Cell>{item.description || "Sin descripción"}</Table.Cell>
@@ -618,7 +711,6 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
     </div>
   );
 
-
   return (
     <div className="flex container mx-auto mt-10">
       <DashboardSidebar />
@@ -638,13 +730,17 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
                   onChange={(e) => setProductCategory(e.target.value)}
                 >
                   <option value="">Todas las categorías</option>
-                  {productCategories.map((category) => (
-                    category.slug?.current && (
-                      <option key={category._id} value={category.slug.current}>
-                        {category.name}
-                      </option>
-                    )
-                  ))}
+                  {productCategories.map(
+                    (category) =>
+                      category.slug?.current && (
+                        <option
+                          key={category._id}
+                          value={category.slug.current}
+                        >
+                          {category.name}
+                        </option>
+                      )
+                  )}
                 </Select>
                 <Select
                   value={productStatus}
@@ -664,7 +760,9 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
                 </Button>
               </div>
             </div>
-            {viewMode === "grid" ? renderGridView("product") : renderListView("product")}
+            {viewMode === "grid"
+              ? renderGridView("product")
+              : renderListView("product")}
           </Tabs.Item>
           <Tabs.Item title="Servicios">
             <div className="mb-4 flex flex-col sm:flex-row justify-between items-center">
@@ -680,13 +778,17 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
                   onChange={(e) => setServiceCategory(e.target.value)}
                 >
                   <option value="">Todas las categorías</option>
-                  {serviceCategories.map((category) => (
-                    category.slug?.current && (
-                      <option key={category._id} value={category.slug.current}>
-                        {category.name}
-                      </option>
-                    )
-                  ))}
+                  {serviceCategories.map(
+                    (category) =>
+                      category.slug?.current && (
+                        <option
+                          key={category._id}
+                          value={category.slug.current}
+                        >
+                          {category.name}
+                        </option>
+                      )
+                  )}
                 </Select>
                 <Select
                   value={serviceStatus}
@@ -721,49 +823,71 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
           <Modal.Body>
             <ProductServiceForm
               type={formType}
-              initialData={itemToEdit ? {
-                _id: itemToEdit._id,
-                name: itemToEdit.name,
-                description: itemToEdit.description,
-                price: itemToEdit.price,
-                category: Array.isArray(itemToEdit.category)
-                  ? itemToEdit.category.map(cat => {
-                      if (typeof cat === 'string') return cat;
-                      if (cat._ref) return cat._ref;
-                      if (cat._id) return cat._id;
-                      return '';
-                    }).filter(Boolean)
-                  : [],
-                status: itemToEdit.status,
-                images: itemToEdit.images ? itemToEdit.images.filter(img => img.asset !== null) as (File | SanityImage)[] : [],
-                imagesPreviews: itemToEdit.images
-                  ? itemToEdit.images
-                      .filter(img => img.asset !== null)
-                      .map(img => 
-                        `https://cdn.sanity.io/images/${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID}/${process.env.NEXT_PUBLIC_SANITY_DATASET}/${img.asset?._ref
-                          .replace("image-", "")
-                          .replace("-jpg", ".jpg")
-                          .replace("-png", ".png")
-                          .replace("-webp", ".webp")}`
-                      )
-                  : [],
-                ...(formType === "product"
-                  ? { sku: (itemToEdit as SanityProductDocument).sku }
-                  : {
-                      duration: (itemToEdit as SanityServiceDocument).duration,
-                      modality: (itemToEdit as SanityServiceDocument).modality,
-                      availability: (itemToEdit as SanityServiceDocument).availability,
-                    }),
-              } : undefined}
+              initialData={
+                itemToEdit
+                  ? {
+                      _id: itemToEdit._id,
+                      name: itemToEdit.name,
+                      description: itemToEdit.description,
+                      price: itemToEdit.price,
+                      category: Array.isArray(itemToEdit.category)
+                        ? itemToEdit.category
+                            .map((cat) => {
+                              if (typeof cat === "string") return cat;
+                              if (cat._ref) return cat._ref;
+                              if (cat._id) return cat._id;
+                              return "";
+                            })
+                            .filter(Boolean)
+                        : [],
+                      status: itemToEdit.status,
+                      images: itemToEdit.images
+                        ? (itemToEdit.images.filter(
+                            (img) => img.asset !== null
+                          ) as (File | SanityImage)[])
+                        : [],
+                      imagesPreviews: itemToEdit.images
+                        ? itemToEdit.images
+                            .filter((img) => img.asset !== null)
+                            .map(
+                              (img) =>
+                                `https://cdn.sanity.io/images/${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID}/${process.env.NEXT_PUBLIC_SANITY_DATASET}/${img.asset?._ref
+                                  .replace("image-", "")
+                                  .replace("-jpg", ".jpg")
+                                  .replace("-png", ".png")
+                                  .replace("-webp", ".webp")}`
+                            )
+                        : [],
+                      ...(formType === "product"
+                        ? { sku: (itemToEdit as SanityProductDocument).sku }
+                        : {
+                            duration: (itemToEdit as SanityServiceDocument)
+                              .duration,
+                            modality: (itemToEdit as SanityServiceDocument)
+                              .modality,
+                            availability: (itemToEdit as SanityServiceDocument)
+                              .availability,
+                          }),
+                    }
+                  : undefined
+              }
               onSubmit={async (data) => {
                 const categoryIds = Array.isArray(data.category)
-                  ? data.category.filter((cat): cat is string => typeof cat === 'string')
+                  ? data.category.filter(
+                      (cat): cat is string => typeof cat === "string"
+                    )
                   : [];
-                await handleSubmit({ ...data, category: categoryIds, images: data.images as (SanityImage | File)[] });
+                await handleSubmit({
+                  ...data,
+                  category: categoryIds,
+                  images: data.images as (SanityImage | File)[],
+                });
               }}
               isLoading={isSubmitting}
               onCancel={() => setShowModal(false)}
-              categories={formType === 'product' ? productCategories : serviceCategories}
+              categories={
+                formType === "product" ? productCategories : serviceCategories
+              }
             />
           </Modal.Body>
         </Modal>

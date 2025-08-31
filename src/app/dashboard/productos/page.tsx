@@ -62,7 +62,13 @@ export default function ProductsPage() {
             price,
             status,
             sku,
-            images,
+            images[]{
+              _type,
+              asset->{
+                _id,
+                url
+              }
+            },
             company,
             createdBy,
             updatedBy
@@ -85,7 +91,13 @@ export default function ProductsPage() {
             duration,
             modality,
             availability,
-            images,
+            images[]{
+              _type,
+              asset->{
+                _id,
+                url
+              }
+            },
             company,
             createdBy,
             updatedBy
@@ -99,7 +111,12 @@ export default function ProductsPage() {
               _id,
               name,
               description,
-              image,
+              image{
+                asset->{
+                  _id,
+                  url
+                }
+              },
               types,
               slug
             }
@@ -109,7 +126,12 @@ export default function ProductsPage() {
               _id,
               name,
               description,
-              image,
+              image{
+                asset->{
+                  _id,
+                  url
+                }
+              },
               types,
               slug
             }

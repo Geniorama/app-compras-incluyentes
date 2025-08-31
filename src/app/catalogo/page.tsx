@@ -1,22 +1,23 @@
 import CatalogoView from '@/views/Catalogo/CatalogoView';
-import { sanityClient } from '@/lib/sanity.client';
+import { sanityClient, getFreshClient } from '@/lib/sanity.client';
+import { sanityQueries } from '@/lib/sanity.queries';
 import { SanityProductDocument, SanityServiceDocument, SanityCategoryDocument } from '@/types/sanity';
+import { headers } from 'next/headers';
 
 export default async function CatalogoPage() {
-  // Obtener productos, servicios, categorías y empresas activas
+  const headersList = await headers();
+  const userAgent = headersList.get('user-agent') || '';
+  const isBot = /bot|crawler|spider|crawling/i.test(userAgent);
+  
+  // Para bots y casos que requieren datos frescos, usar cliente sin CDN
+  const client = isBot ? getFreshClient() : sanityClient;
+  
+  // Obtener productos, servicios, categorías y empresas activas usando consultas optimizadas
   const [products, services, categories, companies] = await Promise.all([
-    sanityClient.fetch<SanityProductDocument[]>(
-      `*[_type == "product" && status == "active"]{..., images[], company->{_id, nameCompany} }`
-    ),
-    sanityClient.fetch<SanityServiceDocument[]>(
-      `*[_type == "service" && status == "active"]{..., images[], company->{_id, nameCompany} }`
-    ),
-    sanityClient.fetch<SanityCategoryDocument[]>(
-      `*[_type == "category"]{_id, name, image}`
-    ),
-    sanityClient.fetch<{_id: string, nameCompany: string}[]>(
-      `*[_type == "company" && active == true]{_id, nameCompany}`
-    ),
+    client.fetch<SanityProductDocument[]>(sanityQueries.activeProducts),
+    client.fetch<SanityServiceDocument[]>(sanityQueries.activeServices),
+    client.fetch<SanityCategoryDocument[]>(sanityQueries.categories),
+    client.fetch<{_id: string, nameCompany: string}[]>(sanityQueries.activeCompanies),
   ]);
 
   return (

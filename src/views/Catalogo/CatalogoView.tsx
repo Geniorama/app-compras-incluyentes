@@ -1,13 +1,16 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { TextInput, Select, Spinner, Button } from 'flowbite-react';
-import { HiOutlineSearch, HiX, HiTag, HiOfficeBuilding, HiAdjustments, HiMail } from 'react-icons/hi';
+import { HiOutlineSearch, HiX, HiTag, HiOfficeBuilding, HiAdjustments, HiMail, HiRefresh } from 'react-icons/hi';
 import DashboardNavbar from '@/components/dashboard/Navbar';
 import { SanityProductDocument, SanityServiceDocument, SanityCategoryDocument } from '@/types/sanity';
 import BgProduct from '@/assets/img/bg-productos.webp';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { useCatalogSync } from '@/hooks/useCatalogSync';
+import CatalogUpdateNotification from '@/components/CatalogUpdateNotification';
+import { getFirstImageUrl, isValidImage, getSanityImageUrl } from '@/utils/sanityImage';
 
 interface Company {
   _id: string;
@@ -22,7 +25,7 @@ interface CatalogoViewProps {
   isLoading: boolean;
 }
 
-export default function CatalogoView({ products, services, categories, companies, isLoading }: CatalogoViewProps) {
+export default function CatalogoView({ products: initialProducts, services: initialServices, categories: initialCategories, companies: initialCompanies, isLoading }: CatalogoViewProps) {
   const router = useRouter();
   const { user } = useAuth();
   const [search, setSearch] = useState('');
@@ -30,6 +33,13 @@ export default function CatalogoView({ products, services, categories, companies
   const [category, setCategory] = useState('');
   const [type, setType] = useState('all');
   const [company, setCompany] = useState('');
+  
+  // Estado local para manejar datos frescos
+  const [products, setProducts] = useState(initialProducts);
+  const [services, setServices] = useState(initialServices);
+  const [categories, setCategories] = useState(initialCategories);
+  const [companies, setCompanies] = useState(initialCompanies);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   type CompanyRef = { _id?: string; _ref?: string } | null | undefined;
   const getCompanyId = (companyObj: CompanyRef): string => {
@@ -65,21 +75,67 @@ export default function CatalogoView({ products, services, categories, companies
     router.push(`/dashboard/mensajes?empresa=${companyId}`);
   };
 
+  // Función para refrescar datos frescos del catálogo
+  const refreshCatalogData = async () => {
+    setIsRefreshing(true);
+    try {
+      const response = await fetch('/api/catalog/fresh');
+      if (!response.ok) {
+        throw new Error('Error al obtener datos frescos');
+      }
+      
+      const result = await response.json();
+      if (result.success) {
+        setProducts(result.data.products);
+        setServices(result.data.services);
+        setCategories(result.data.categories);
+        setCompanies(result.data.companies);
+      }
+    } catch (error) {
+      console.error('Error refreshing catalog data:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  // Usar el hook de sincronización del catálogo
+  useCatalogSync({
+    onCatalogUpdate: () => {
+      // Actualizar los datos cuando se detecte una actualización
+      refreshCatalogData();
+    },
+    syncInterval: 60000 // Sincronizar cada minuto
+  });
+
+  // Escuchar eventos de actualización del catálogo
+  useEffect(() => {
+    const handleCatalogUpdate = () => {
+      refreshCatalogData();
+    };
+
+    window.addEventListener('catalog-updated', handleCatalogUpdate);
+    
+    return () => {
+      window.removeEventListener('catalog-updated', handleCatalogUpdate);
+    };
+  }, []);
+
+
+
   // Función para verificar si la empresa es la del usuario actual
   const isUserCompany = (companyId: string) => {
     return user?.company?._id === companyId;
   };
 
   const getCategoryImageUrl = (cat: SanityCategoryDocument): string | null => {
-    if (cat.image && cat.image.asset && cat.image.asset._ref) {
-      return `https://cdn.sanity.io/images/${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID}/${process.env.NEXT_PUBLIC_SANITY_DATASET}/${cat.image.asset._ref
-        .replace('image-', '')
-        .replace('-jpg', '.jpg')
-        .replace('-png', '.png')
-        .replace('-webp', '.webp')}`;
+    if (cat.image && cat.image.asset) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return getSanityImageUrl(cat.image.asset as any);
     }
     return null;
   };
+
+
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -119,6 +175,18 @@ export default function CatalogoView({ products, services, categories, companies
               >
                 Buscar
               </button>
+            </div>
+            <div className="mt-4">
+              <Button
+                color="gray"
+                size="sm"
+                onClick={refreshCatalogData}
+                disabled={isRefreshing}
+                className="flex items-center gap-2"
+              >
+                <HiRefresh className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                {isRefreshing ? 'Actualizando...' : 'Actualizar catálogo'}
+              </Button>
             </div>
           </div>
         </div>
@@ -244,21 +312,24 @@ export default function CatalogoView({ products, services, categories, companies
                     itemsToShow.map(item => (
                       <div key={item._id} className="bg-white rounded-lg shadow-md overflow-hidden">
                         <div className="relative h-48">
-                          {item.images && item.images.length > 0 && item.images[0].asset && item.images[0].asset._ref ? (
+                          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                          {isValidImage(item.images?.[0] as any) ? (
                             <img
-                              src={`https://cdn.sanity.io/images/${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID}/${process.env.NEXT_PUBLIC_SANITY_DATASET}/${item.images[0].asset._ref
-                                .replace('image-', '')
-                                .replace('-jpg', '.jpg')
-                                .replace('-png', '.png')
-                                .replace('-webp', '.webp')}`}
+                              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                              src={getFirstImageUrl(item.images as any)}
                               alt={item.name}
                               className="w-full h-full object-cover"
+                              onError={(e) => {
+                                console.error('Error loading image:', e);
+                                e.currentTarget.style.display = 'none';
+                                e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                              }}
                             />
-                          ) : (
-                            <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                              <span className="text-gray-400">Sin imagen</span>
-                            </div>
-                          )}
+                          ) : null}
+                          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                          <div className={`w-full h-full bg-gray-200 flex items-center justify-center ${isValidImage(item.images?.[0] as any) ? 'hidden' : ''}`}>
+                            <span className="text-gray-400">Sin imagen</span>
+                          </div>
                         </div>
                         <div className="p-4">
                           <h3 className="text-lg font-semibold mb-2">{item.name}</h3>
@@ -322,6 +393,12 @@ export default function CatalogoView({ products, services, categories, companies
           </div>
         </div>
       </main>
+      
+      {/* Notificación de actualización del catálogo */}
+      <CatalogUpdateNotification 
+        onRefresh={refreshCatalogData}
+        isRefreshing={isRefreshing}
+      />
     </div>
   );
 } 

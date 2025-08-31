@@ -57,7 +57,7 @@ export default function ProductServiceForm({ type, onSubmit, onCancel, isLoading
     const [showSuggestions, setShowSuggestions] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
 
-    const { register, handleSubmit, formState: { errors }, reset } = useForm<ProductServiceData>({
+    const { register, handleSubmit, formState: { errors }, reset, setValue } = useForm<ProductServiceData>({
         defaultValues: prevData
     });
 
@@ -166,15 +166,15 @@ export default function ProductServiceForm({ type, onSubmit, onCancel, isLoading
         setPrevData(prev => ({ ...prev, category: newCategories }));
         setCategoryInput("");
         setShowSuggestions(false);
-        // Actualiza el valor en react-hook-form
-        reset({ ...prevData, category: newCategories });
+        // Actualiza solo el campo category en react-hook-form
+        setValue("category", newCategories);
     };
 
     const handleRemoveCategory = (catId: string) => {
         const newCategories = selectedCategoryIds.filter(id => id !== catId);
         setPrevData(prev => ({ ...prev, category: newCategories }));
-        // Actualiza el valor en react-hook-form
-        reset({ ...prevData, category: newCategories });
+        // Actualiza solo el campo category en react-hook-form
+        setValue("category", newCategories);
     };
 
     const onSubmitForm = (data: ProductServiceData) => {

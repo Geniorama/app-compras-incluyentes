@@ -34,10 +34,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Formato no soportado" }, { status: 400 });
     }
 
-    // Subir la imagen a Sanity
+    // Optimizar la subida de imagen con configuración mejorada
     const asset = await client.assets.upload('image', buffer, {
-      filename: `image.${fileType}`,
+      filename: `image-${Date.now()}.${fileType}`,
       contentType: `image/${fileType}`,
+      // Configuraciones adicionales para mejor rendimiento
+      label: 'Product/Service Image',
+      title: `Image uploaded at ${new Date().toISOString()}`,
     });
 
     return NextResponse.json({

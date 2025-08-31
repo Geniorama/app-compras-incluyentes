@@ -5,6 +5,7 @@ import { sanityClient } from "@/lib/sanity.client";
 import { useAuth } from "@/context/AuthContext";
 import { useEffect, useState } from "react";
 import { Spinner } from "flowbite-react";
+import type { UserProfile } from "@/types";
 
 async function getProfile(userId: string) {
   try {
@@ -56,7 +57,7 @@ async function getProfile(userId: string) {
 
 export default function PerfilPage() {
   const { user } = useAuth();
-  const [profile, setProfile] = useState(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
