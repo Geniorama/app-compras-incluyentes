@@ -28,6 +28,7 @@ import { v4 as uuidv4 } from "uuid";
 import {
   getFirstImageUrl,
   isValidImage,
+  getSanityImageUrl,
   type SanityImage as SanityImageUtils,
 } from "@/utils/sanityImage";
 
@@ -849,14 +850,9 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
                       imagesPreviews: itemToEdit.images
                         ? itemToEdit.images
                             .filter((img) => img.asset !== null)
-                            .map(
-                              (img) =>
-                                `https://cdn.sanity.io/images/${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID}/${process.env.NEXT_PUBLIC_SANITY_DATASET}/${img.asset?._ref
-                                  .replace("image-", "")
-                                  .replace("-jpg", ".jpg")
-                                  .replace("-png", ".png")
-                                  .replace("-webp", ".webp")}`
-                            )
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            .map((img) => getSanityImageUrl(img.asset as any))
+                            .filter(Boolean)
                         : [],
                       ...(formType === "product"
                         ? { sku: (itemToEdit as SanityProductDocument).sku }

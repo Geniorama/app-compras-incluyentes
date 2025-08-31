@@ -1,9 +1,15 @@
 import { NextResponse } from 'next/server'
-import { getAuthenticatedClient } from '@/lib/sanity.client'
+import { sanityClient } from '@/lib/sanity.client'
+
+// Función para comprimir imagen
+async function compressImage(buffer: Buffer): Promise<Buffer> {
+  // Para simplificar, retornamos el buffer original
+  // En producción, aquí se implementaría compresión real con sharp o similar
+  return buffer;
+}
 
 export async function POST(request: Request) {
   try {
-    const client = getAuthenticatedClient();
     const contentType = request.headers.get("content-type") || "";
 
     let buffer: Buffer | null = null;
@@ -28,14 +34,24 @@ export async function POST(request: Request) {
       if (!file || !(file instanceof Blob)) {
         return NextResponse.json({ message: 'No se recibió archivo' }, { status: 400 });
       }
+      
+      // Validar tamaño del archivo (máximo 5MB)
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (file.size > maxSize) {
+        return NextResponse.json({ message: 'El archivo es demasiado grande. Máximo 5MB' }, { status: 413 });
+      }
+      
       buffer = Buffer.from(await file.arrayBuffer());
       fileType = file.type.split("/")[1];
+      
+      // Comprimir imagen si es necesario
+      buffer = await compressImage(buffer);
     } else {
       return NextResponse.json({ message: "Formato no soportado" }, { status: 400 });
     }
 
     // Optimizar la subida de imagen con configuración mejorada
-    const asset = await client.assets.upload('image', buffer, {
+    const asset = await sanityClient.assets.upload('image', buffer, {
       filename: `image-${Date.now()}.${fileType}`,
       contentType: `image/${fileType}`,
       // Configuraciones adicionales para mejor rendimiento
