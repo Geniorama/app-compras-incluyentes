@@ -43,7 +43,36 @@ export async function POST(request: Request) {
     // Crear el documento
     const result = await client.create(docData);
 
-    return NextResponse.json({ success: true, data: result });
+    // Obtener el documento creado con las imágenes expandidas
+    const createdService = await client.fetch(`
+      *[_id == $id] {
+        _id,
+        _type,
+        _rev,
+        _createdAt,
+        _updatedAt,
+        name,
+        description,
+        category,
+        price,
+        status,
+        duration,
+        modality,
+        availability,
+        images[]{
+          _type,
+          asset->{
+            _id,
+            url
+          }
+        },
+        company,
+        createdBy,
+        updatedBy
+      }[0]
+    `, { id: result._id });
+
+    return NextResponse.json({ success: true, data: createdService });
   } catch (error) {
     console.error('Error creating service:', error);
     return NextResponse.json(
@@ -74,7 +103,7 @@ export async function PUT(request: Request) {
     }
 
     // Actualizar el documento
-    const result = await client
+    await client
       .patch(id)
       .set({
         ...data,
@@ -85,7 +114,36 @@ export async function PUT(request: Request) {
       })
       .commit();
 
-    return NextResponse.json({ success: true, data: result });
+    // Obtener el documento actualizado con las imágenes expandidas
+    const updatedService = await client.fetch(`
+      *[_id == $id] {
+        _id,
+        _type,
+        _rev,
+        _createdAt,
+        _updatedAt,
+        name,
+        description,
+        category,
+        price,
+        status,
+        duration,
+        modality,
+        availability,
+        images[]{
+          _type,
+          asset->{
+            _id,
+            url
+          }
+        },
+        company,
+        createdBy,
+        updatedBy
+      }[0]
+    `, { id });
+
+    return NextResponse.json({ success: true, data: updatedService });
   } catch (error) {
     console.error('Error updating service:', error);
     return NextResponse.json(

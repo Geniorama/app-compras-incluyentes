@@ -29,7 +29,6 @@ import {
   getFirstImageUrl,
   isValidImage,
   getSanityImageUrl,
-  type SanityImage as SanityImageUtils,
 } from "@/utils/sanityImage";
 
 interface ProductServiceData {
@@ -125,6 +124,9 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
     SanityCategoryDocument[]
   >([]);
 
+  // Estado para manejar la carga de imágenes
+  const [loadingImages, setLoadingImages] = useState<Set<string>>(new Set());
+
   // Add this useEffect to fetch categories
   useEffect(() => {
     const fetchCategories = async () => {
@@ -178,6 +180,27 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
 
     fetchCategories();
   }, []);
+
+  // Funciones para manejar la carga de imágenes
+  const handleImageLoad = (itemId: string) => {
+    setLoadingImages(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(itemId);
+      return newSet;
+    });
+  };
+
+  const handleImageError = (itemId: string) => {
+    setLoadingImages(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(itemId);
+      return newSet;
+    });
+  };
+
+  const startImageLoading = (itemId: string) => {
+    setLoadingImages(prev => new Set(prev).add(itemId));
+  };
 
   const handleAdd = (type: "product" | "service") => {
     setFormType(type);
@@ -526,25 +549,38 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
             className="bg-white rounded-lg shadow-md overflow-hidden"
           >
             <div className="relative h-48">
-              {isValidImage(item.images?.[0] as unknown as SanityImageUtils) ? (
-                <img
-                  src={getFirstImageUrl(
-                    item.images as unknown as SanityImageUtils[]
+              {isValidImage(item.images?.[0] as unknown as SanityImage) ? (
+                <>
+                  {/* Skeleton loader mientras carga */}
+                  {loadingImages.has(item._id) && (
+                    <div className="absolute inset-0 bg-gray-200 animate-pulse rounded-t-lg">
+                      <div className="flex items-center justify-center h-full">
+                        <div className="w-8 h-8 border-4 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
+                      </div>
+                    </div>
                   )}
-                  alt={item.name}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    console.error("Error loading image:", e);
-                    e.currentTarget.style.display = "none";
-                    e.currentTarget.nextElementSibling?.classList.remove(
-                      "hidden"
-                    );
-                  }}
-                />
+                  <img
+                    src={getFirstImageUrl(
+                      item.images as unknown as SanityImage[]
+                    )}
+                    alt={item.name}
+                    className={`w-full h-full object-cover ${loadingImages.has(item._id) ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
+                    onLoad={() => handleImageLoad(item._id)}
+                    onError={(e) => {
+                      console.error("Error loading image:", e);
+                      handleImageError(item._id);
+                      e.currentTarget.style.display = "none";
+                      e.currentTarget.nextElementSibling?.classList.remove(
+                        "hidden"
+                      );
+                    }}
+                    onLoadStart={() => startImageLoading(item._id)}
+                  />
+                </>
               ) : null}
-                             <div
-                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                 className={`w-full h-full bg-gray-200 flex items-center justify-center ${isValidImage(item.images?.[0] as any) ? "hidden" : ""}`}
+              <div
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                className={`w-full h-full bg-gray-200 flex items-center justify-center ${isValidImage(item.images?.[0] as any) ? "hidden" : ""}`}
               >
                 <span className="text-gray-400">Sin imagen</span>
               </div>
@@ -625,26 +661,39 @@ export default function ProductsView({ initialData }: ProductsViewProps) {
         <Table.Body>
           {filteredItems.map((item) => (
             <Table.Row key={item._id}>
-                             <Table.Cell>
-                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                 {isValidImage(item.images?.[0] as any) ? (
-                   <img
-                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                     src={getFirstImageUrl(item.images as any)}
-                    alt={item.name}
-                    className="w-16 h-16 object-cover rounded"
-                    onError={(e) => {
-                      console.error("Error loading image:", e);
-                      e.currentTarget.style.display = "none";
-                      e.currentTarget.nextElementSibling?.classList.remove(
-                        "hidden"
-                      );
-                    }}
-                  />
+                                           <Table.Cell>
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                {isValidImage(item.images?.[0] as any) ? (
+                  <div className="relative">
+                    {/* Skeleton loader mientras carga */}
+                    {loadingImages.has(item._id) && (
+                      <div className="absolute inset-0 bg-gray-200 animate-pulse rounded">
+                        <div className="flex items-center justify-center h-full">
+                          <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
+                        </div>
+                      </div>
+                    )}
+                    <img
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      src={getFirstImageUrl(item.images as any)}
+                      alt={item.name}
+                      className={`w-16 h-16 object-cover rounded ${loadingImages.has(item._id) ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
+                      onLoad={() => handleImageLoad(item._id)}
+                      onError={(e) => {
+                        console.error("Error loading image:", e);
+                        handleImageError(item._id);
+                        e.currentTarget.style.display = "none";
+                        e.currentTarget.nextElementSibling?.classList.remove(
+                          "hidden"
+                        );
+                      }}
+                      onLoadStart={() => startImageLoading(item._id)}
+                    />
+                  </div>
                 ) : null}
-                                 <div
-                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                   className={`w-16 h-16 bg-gray-200 rounded flex items-center justify-center ${isValidImage(item.images?.[0] as any) ? "hidden" : ""}`}
+                <div
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  className={`w-16 h-16 bg-gray-200 rounded flex items-center justify-center ${isValidImage(item.images?.[0] as any) ? "hidden" : ""}`}
                 >
                   <span className="text-gray-400 text-xs">Sin imagen</span>
                 </div>

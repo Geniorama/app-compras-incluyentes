@@ -3,8 +3,9 @@
  */
 
 export interface SanityImageAsset {
-  _id: string;
+  _id?: string;
   _ref?: string;
+  _type?: 'reference';
   url?: string;
 }
 

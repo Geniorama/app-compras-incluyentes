@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { sanityClient } from '@/lib/sanity.client'
+import { getAuthenticatedClient } from '@/lib/sanity.client'
 
 // Función para comprimir imagen
 async function compressImage(buffer: Buffer): Promise<Buffer> {
@@ -51,7 +51,8 @@ export async function POST(request: Request) {
     }
 
     // Optimizar la subida de imagen con configuración mejorada
-    const asset = await sanityClient.assets.upload('image', buffer, {
+    const authenticatedClient = getAuthenticatedClient();
+    const asset = await authenticatedClient.assets.upload('image', buffer, {
       filename: `image-${Date.now()}.${fileType}`,
       contentType: `image/${fileType}`,
       // Configuraciones adicionales para mejor rendimiento
