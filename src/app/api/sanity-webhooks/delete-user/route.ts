@@ -5,24 +5,42 @@ import { adminAuth } from '@/lib/firebase-admin';
 const SIGNATURE_HEADER = 'x-sanity-webhook-signature';
 const LEGACY_SIGNATURE_HEADER = 'sanity-webhook-signature';
 
-const getExpectedSignature = (payload: string, secret: string) => {
-  const hash = createHmac('sha256', secret).update(payload).digest('hex');
-  return `sha256=${hash}`;
-};
-
 const isSignatureValid = (payload: string, signature: string | null, secret: string) => {
   if (!signature) {
     return false;
   }
 
-  const expected = getExpectedSignature(payload, secret);
+  const trimmed = signature.trim();
 
-  if (expected.length !== signature.length) {
+  // Legacy header: sha256=<hex>
+  if (trimmed.startsWith('sha256=')) {
+    const expected = createHmac('sha256', secret).update(payload).digest('hex');
+    const received = trimmed.slice(7);
+
+    if (expected.length !== received.length) {
+      return false;
+    }
+
+    try {
+      return timingSafeEqual(Buffer.from(expected, 'hex'), Buffer.from(received, 'hex'));
+    } catch {
+      return false;
+    }
+  }
+
+  // New Sanity header format: t=<timestamp>,v1=<base64 hmac>
+  const parts = trimmed.split(',').map((part) => part.trim());
+  const v1Part = parts.find((part) => part.startsWith('v1='));
+
+  if (!v1Part) {
     return false;
   }
 
+  const received = v1Part.slice(3);
+  const expected = createHmac('sha256', secret).update(payload).digest('base64');
+
   try {
-    return timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
+    return timingSafeEqual(Buffer.from(expected), Buffer.from(received));
   } catch {
     return false;
   }
