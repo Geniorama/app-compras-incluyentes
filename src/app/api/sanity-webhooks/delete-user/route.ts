@@ -3,6 +3,7 @@ import { createHmac, timingSafeEqual } from 'crypto';
 import { adminAuth } from '@/lib/firebase-admin';
 
 const SIGNATURE_HEADER = 'x-sanity-webhook-signature';
+const LEGACY_SIGNATURE_HEADER = 'sanity-webhook-signature';
 
 const getExpectedSignature = (payload: string, secret: string) => {
   const hash = createHmac('sha256', secret).update(payload).digest('hex');
@@ -79,7 +80,9 @@ export async function POST(request: NextRequest) {
     }
 
     const rawBody = await request.text();
-    const signature = request.headers.get(SIGNATURE_HEADER);
+    const signature =
+      request.headers.get(SIGNATURE_HEADER) ??
+      request.headers.get(LEGACY_SIGNATURE_HEADER);
 
     if (!isSignatureValid(rawBody, signature, secret)) {
       return NextResponse.json({ ok: false, error: 'Firma inválida' }, { status: 401 });
