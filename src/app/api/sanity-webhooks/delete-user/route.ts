@@ -38,6 +38,7 @@ const isSignatureValid = (payload: string, signature: string | null, secret: str
   }
 
   const received = v1Part.slice(3);
+
   try {
     const expectedBuffer = createHmac('sha256', secret).update(payload).digest();
     const receivedBuffer = Buffer.from(
@@ -107,15 +108,18 @@ export async function POST(request: NextRequest) {
     }
 
     const rawBody = await request.text();
+    const body = JSON.parse(rawBody) as Record<string, unknown>;
     const signature =
       request.headers.get(SIGNATURE_HEADER) ??
       request.headers.get(LEGACY_SIGNATURE_HEADER);
 
-    if (!isSignatureValid(rawBody, signature, secret)) {
+    const toSign = JSON.stringify({
+      body,
+    });
+
+    if (!isSignatureValid(toSign, signature, secret)) {
       return NextResponse.json({ ok: false, error: 'Firma inválida' }, { status: 401 });
     }
-
-    const body = JSON.parse(rawBody) as Record<string, unknown>;
 
     if (!isDeleteEvent(body)) {
       return NextResponse.json({ ok: true, message: 'Evento ignorado' });
