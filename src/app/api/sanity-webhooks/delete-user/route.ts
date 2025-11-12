@@ -5,6 +5,7 @@ import { adminAuth } from '@/lib/firebase-admin';
 const SIGNATURE_HEADER = 'x-sanity-webhook-signature';
 const LEGACY_SIGNATURE_HEADER = 'sanity-webhook-signature';
 
+
 const isSignatureValid = (payload: string, signature: string | null, secret: string) => {
   if (!signature) {
     return false;
@@ -101,6 +102,9 @@ export async function POST(request: NextRequest) {
     const signature =
       request.headers.get(SIGNATURE_HEADER) ??
       request.headers.get(LEGACY_SIGNATURE_HEADER);
+
+    console.log('rawBody length:', rawBody.length);
+    console.log('signature header:', signature);
 
     if (!isSignatureValid(rawBody, signature, secret)) {
       return NextResponse.json({ ok: false, error: 'Firma inválida' }, { status: 401 });
