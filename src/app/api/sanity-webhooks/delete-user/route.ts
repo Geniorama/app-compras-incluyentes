@@ -38,10 +38,18 @@ const isSignatureValid = (payload: string, signature: string | null, secret: str
   }
 
   const received = v1Part.slice(3);
-  const expected = createHmac('sha256', secret).update(payload).digest('base64');
-
   try {
-    return timingSafeEqual(Buffer.from(expected), Buffer.from(received));
+    const expectedBuffer = createHmac('sha256', secret).update(payload).digest();
+    const receivedBuffer = Buffer.from(
+      received.replace(/-/g, '+').replace(/_/g, '/'),
+      'base64',
+    );
+
+    if (expectedBuffer.length !== receivedBuffer.length) {
+      return false;
+    }
+
+    return timingSafeEqual(expectedBuffer, receivedBuffer);
   } catch {
     return false;
   }
@@ -102,9 +110,6 @@ export async function POST(request: NextRequest) {
     const signature =
       request.headers.get(SIGNATURE_HEADER) ??
       request.headers.get(LEGACY_SIGNATURE_HEADER);
-
-    console.log('rawBody length:', rawBody.length);
-    console.log('signature header:', signature);
 
     if (!isSignatureValid(rawBody, signature, secret)) {
       return NextResponse.json({ ok: false, error: 'Firma inválida' }, { status: 401 });
