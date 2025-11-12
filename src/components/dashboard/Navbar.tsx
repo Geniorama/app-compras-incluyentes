@@ -27,10 +27,8 @@ export default function DashboardNavbar() {
 
   useEffect(() => {
     if (!isMobile) {
-      console.log("isMobile", isMobile);
       setIsSecondaryMenuOpen(true);
     } else {
-      console.log("isMobile", isMobile);
       setIsSecondaryMenuOpen(false);
     }
   }, [isMobile]);

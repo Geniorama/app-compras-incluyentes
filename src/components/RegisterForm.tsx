@@ -25,11 +25,10 @@ import {
   AccordionPanel,
   AccordionTitle,
 } from "flowbite-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { RiCheckboxCircleFill } from "react-icons/ri";
 import LogoColor from "@/assets/img/logo-color.webp";
 import { useForm } from "react-hook-form";
-import { useRef } from "react";
 import dataCIIU from "@/data/ciiu";
 import { useRouter } from "next/navigation";
 import { registerUser } from "@/lib/auth";
@@ -41,6 +40,10 @@ import {
   getCiudadesOptionsByDepartamento,
 } from "@/utils/departamentosCiudades";
 import { getSectorFromCIIU } from "@/utils/ciiuOptions";
+
+const SPECIAL_CHAR_REGEX = /[!@#$%^&*()_.,?":{}|<>-]/;
+const PASSWORD_REGEX =
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_.,?":{}|<>-])[A-Za-z\d!@#$%^&*()_.,?":{}|<>-]{10,}$/;
 
 interface FormData {
   nameCompany: string;
@@ -149,34 +152,31 @@ export default function RegisterForm() {
   const dataTreatmentConsent = watch("dataTreatmentConsent");
   const infoVisibilityConsent = watch("infoVisibilityConsent");
 
-  const isPasswordValid = (password: string) => {
-    return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(
-      password
-    );
-  };
+  const isPasswordValid = (password: string) => PASSWORD_REGEX.test(password);
 
   const isValidEmail = (email: string) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   };
 
   // Función para validar campos específicos
-  const validateField = (
-    name: string,
-    value: string | boolean | undefined
-  ): string | null => {
-    if (value === undefined) return "Este campo es obligatorio";
-    switch (name) {
-      case "nameCompany":
-        if (!value) return "El nombre de la marca es obligatorio";
-        if (typeof value === "string") {
-          if (value.length < 3)
-            return "El nombre de la marca debe tener al menos 3 caracteres";
-          if (value.length > 50)
-            return "El nombre de la marca no puede tener más de 50 caracteres";
-          if (!/^[a-zA-Z0-9\s-]+$/.test(value))
-            return "El nombre de la marca solo puede contener letras, números, espacios y guiones";
-        }
-        return null;
+  const validateField = useCallback(
+    (
+      name: string,
+      value: string | boolean | undefined
+    ): string | null => {
+      if (value === undefined) return "Este campo es obligatorio";
+      switch (name) {
+        case "nameCompany":
+          if (!value) return "El nombre de la marca es obligatorio";
+          if (typeof value === "string") {
+            if (value.length < 3)
+              return "El nombre de la marca debe tener al menos 3 caracteres";
+            if (value.length > 50)
+              return "El nombre de la marca no puede tener más de 50 caracteres";
+            if (!/^[a-zA-Z0-9\s-]+$/.test(value))
+              return "El nombre de la marca solo puede contener letras, números, espacios y guiones";
+          }
+          return null;
 
       case "businessName":
         if (!value) return "La razón social es obligatoria";
@@ -232,35 +232,15 @@ export default function RegisterForm() {
 
       case "peopleGroup":
         // Solo es obligatorio si la empresa NO es grande
-        console.log(
-          "Validating peopleGroup - companySize:",
-          companySize,
-          "value:",
-          value
-        );
         if (companySize !== "grande" && !value) {
-          console.log(
-            "peopleGroup validation failed - required for non-grande companies"
-          );
           return "Debe seleccionar una opción para empresas pequeñas y medianas";
         }
-        console.log("peopleGroup validation passed");
         return null;
 
       case "otherPeopleGroup":
-        console.log(
-          "Validating otherPeopleGroup - peopleGroup:",
-          peopleGroup,
-          "value:",
-          value
-        );
         if (peopleGroup === "otro" && !value) {
-          console.log(
-            "otherPeopleGroup validation failed - required when peopleGroup is 'otro'"
-          );
           return "Debe especificar el grupo poblacional cuando selecciona 'Otro'";
         }
-        console.log("otherPeopleGroup validation passed");
         return null;
 
       case "firstName":
@@ -323,8 +303,10 @@ export default function RegisterForm() {
             return "La contraseña debe contener al menos una minúscula";
           if (!/\d/.test(value))
             return "La contraseña debe contener al menos un número";
-          if (!/[!@#$%^&*(),.?":{}|<>]/.test(value))
+          if (!SPECIAL_CHAR_REGEX.test(value))
             return "La contraseña debe contener al menos un carácter especial";
+          if (!PASSWORD_REGEX.test(value))
+            return "La contraseña contiene caracteres no permitidos";
         }
         return null;
 
@@ -341,22 +323,22 @@ export default function RegisterForm() {
         // Ya no es obligatorio, así que no retorna error si no está seleccionado
         return null;
 
-      default:
-        return null;
-    }
-  };
+        default:
+          return null;
+      }
+    },
+    [companySize, peopleGroup, password, watch]
+  );
 
   // Función para validar todos los campos del paso actual
-  const validateCurrentStep = (): boolean => {
+  const validateCurrentStep = useCallback((): boolean => {
     const currentErrors: ValidationErrors = {};
     let isValid = true;
 
     if (stepActive === 1) {
       // Asegurar que companySize tenga un valor válido antes de la validación
       const currentCompanySize = watch("companySize");
-      console.log("Current companySize before validation:", currentCompanySize);
       if (!currentCompanySize) {
-        console.log("Setting companySize to 'indefinido'");
         setValue("companySize", "indefinido");
       }
 
@@ -382,44 +364,28 @@ export default function RegisterForm() {
         fieldsToValidate.push("peopleGroup");
       }
 
-      console.log("=== DEBUG VALIDATION ===");
-      console.log("stepActive:", stepActive);
-      console.log("companySize:", companySize);
-      console.log("peopleGroup:", peopleGroup);
-      console.log("fieldsToValidate:", fieldsToValidate);
-      console.log("logo:", logo);
-      console.log("companyDocumentError:", companyDocumentError);
-
       fieldsToValidate.forEach((field: keyof FormData) => {
         const value = watch(field);
-        console.log(`Validating ${field}:`, value);
         // Ajustar para pasar correctamente el tipo de dato
         const error = validateField(
           field,
           typeof value === "boolean" ? value : (value as string | undefined)
         );
         if (error) {
-          console.log(`Error in ${field}:`, error);
           currentErrors[field] = error;
           isValid = false;
         }
       });
 
       if (!logo) {
-        console.log("Logo error: El logo es obligatorio");
         currentErrors.logo = "El logo es obligatorio";
         isValid = false;
       }
 
       if (companyDocumentError) {
-        console.log("Company document error:", companyDocumentError);
         currentErrors.numDocumentCompany = companyDocumentError;
         isValid = false;
       }
-
-      console.log("Final validation result:", isValid);
-      console.log("Current errors:", currentErrors);
-      console.log("=== END DEBUG ===");
     } else if (stepActive === 2) {
       const fieldsToValidate: (keyof FormData)[] = [
         "firstName",
@@ -475,7 +441,18 @@ export default function RegisterForm() {
 
     setValidationErrors(currentErrors);
     return isValid;
-  };
+  }, [
+    stepActive,
+    watch,
+    peopleGroup,
+    companySize,
+    logo,
+    companyDocumentError,
+    validateField,
+    photo,
+    emailError,
+    setValue,
+  ]);
 
   // Modificar la función handleNextStep
   const handleNextStep = async () => {
@@ -497,13 +474,7 @@ export default function RegisterForm() {
 
   // Modificar el useEffect para validar el paso actual
   useEffect(() => {
-    console.log("=== useEffect validation triggered ===");
-    console.log("Current stepActive:", stepActive);
-    console.log("Current companySize:", companySize);
-    console.log("Current peopleGroup:", peopleGroup);
-
     const isValid = validateCurrentStep();
-    console.log("Setting activeNextButton to:", isValid);
     setActiveNextButton(isValid);
   }, [
     nameCompany,
@@ -535,6 +506,7 @@ export default function RegisterForm() {
     dataTreatmentConsent,
     infoVisibilityConsent,
     friendlyBizz,
+    validateCurrentStep,
   ]);
 
   useEffect(() => {
@@ -558,14 +530,12 @@ export default function RegisterForm() {
   }
 
   useEffect(() => {
-    if (dataCIIU) {
-      const options = dataCIIU.map((item: CIIUData) => ({
-        value: item.clasificacion_ciiu,
-        label: item.clasificacion_ciiu,
-      }));
-      setOptionsCIIU(options);
-    }
-  }, [dataCIIU]);
+    const options = dataCIIU.map((item: CIIUData) => ({
+      value: item.clasificacion_ciiu,
+      label: item.clasificacion_ciiu,
+    }));
+    setOptionsCIIU(options);
+  }, []);
 
   // Actualizar opciones de ciudades cuando cambie el departamento
   useEffect(() => {
@@ -591,22 +561,12 @@ export default function RegisterForm() {
 
   // Inicializar companySize como "indefinido" por defecto
   useEffect(() => {
-    console.log("Initializing companySize to 'indefinido'");
     setValue("companySize", "indefinido");
-  }, []); // Sin dependencias para que se ejecute solo una vez al montar
+  }, [setValue]); // Sin dependencias para que se ejecute solo una vez al montar
 
   // Calcular companySize automáticamente
   useEffect(() => {
-    console.log(
-      "Calculating companySize - sector:",
-      sector,
-      "annualRevenue:",
-      annualRevenue
-    );
     if (!sector || !annualRevenue) {
-      console.log(
-        "No sector or annualRevenue, setting companySize to 'indefinido'"
-      );
       setValue("companySize", "indefinido");
       return;
     }
@@ -638,127 +598,16 @@ export default function RegisterForm() {
     } else {
       size = "indefinido";
     }
-    console.log("Calculated companySize:", size);
     setValue("companySize", size);
   }, [sector, annualRevenue, setValue]);
 
   // Limpiar campos de grupo poblacional si no es empresa grande
   useEffect(() => {
-    console.log("Cleaning peopleGroup fields - companySize:", companySize);
     if (companySize !== "grande") {
-      console.log("Clearing peopleGroup and otherPeopleGroup");
       setValue("peopleGroup", "");
       setValue("otherPeopleGroup", "");
     }
   }, [companySize, setValue]);
-
-  // Log cuando cambia companySize
-  useEffect(() => {
-    console.log("companySize changed to:", companySize);
-  }, [companySize]);
-
-  // Log cuando cambia peopleGroup
-  useEffect(() => {
-    console.log("peopleGroup changed to:", peopleGroup);
-  }, [peopleGroup]);
-
-  // Log cuando cambia otherPeopleGroup
-  useEffect(() => {
-    console.log("otherPeopleGroup changed to:", otherPeopleGroup);
-  }, [otherPeopleGroup]);
-
-  // Log cuando cambia sector
-  useEffect(() => {
-    console.log("sector changed to:", sector);
-  }, [sector]);
-
-  // Log cuando cambia annualRevenue
-  useEffect(() => {
-    console.log("annualRevenue changed to:", annualRevenue);
-  }, [annualRevenue]);
-
-  // Log cuando cambia ciiu
-  useEffect(() => {
-    console.log("ciiu changed to:", ciiu);
-  }, [ciiu]);
-
-  // Log cuando cambia logo
-  useEffect(() => {
-    console.log("logo changed to:", logo);
-  }, [logo]);
-
-  // Log cuando cambia photo
-  useEffect(() => {
-    console.log("photo changed to:", photo);
-  }, [photo]);
-
-  // Log cuando cambia stepActive
-  useEffect(() => {
-    console.log("stepActive changed to:", stepActive);
-  }, [stepActive]);
-
-  // Log cuando cambia activeNextButton
-  useEffect(() => {
-    console.log("activeNextButton changed to:", activeNextButton);
-  }, [activeNextButton]);
-
-  // Log cuando cambia isLoading
-  useEffect(() => {
-    console.log("isLoading changed to:", isLoading);
-  }, [isLoading]);
-
-  // Log cuando cambia isCheckingEmail
-  useEffect(() => {
-    console.log("isCheckingEmail changed to:", isCheckingEmail);
-  }, [isCheckingEmail]);
-
-  // Log cuando cambia emailError
-  useEffect(() => {
-    console.log("emailError changed to:", emailError);
-  }, [emailError]);
-
-  // Log cuando cambia isCheckingCompanyDocument
-  useEffect(() => {
-    console.log(
-      "isCheckingCompanyDocument changed to:",
-      isCheckingCompanyDocument
-    );
-  }, [isCheckingCompanyDocument]);
-
-  // Log cuando cambia companyDocumentError
-  useEffect(() => {
-    console.log("companyDocumentError changed to:", companyDocumentError);
-  }, [companyDocumentError]);
-
-  // Log cuando cambia logoPreview
-  useEffect(() => {
-    console.log("logoPreview changed to:", logoPreview);
-  }, [logoPreview]);
-
-  // Log cuando cambia photoPreview
-  useEffect(() => {
-    console.log("photoPreview changed to:", photoPreview);
-  }, [logoPreview]);
-
-  // Log cuando cambia optionsCIIU
-  useEffect(() => {
-    console.log("optionsCIIU changed to:", optionsCIIU);
-  }, [optionsCIIU]);
-
-  // Log cuando cambia showPassword
-  useEffect(() => {
-    console.log("showPassword changed to:", showPassword);
-  }, [showPassword]);
-
-  // Log cuando cambia showConfirmPassword
-  useEffect(() => {
-    console.log("showConfirmPassword changed to:", showConfirmPassword);
-  }, [showConfirmPassword]);
-
-  // Log cuando cambia showSuccessModal
-  useEffect(() => {
-    console.log("showSuccessModal changed to:", showSuccessModal);
-  }, [showSuccessModal]);
 
   const handleRegister = async (data: FormData) => {
     try {
@@ -2158,7 +2007,7 @@ export default function RegisterForm() {
                         validate: {
                           isValid: (value) =>
                             isPasswordValid(value) ||
-                            "La contraseña debe contener al menos una mayúscula, una minúscula, un número y un carácter especial",
+                            "La contraseña debe contener al menos una mayúscula, una minúscula, un número, un carácter especial permitido (.,-_@#!?\"{}|<>) y no incluir caracteres inválidos",
                         },
                       })}
                       required
@@ -2197,9 +2046,9 @@ export default function RegisterForm() {
                     </li>
                     <li className="text-xs">
                       <RiCheckboxCircleFill
-                        className={`text-sm inline-block ${password?.match(/[!@#$%^&*(),.?":{}|<>]/) ? "text-blue-600" : "text-slate-500"}`}
+                        className={`text-sm inline-block ${password && SPECIAL_CHAR_REGEX.test(password) ? "text-blue-600" : "text-slate-500"}`}
                       />{" "}
-                      1 carácter especial como .,#@?*
+                      1 carácter especial como .,_#@?*
                     </li>
                   </ul>
                 </div>

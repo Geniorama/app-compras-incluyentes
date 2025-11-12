@@ -38,7 +38,6 @@ export async function POST(request: Request) {
   for (const user of users) {
     try {
       await sendActivationEmail(user.email, user.firstName, company.nameCompany);
-      console.log(`Correo enviado exitosamente a ${user.email}`);
     } catch (error) {
       console.error(`Error al enviar correo a ${user.email}:`, error);
     }

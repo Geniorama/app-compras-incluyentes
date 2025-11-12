@@ -69,10 +69,6 @@ export default function ProfileView({
 
   useEffect(() => {
     if (initialProfile) {
-      console.log('ProfileView - initialProfile received:', initialProfile);
-      console.log('ProfileView - initialProfile.company:', initialProfile.company);
-      console.log('ProfileView - initialProfile.company.annualRevenue:', initialProfile.company?.annualRevenue);
-      
       // Si tenemos datos iniciales, combinar los datos del usuario y la empresa
       const combinedProfile = {
         ...initialProfile,
@@ -104,20 +100,12 @@ export default function ProfileView({
         ...combinedProfile,
         logo: combinedProfile.logo as SanityImage | undefined,
       };
-      
-      console.log('ProfileView - combinedProfile.annualRevenue:', combinedProfile.annualRevenue);
-      console.log('ProfileView - typedCombinedProfile.annualRevenue:', typedCombinedProfile.annualRevenue);
-      
       setProfile(typedCombinedProfile);
       setOriginalProfile(typedCombinedProfile);
       
       // Inicializar annualRevenueDisplay y sector
-      console.log('Initializing annualRevenue:', typedCombinedProfile.annualRevenue, 'type:', typeof typedCombinedProfile.annualRevenue);
       if (typedCombinedProfile.annualRevenue !== undefined && typedCombinedProfile.annualRevenue !== null) {
-        console.log('Setting annualRevenueDisplay to:', typedCombinedProfile.annualRevenue.toString());
         setAnnualRevenueDisplay(typedCombinedProfile.annualRevenue.toString());
-      } else {
-        console.log('annualRevenue is undefined or null, not setting display value');
       }
       if (typedCombinedProfile.ciiu) {
         const sectorResult = getSectorFromCIIU(typedCombinedProfile.ciiu);

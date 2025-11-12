@@ -79,7 +79,6 @@ export default function MensajesView() {
       const urlParams = new URLSearchParams(window.location.search);
       const empresaId = urlParams.get('empresa');
       if (empresaId) {
-        console.log('empresas', empresas);
         setDestinatarioEmpresaId(empresaId);
         // setEmpresaSearchTerm(empresas.find(empresa => empresa._id === empresaId)?.nameCompany || '');
         setShowNuevoMensaje(true);
@@ -91,7 +90,6 @@ export default function MensajesView() {
 
   useEffect(() => {
     if (empresas.length > 0) {
-      console.log('empresas', empresas);
       setEmpresaSearchTerm(empresas.find(empresa => empresa._id === destinatarioEmpresaId)?.nameCompany || '');
     }
   }, [empresas, destinatarioEmpresaId]);
