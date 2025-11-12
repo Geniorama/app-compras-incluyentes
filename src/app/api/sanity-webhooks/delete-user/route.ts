@@ -95,14 +95,6 @@ const extractFirebaseUid = (payload: Record<string, unknown>): string | null => 
   return null;
 };
 
-const isDeleteEvent = (payload: Record<string, unknown>) => {
-  const transition = payload?.transition;
-  const operation = payload?.operation;
-  const event = payload?.event;
-
-  return transition === 'delete' || operation === 'delete' || event === 'delete';
-};
-
 export async function POST(request: NextRequest) {
   try {
     const secret = process.env.SANITY_WEBHOOK_SECRET;
@@ -119,12 +111,16 @@ export async function POST(request: NextRequest) {
     const signature =
       request.headers.get(SIGNATURE_HEADER) ??
       request.headers.get(LEGACY_SIGNATURE_HEADER);
+    const sanityOperation = request.headers.get('sanity-operation');
 
     if (!isSignatureValid(rawBody, signature, secret)) {
       return NextResponse.json({ ok: false, error: 'Firma inválida' }, { status: 401 });
     }
 
-    if (!isDeleteEvent(body)) {
+    if (
+      sanityOperation &&
+      sanityOperation.toLowerCase() !== 'delete'
+    ) {
       return NextResponse.json({ ok: true, message: 'Evento ignorado' });
     }
 
