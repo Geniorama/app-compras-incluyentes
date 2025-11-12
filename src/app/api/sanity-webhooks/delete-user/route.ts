@@ -138,12 +138,17 @@ export async function POST(request: NextRequest) {
     }
 
     try {
+      console.log('[Sanity webhook] Eliminando usuario Firebase:', firebaseUid);
       await adminAuth.deleteUser(firebaseUid);
+      console.log('[Sanity webhook] Usuario eliminado correctamente:', firebaseUid);
     } catch (error) {
       // Ignorar si el usuario ya no existe
       if (!(error instanceof Error) || !('code' in error) || (error as { code: string }).code !== 'auth/user-not-found') {
+        console.error('[Sanity webhook] Error eliminando usuario Firebase:', error);
         throw error;
       }
+
+      console.log('[Sanity webhook] Usuario no encontrado en Firebase (se puede ignorar):', firebaseUid);
     }
 
     return NextResponse.json({ ok: true });
