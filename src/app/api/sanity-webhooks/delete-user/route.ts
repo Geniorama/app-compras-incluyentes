@@ -5,7 +5,6 @@ import { adminAuth } from '@/lib/firebase-admin';
 const SIGNATURE_HEADER = 'x-sanity-webhook-signature';
 const LEGACY_SIGNATURE_HEADER = 'sanity-webhook-signature';
 
-
 const isSignatureValid = (payload: string, signature: string | null, secret: string) => {
   if (!signature) {
     return false;
@@ -32,15 +31,23 @@ const isSignatureValid = (payload: string, signature: string | null, secret: str
   // New Sanity header format: t=<timestamp>,v1=<base64 hmac>
   const parts = trimmed.split(',').map((part) => part.trim());
   const v1Part = parts.find((part) => part.startsWith('v1='));
+  const tPart = parts.find((part) => part.startsWith('t='));
 
-  if (!v1Part) {
+  if (!v1Part || !tPart) {
     return false;
   }
 
   const received = v1Part.slice(3);
+  const timestamp = tPart.slice(2);
+
+  if (!timestamp) {
+    return false;
+  }
+
+  const message = `${timestamp}.${payload}`;
 
   try {
-    const expectedBuffer = createHmac('sha256', secret).update(payload).digest();
+    const expectedBuffer = createHmac('sha256', secret).update(message).digest();
     const receivedBuffer = Buffer.from(
       received.replace(/-/g, '+').replace(/_/g, '/'),
       'base64',
