@@ -113,11 +113,7 @@ export async function POST(request: NextRequest) {
       request.headers.get(SIGNATURE_HEADER) ??
       request.headers.get(LEGACY_SIGNATURE_HEADER);
 
-    const toSign = JSON.stringify({
-      body,
-    });
-
-    if (!isSignatureValid(toSign, signature, secret)) {
+    if (!isSignatureValid(rawBody, signature, secret)) {
       return NextResponse.json({ ok: false, error: 'Firma inválida' }, { status: 401 });
     }
 
