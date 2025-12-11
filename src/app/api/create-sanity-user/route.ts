@@ -39,6 +39,7 @@ export async function POST(request: Request) {
       infoVisibilityConsent,
       dataTreatmentConsent,
       friendlyBizz,
+      inclusionDEI,
       annualRevenue,
     } = await request.json()
 
@@ -77,6 +78,7 @@ export async function POST(request: Request) {
       peopleGroup,
       otherPeopleGroup,
       friendlyBizz: friendlyBizz || false,
+      inclusionDEI: inclusionDEI === 'yes' ? true : false,
       membership: membership === 'yes' ? true : false,
       annualRevenue: annualRevenue || 0,
       active: false,

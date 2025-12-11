@@ -86,6 +86,7 @@ export default function ProfileView({
         peopleGroup: initialProfile.company?.peopleGroup || "",
         otherPeopleGroup: initialProfile.company?.otherPeopleGroup || "",
         friendlyBizz: initialProfile.company?.friendlyBizz || false,
+        inclusionDEI: initialProfile.company?.inclusionDEI ? "yes" : "no",
         membership: initialProfile.company?.membership || false,
         annualRevenue: initialProfile.company?.annualRevenue ?? 0,
         logo: initialProfile.company?.logo,
@@ -211,6 +212,7 @@ export default function ProfileView({
       "peopleGroup",
       "otherPeopleGroup",
       "friendlyBizz",
+      "inclusionDEI",
       "membership",
       "annualRevenue",
       "photo",
@@ -341,6 +343,7 @@ export default function ProfileView({
         peopleGroup: profile.peopleGroup,
         otherPeopleGroup: profile.otherPeopleGroup,
         friendlyBizz: profile.friendlyBizz,
+        inclusionDEI: profile.inclusionDEI === "yes" ? true : false,
         membership: profile.membership,
         annualRevenue: currentAnnualRevenue,
         facebook: profile.facebook,
@@ -1138,6 +1141,29 @@ export default function ProfileView({
                       />
                     </div>
                   )}
+
+                  <div className="w-full md:w-1/2 px-2 space-y-1">
+                    <Label htmlFor="inclusionDEI">
+                      ¿La empresa está comprometida con la equidad e inclusión DEI?
+                    </Label>
+                    <Select
+                      id="inclusionDEI"
+                      value={profile?.inclusionDEI || "no"}
+                      onChange={(e) => handleChange("inclusionDEI", e.target.value)}
+                      color="blue"
+                      disabled={isUserOnly}
+                      theme={{
+                        field: {
+                          select: {
+                            base: `border-slate-200 focus:border-blue-600 w-full ${isUserOnly ? "bg-gray-100 text-gray-500" : ""}`,
+                          },
+                        },
+                      }}
+                    >
+                      <option value="no">No</option>
+                      <option value="yes">Sí</option>
+                    </Select>
+                  </div>
                 </div>
 
                 <div className="mt-8">{saveButton}</div>

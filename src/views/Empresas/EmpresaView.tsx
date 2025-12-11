@@ -42,6 +42,7 @@ export default function EmpresaView({ company }: EmpresaViewProps) {
     numDocumentCompany,
     ciiu,
     phone,
+    inclusionDEI,
     facebook,
     instagram,
     tiktok,
@@ -93,6 +94,12 @@ export default function EmpresaView({ company }: EmpresaViewProps) {
           <div className="bg-white rounded-lg shadow p-6 mb-8 flex flex-col items-center">
             <h1 className="text-3xl font-bold mb-2">{nameCompany}</h1>
             <div className="flex flex-wrap gap-2 mb-4">
+              {inclusionDEI && (
+                <span className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
+                  <span>🏆</span>
+                  <span>Empresa Aliada DEI</span>
+                </span>
+              )}
               <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-semibold">{ciiu}</span>
               <span className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-xs font-semibold uppercase">{typeDocumentCompany}: {numDocumentCompany}</span>
             </div>

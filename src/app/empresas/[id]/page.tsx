@@ -28,6 +28,7 @@ interface Company {
   numDocumentCompany: string;
   ciiu: string;
   phone: string;
+  inclusionDEI?: boolean;
   facebook?: string;
   instagram?: string;
   tiktok?: string;
@@ -63,6 +64,7 @@ export default function EmpresaPage() {
             numDocumentCompany,
             ciiu,
             phone,
+            inclusionDEI,
             facebook,
             instagram,
             tiktok,

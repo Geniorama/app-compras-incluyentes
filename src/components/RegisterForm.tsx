@@ -78,6 +78,7 @@ interface FormData {
   dataTreatmentConsent: boolean;
   infoVisibilityConsent: boolean;
   friendlyBizz: boolean;
+  inclusionDEI?: string;
   annualRevenue: number;
 }
 
@@ -135,6 +136,7 @@ export default function RegisterForm() {
   const peopleGroup = watch("peopleGroup");
   const otherPeopleGroup = watch("otherPeopleGroup");
   const friendlyBizz = watch("friendlyBizz");
+  const inclusionDEI = watch("inclusionDEI");
 
   // Fields Step 2
   const firstName = watch("firstName");
@@ -1506,6 +1508,35 @@ export default function RegisterForm() {
                            Marca esta opción si tu empresa cuenta con la
                            certificación Friendly Bizz
                          </p>
+                       </div>
+
+                       <div className="w-full px-2 space-y-1 md:mt-6">
+                         <Label htmlFor="inclusionDEI">
+                           ¿La empresa está comprometida con la equidad e inclusión DEI? <span className="text-red-500">*</span>
+                         </Label>
+                         <Select
+                           {...register("inclusionDEI", {
+                             required: "Este campo es obligatorio",
+                           })}
+                           id="inclusionDEI"
+                           color="blue"
+                           theme={{
+                             field: {
+                               select: {
+                                 base: "border-slate-200 focus:border-blue-600 w-full",
+                               },
+                             },
+                           }}
+                         >
+                           <option value="">Seleccionar opción</option>
+                           <option value="yes">Sí</option>
+                           <option value="no">No</option>
+                         </Select>
+                         {validationErrors.inclusionDEI && (
+                           <p className="text-red-500 text-sm mt-1">
+                             {validationErrors.inclusionDEI}
+                           </p>
+                         )}
                        </div>
 
                        <div className="w-full px-2 space-y-4 text-center py-5 gap-2 bg-blue-100 rounded-lg md:mt-6">

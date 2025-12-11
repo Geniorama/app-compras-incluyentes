@@ -53,6 +53,7 @@ export async function GET(request: Request) {
           peopleGroup,
           otherPeopleGroup,
           friendlyBizz,
+          inclusionDEI,
           membership,
           annualRevenue,
           logo,
