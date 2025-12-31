@@ -37,10 +37,13 @@ interface Company {
 
 export default function EmpresasPage() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [sector, setSector] = useState('');
+  const [sector, setSector] = useState<string[]>([]);
   const [department, setDepartment] = useState('');
   const [city, setCity] = useState('');
+  const [peopleGroup, setPeopleGroup] = useState<string[]>([]);
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
+  const [sortField, setSortField] = useState<'nameCompany' | '_createdAt'>('_createdAt');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [currentPage, setCurrentPage] = useState(1);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -55,14 +58,21 @@ export default function EmpresasPage() {
       // Agregar filtros si existen
       const filters = [];
       if (searchTerm) filters.push(`(nameCompany match "${searchTerm}*" || businessName match "${searchTerm}*")`);
-      if (sector) filters.push(`ciiu == "${sector}"`);
+      if (sector.length > 0) {
+        const sectorFilter = sector.map(s => `"${s}"`).join(', ');
+        filters.push(`ciiu in [${sectorFilter}]`);
+      }
       if (department) filters.push(`department == "${department}"`);
       if (city) filters.push(`city == "${city}"`);
+      if (peopleGroup.length > 0) {
+        const pgFilter = peopleGroup.map(pg => `"${pg}"`).join(', ');
+        filters.push(`peopleGroup in [${pgFilter}]`);
+      }
       
       if (filters.length > 0) {
         query += ` && ${filters.join(" && ")}`;
       }
-      query += `] | order(_createdAt desc) {
+      query += `] | order(${sortField} ${sortDirection}) {
         _id,
         nameCompany,
         businessName,
@@ -100,11 +110,11 @@ export default function EmpresasPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, sector, department, city, searchTerm]);
+  }, [currentPage, sector, department, city, searchTerm, peopleGroup, sortField, sortDirection]);
 
   useEffect(() => {
     fetchCompanies();
-  }, [currentPage, sector, department, city, searchTerm]);
+  }, [currentPage, sector, department, city, searchTerm, peopleGroup, sortField, sortDirection]);
 
   useEffect(() => {
     if (searchTerm === '') {
@@ -121,19 +131,42 @@ export default function EmpresasPage() {
   }, [department]);
 
   const handleSearch = () => {
-    const newFilters = [];
+    const newFilters: string[] = [];
     if (searchTerm) {
       newFilters.push(searchTerm);
     }
-    if (sector) {
-      newFilters.push(sector);
-    }
-    if (department) {
-      newFilters.push(department);
-    }
-    if (city) {
-      newFilters.push(city);
-    }
+    sector.forEach(s => newFilters.push(s));
+    if (department) newFilters.push(department);
+    if (city) newFilters.push(city);
+    
+    const peopleGroupLabels: { [key: string]: string } = {
+      'lgbtiq': 'LGBTIQ+',
+      'discapacidad-sensorial': 'Personas con discapacidad Sensorial',
+      'discapacidad-fisico-motora': 'Personas con discapacidad Físico Motora',
+      'discapacidad-psicosocial': 'Personas con discapacidad Psicosocial',
+      'discapacidad-cognitiva': 'Personas con discapacidad Cognitiva',
+      'migrantes': 'Migrantes',
+      'etnia-afrodescendientes': 'Etnia y Raza: Afrodescendientes, raizales y palenqueros',
+      'etnia-indigenas': 'Etnia y Raza: Indígenas',
+      'victimas-reconciliacion-paz': 'Víctimas de reconciliación y paz (víctimas, victimarios)',
+      'pospenadas': 'Pospenadas',
+      'diversidad-generacional-mayores-50': 'Diversidad Generacional mayores de 50 años',
+      'diversidad-generacional-primer-empleo': 'Diversidad Generacional primer empleo',
+      'madres-cabeza-familia': 'Madres cabeza de familia',
+      'diversidad-sexual': 'Diversidad Sexual',
+      'personas-discapacidad': 'Personas con discapacidad',
+      'etnia-raza-afro': 'Etnia, raza o afro',
+      'personas-migrantes': 'Personas migrantes',
+      'generacional': 'Generacional',
+      'equidad-genero': 'Equidad de Género',
+      'pospenados-reinsertados': 'Pospenados o reinsertados',
+      'ninguno': 'Ninguno',
+      'otro': 'Otro'
+    };
+    peopleGroup.forEach(pg => {
+      newFilters.push(peopleGroupLabels[pg] || pg);
+    });
+    
     setSelectedFilters(newFilters);
     setCurrentPage(1);
     fetchCompanies();
@@ -141,10 +174,40 @@ export default function EmpresasPage() {
 
   const handleRemoveFilter = (filter: string) => {
     setSelectedFilters(selectedFilters.filter(f => f !== filter));
-    if (filter === sector) setSector('');
-    if (filter === searchTerm) setSearchTerm('');
+    const peopleGroupLabels: { [key: string]: string } = {
+      'LGBTIQ+': 'lgbtiq',
+      'Personas con discapacidad Sensorial': 'discapacidad-sensorial',
+      'Personas con discapacidad Físico Motora': 'discapacidad-fisico-motora',
+      'Personas con discapacidad Psicosocial': 'discapacidad-psicosocial',
+      'Personas con discapacidad Cognitiva': 'discapacidad-cognitiva',
+      'Migrantes': 'migrantes',
+      'Etnia y Raza: Afrodescendientes, raizales y palenqueros': 'etnia-afrodescendientes',
+      'Etnia y Raza: Indígenas': 'etnia-indigenas',
+      'Víctimas de reconciliación y paz (víctimas, victimarios)': 'victimas-reconciliacion-paz',
+      'Pospenadas': 'pospenadas',
+      'Diversidad Generacional mayores de 50 años': 'diversidad-generacional-mayores-50',
+      'Diversidad Generacional primer empleo': 'diversidad-generacional-primer-empleo',
+      'Madres cabeza de familia': 'madres-cabeza-familia',
+      'Diversidad Sexual': 'diversidad-sexual',
+      'Personas con discapacidad': 'personas-discapacidad',
+      'Etnia, raza o afro': 'etnia-raza-afro',
+      'Personas migrantes': 'personas-migrantes',
+      'Generacional': 'generacional',
+      'Equidad de Género': 'equidad-genero',
+      'Pospenados o reinsertados': 'pospenados-reinsertados',
+      'Ninguno': 'ninguno',
+      'Otro': 'otro'
+    };
+    
+    // Remover de arrays
+    if (sector.includes(filter)) setSector(sector.filter(s => s !== filter));
     if (filter === department) setDepartment('');
     if (filter === city) setCity('');
+    const pgValue = peopleGroupLabels[filter];
+    if (pgValue && peopleGroup.includes(pgValue)) {
+      setPeopleGroup(peopleGroup.filter(pg => pg !== pgValue));
+    }
+    if (filter === searchTerm) setSearchTerm('');
     setCurrentPage(1);
   };
 
@@ -158,11 +221,22 @@ export default function EmpresasPage() {
       sector={sector}
       department={department}
       city={city}
+      peopleGroup={peopleGroup}
       selectedFilters={selectedFilters}
       onSearchTermChange={setSearchTerm}
-      onSectorChange={setSector}
-      onDepartmentChange={setDepartment}
-      onCityChange={setCity}
+      onSectorChange={(values: string[]) => setSector(values)}
+      onDepartmentChange={(value: string) => {
+        setDepartment(value);
+        if (!value) setCity('');
+      }}
+      onCityChange={(value: string) => setCity(value)}
+      onPeopleGroupChange={(values: string[]) => setPeopleGroup(values)}
+      sortField={sortField}
+      sortDirection={sortDirection}
+      onSortChange={(field: 'nameCompany' | '_createdAt', direction: 'asc' | 'desc') => {
+        setSortField(field);
+        setSortDirection(direction);
+      }}
       onPageChange={setCurrentPage}
       onSearch={handleSearch}
       onRemoveFilter={handleRemoveFilter}

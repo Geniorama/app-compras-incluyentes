@@ -1148,7 +1148,9 @@ export default function ProfileView({
                     </Label>
                     <Select
                       id="inclusionDEI"
-                      value={profile?.inclusionDEI || "no"}
+                      value={typeof profile?.inclusionDEI === 'boolean' 
+                        ? (profile.inclusionDEI ? "yes" : "no") 
+                        : (profile?.inclusionDEI || "no")}
                       onChange={(e) => handleChange("inclusionDEI", e.target.value)}
                       color="blue"
                       disabled={isUserOnly}
