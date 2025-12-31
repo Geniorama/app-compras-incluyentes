@@ -36,6 +36,7 @@ interface Company {
 }
 
 export default function EmpresasPage() {
+  const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [sector, setSector] = useState<string[]>([]);
   const [department, setDepartment] = useState('');
@@ -127,13 +128,6 @@ export default function EmpresasPage() {
     fetchCompanies();
   }, [currentPage, sector, department, city, searchTerm, peopleGroup, companySize, inclusionDEI, sortField, sortDirection]);
 
-  useEffect(() => {
-    if (searchTerm === '') {
-      setCurrentPage(1);
-      fetchCompanies();
-    }
-  }, [searchTerm, fetchCompanies]);
-
   // Limpiar ciudad cuando cambie el departamento
   useEffect(() => {
     if (department === '') {
@@ -142,9 +136,11 @@ export default function EmpresasPage() {
   }, [department]);
 
   const handleSearch = () => {
+    setSearchTerm(searchInput);
+    setCurrentPage(1);
     const newFilters: string[] = [];
-    if (searchTerm) {
-      newFilters.push(searchTerm);
+    if (searchInput) {
+      newFilters.push(searchInput);
     }
     sector.forEach(s => newFilters.push(s));
     if (department) newFilters.push(department);
@@ -196,8 +192,6 @@ export default function EmpresasPage() {
     });
     
     setSelectedFilters(newFilters);
-    setCurrentPage(1);
-    fetchCompanies();
   };
 
   const handleRemoveFilter = (filter: string) => {
@@ -251,7 +245,10 @@ export default function EmpresasPage() {
     if (pgValue && peopleGroup.includes(pgValue)) {
       setPeopleGroup(peopleGroup.filter(pg => pg !== pgValue));
     }
-    if (filter === searchTerm) setSearchTerm('');
+    if (filter === searchTerm) {
+      setSearchTerm('');
+      setSearchInput('');
+    }
     setCurrentPage(1);
   };
 
@@ -261,13 +258,15 @@ export default function EmpresasPage() {
       isLoading={isLoading}
       totalResults={totalResults}
       currentPage={currentPage}
-      searchTerm={searchTerm}
+      searchTerm={searchInput}
+      searchQuery={searchTerm}
       sector={sector}
       department={department}
       city={city}
       peopleGroup={peopleGroup}
       selectedFilters={selectedFilters}
-      onSearchTermChange={setSearchTerm}
+      onSearchTermChange={setSearchInput}
+      onSearchSubmit={handleSearch}
       onSectorChange={(values: string[]) => setSector(values)}
       onDepartmentChange={(value: string) => {
         setDepartment(value);
@@ -286,7 +285,6 @@ export default function EmpresasPage() {
         setSortDirection(direction);
       }}
       onPageChange={setCurrentPage}
-      onSearch={handleSearch}
       onRemoveFilter={handleRemoveFilter}
     />
   );

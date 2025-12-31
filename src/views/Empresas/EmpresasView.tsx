@@ -5,7 +5,7 @@ import { HiSearch, HiX, HiArrowUp, HiArrowDown } from 'react-icons/hi';
 import CompanyCard from '@/components/CompanyCard';
 import DashboardNavbar from '@/components/dashboard/Navbar';
 import BannerEmpresas from '@/assets/img/banner-empresas.webp';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { getDepartamentosOptions, getCiudadesOptionsByDepartamento } from '@/utils/departamentosCiudades';
 import ReactSelect, { StylesConfig, CSSObjectWithLabel } from 'react-select';
 
@@ -45,6 +45,7 @@ interface EmpresasViewProps {
   totalResults: number;
   currentPage: number;
   searchTerm: string;
+  searchQuery: string;
   sector: string[];
   department: string;
   city: string;
@@ -53,6 +54,7 @@ interface EmpresasViewProps {
   inclusionDEI: string;
   selectedFilters: string[];
   onSearchTermChange: (value: string) => void;
+  onSearchSubmit: () => void;
   onSectorChange: (values: string[]) => void;
   onDepartmentChange: (value: string) => void;
   onCityChange: (value: string) => void;
@@ -63,7 +65,6 @@ interface EmpresasViewProps {
   sortDirection: 'asc' | 'desc';
   onSortChange: (field: 'nameCompany' | '_createdAt', direction: 'asc' | 'desc') => void;
   onPageChange: (page: number) => void;
-  onSearch: () => void;
   onRemoveFilter: (filter: string) => void;
 }
 
@@ -73,6 +74,7 @@ export default function EmpresasView({
   totalResults,
   currentPage,
   searchTerm,
+  searchQuery,
   sector,
   department,
   city,
@@ -81,6 +83,7 @@ export default function EmpresasView({
   inclusionDEI,
   selectedFilters,
   onSearchTermChange,
+  onSearchSubmit,
   onSectorChange,
   onDepartmentChange,
   onCityChange,
@@ -91,11 +94,11 @@ export default function EmpresasView({
   sortDirection,
   onSortChange,
   onPageChange,
-  onSearch,
   onRemoveFilter
 }: EmpresasViewProps) {
   const [recentCompanies, setRecentCompanies] = useState<Company[]>([]);
   const [isClient, setIsClient] = useState(false);
+  const resultsRef = useRef<HTMLDivElement>(null);
   
   // Estados para departamentos y ciudades
   const [departamentosOptions] = useState(() => getDepartamentosOptions());
@@ -104,6 +107,16 @@ export default function EmpresasView({
   useEffect(() => {
     setIsClient(true);
   }, []);
+  
+  // Scroll a resultados cuando cambian las empresas o se realiza una búsqueda
+  useEffect(() => {
+    if (companies.length > 0 && resultsRef.current && !isLoading) {
+      // Pequeño delay para asegurar que el DOM esté actualizado
+      setTimeout(() => {
+        resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
+  }, [companies, searchQuery, isLoading]);
   
   useEffect(() => {
     try {
@@ -214,6 +227,11 @@ export default function EmpresasView({
                 placeholder="Buscar Empresa"
                 value={searchTerm}
                 onChange={(e) => onSearchTermChange(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    onSearchSubmit();
+                  }
+                }}
                 className="flex-grow-0 w-full"
                 icon={HiSearch}
                 theme={{
@@ -226,7 +244,7 @@ export default function EmpresasView({
               />
               <Button 
                 color="blue"
-                onClick={onSearch}
+                onClick={onSearchSubmit}
                 className="w-full md:w-auto"
               >
                 Buscar
@@ -457,7 +475,14 @@ export default function EmpresasView({
               ))}
             </div>
           )}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {searchQuery && !isLoading && (
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">
+                {totalResults} {totalResults === 1 ? 'Resultado' : 'Resultados'} para &quot;{searchQuery}&quot;
+              </h2>
+            </div>
+          )}
+          <div ref={resultsRef} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {isLoading ? (
               Array(6).fill(null).map((_, index) => (
                 <div key={index} className="bg-white rounded-lg border border-gray-200 p-4 animate-pulse">
@@ -479,6 +504,7 @@ export default function EmpresasView({
                 <CompanyCard
                   key={company._id}
                   {...company}
+                  searchTerm={searchQuery}
                 />
               ))
             )}
@@ -507,7 +533,7 @@ export default function EmpresasView({
             </div>
           </div>
           {/* Sección de empresas consultadas recientemente */}
-          {recentCompanies.length > 0 && (
+          {recentCompanies.length > 0 && !searchQuery && (
             <div className="bg-white rounded-lg border border-gray-200 mt-8 p-6">
               <h3 className="text-lg font-semibold mb-4">Consultado recientemente</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

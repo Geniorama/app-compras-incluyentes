@@ -18,9 +18,28 @@ interface CompanyCardProps {
   businessName: string;
   logo: SanityImage;
   phone?: string;
+  searchTerm?: string;
 }
 
-export default function CompanyCard({ _id, nameCompany, businessName, logo }: CompanyCardProps) {
+// Función para resaltar el término de búsqueda
+const highlightText = (text: string, searchTerm: string) => {
+  if (!searchTerm || !text) return text;
+  
+  const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+  const parts = text.split(regex);
+  
+  return parts.map((part, index) => 
+    regex.test(part) ? (
+      <mark key={index} className="bg-yellow-400 font-bold text-gray-900 px-1.5 py-0.5 rounded shadow-sm">
+        {part}
+      </mark>
+    ) : (
+      part
+    )
+  );
+};
+
+export default function CompanyCard({ _id, nameCompany, businessName, logo, searchTerm }: CompanyCardProps) {
   const router = useRouter();
 
   // Función para obtener la URL de la imagen de Sanity
@@ -76,8 +95,12 @@ export default function CompanyCard({ _id, nameCompany, businessName, logo }: Co
           )}
         </div>
         <div className="min-w-0">
-          <h3 className="font-medium text-gray-900 truncate">{nameCompany}</h3>
-          <p className="text-sm text-gray-500">{businessName}</p>
+          <h3 className="font-medium text-gray-900 truncate">
+            {searchTerm ? highlightText(nameCompany, searchTerm) : nameCompany}
+          </h3>
+          <p className="text-sm text-gray-500">
+            {searchTerm ? highlightText(businessName, searchTerm) : businessName}
+          </p>
         </div>
       </div>
       <hr className='mb-5 mt-2' />
