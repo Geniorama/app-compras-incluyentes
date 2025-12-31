@@ -41,6 +41,7 @@ export default function EmpresasPage() {
   const [department, setDepartment] = useState('');
   const [city, setCity] = useState('');
   const [peopleGroup, setPeopleGroup] = useState<string[]>([]);
+  const [companySize, setCompanySize] = useState<string[]>([]);
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
   const [sortField, setSortField] = useState<'nameCompany' | '_createdAt'>('_createdAt');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
@@ -67,6 +68,10 @@ export default function EmpresasPage() {
       if (peopleGroup.length > 0) {
         const pgFilter = peopleGroup.map(pg => `"${pg}"`).join(', ');
         filters.push(`peopleGroup in [${pgFilter}]`);
+      }
+      if (companySize.length > 0) {
+        const sizeFilter = companySize.map(size => `"${size}"`).join(', ');
+        filters.push(`companySize in [${sizeFilter}]`);
       }
       
       if (filters.length > 0) {
@@ -110,11 +115,11 @@ export default function EmpresasPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, sector, department, city, searchTerm, peopleGroup, sortField, sortDirection]);
+  }, [currentPage, sector, department, city, searchTerm, peopleGroup, companySize, sortField, sortDirection]);
 
   useEffect(() => {
     fetchCompanies();
-  }, [currentPage, sector, department, city, searchTerm, peopleGroup, sortField, sortDirection]);
+  }, [currentPage, sector, department, city, searchTerm, peopleGroup, companySize, sortField, sortDirection]);
 
   useEffect(() => {
     if (searchTerm === '') {
@@ -138,6 +143,17 @@ export default function EmpresasPage() {
     sector.forEach(s => newFilters.push(s));
     if (department) newFilters.push(department);
     if (city) newFilters.push(city);
+    
+    const companySizeLabels: { [key: string]: string } = {
+      'micro': 'Micro',
+      'pequena': 'Pequeña',
+      'mediana': 'Mediana',
+      'grande': 'Grande',
+      'indefinido': 'Indefinido'
+    };
+    companySize.forEach(size => {
+      newFilters.push(companySizeLabels[size] || size);
+    });
     
     const peopleGroupLabels: { [key: string]: string } = {
       'lgbtiq': 'LGBTIQ+',
@@ -203,6 +219,19 @@ export default function EmpresasPage() {
     if (sector.includes(filter)) setSector(sector.filter(s => s !== filter));
     if (filter === department) setDepartment('');
     if (filter === city) setCity('');
+    
+    const companySizeLabels: { [key: string]: string } = {
+      'Micro': 'micro',
+      'Pequeña': 'pequena',
+      'Mediana': 'mediana',
+      'Grande': 'grande',
+      'Indefinido': 'indefinido'
+    };
+    const sizeValue = companySizeLabels[filter];
+    if (sizeValue && companySize.includes(sizeValue)) {
+      setCompanySize(companySize.filter(size => size !== sizeValue));
+    }
+    
     const pgValue = peopleGroupLabels[filter];
     if (pgValue && peopleGroup.includes(pgValue)) {
       setPeopleGroup(peopleGroup.filter(pg => pg !== pgValue));
@@ -231,6 +260,8 @@ export default function EmpresasPage() {
       }}
       onCityChange={(value: string) => setCity(value)}
       onPeopleGroupChange={(values: string[]) => setPeopleGroup(values)}
+      companySize={companySize}
+      onCompanySizeChange={(values: string[]) => setCompanySize(values)}
       sortField={sortField}
       sortDirection={sortDirection}
       onSortChange={(field: 'nameCompany' | '_createdAt', direction: 'asc' | 'desc') => {

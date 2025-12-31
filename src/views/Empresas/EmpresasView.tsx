@@ -49,12 +49,14 @@ interface EmpresasViewProps {
   department: string;
   city: string;
   peopleGroup: string[];
+  companySize: string[];
   selectedFilters: string[];
   onSearchTermChange: (value: string) => void;
   onSectorChange: (values: string[]) => void;
   onDepartmentChange: (value: string) => void;
   onCityChange: (value: string) => void;
   onPeopleGroupChange: (values: string[]) => void;
+  onCompanySizeChange: (values: string[]) => void;
   sortField: 'nameCompany' | '_createdAt';
   sortDirection: 'asc' | 'desc';
   onSortChange: (field: 'nameCompany' | '_createdAt', direction: 'asc' | 'desc') => void;
@@ -73,12 +75,14 @@ export default function EmpresasView({
   department,
   city,
   peopleGroup,
+  companySize,
   selectedFilters,
   onSearchTermChange,
   onSectorChange,
   onDepartmentChange,
   onCityChange,
   onPeopleGroupChange,
+  onCompanySizeChange,
   sortField,
   sortDirection,
   onSortChange,
@@ -116,6 +120,15 @@ export default function EmpresasView({
     value: ciiu,
     label: ciiu
   }));
+
+  // Opciones para tamaño de empresa
+  const companySizeOptions = [
+    { value: 'micro', label: 'Micro' },
+    { value: 'pequena', label: 'Pequeña' },
+    { value: 'mediana', label: 'Mediana' },
+    { value: 'grande', label: 'Grande' },
+    { value: 'indefinido', label: 'Indefinido' }
+  ];
 
   // Opciones para grupos poblacionales
   const peopleGroupOptions = [
@@ -269,6 +282,24 @@ export default function EmpresasView({
                   <option key={option.value} value={option.value}>{option.label}</option>
                 ))}
               </Select>
+              <div className="min-w-[150px]">
+                <ReactSelect
+                  isMulti
+                  options={companySizeOptions}
+                  value={companySizeOptions.filter(opt => companySize.includes(opt.value))}
+                  onChange={(selected) => {
+                    if (selected && Array.isArray(selected)) {
+                      onCompanySizeChange(selected.map(s => s.value));
+                    } else {
+                      onCompanySizeChange([]);
+                    }
+                  }}
+                  placeholder="Tamaño de empresa"
+                  styles={filterSelectStyles}
+                  className="text-sm"
+                  noOptionsMessage={() => "No hay opciones"}
+                />
+              </div>
               <div className="min-w-[180px]">
                 <ReactSelect
                   isMulti
