@@ -1,6 +1,6 @@
 'use client';
 
-import { Button, TextInput, Select } from 'flowbite-react';
+import { Button, TextInput, Select, Label } from 'flowbite-react';
 import { HiSearch, HiX, HiArrowUp, HiArrowDown } from 'react-icons/hi';
 import CompanyCard from '@/components/CompanyCard';
 import DashboardNavbar from '@/components/dashboard/Navbar';
@@ -50,6 +50,7 @@ interface EmpresasViewProps {
   city: string;
   peopleGroup: string[];
   companySize: string[];
+  inclusionDEI: string;
   selectedFilters: string[];
   onSearchTermChange: (value: string) => void;
   onSectorChange: (values: string[]) => void;
@@ -57,6 +58,7 @@ interface EmpresasViewProps {
   onCityChange: (value: string) => void;
   onPeopleGroupChange: (values: string[]) => void;
   onCompanySizeChange: (values: string[]) => void;
+  onInclusionDEIChange: (value: string) => void;
   sortField: 'nameCompany' | '_createdAt';
   sortDirection: 'asc' | 'desc';
   onSortChange: (field: 'nameCompany' | '_createdAt', direction: 'asc' | 'desc') => void;
@@ -76,6 +78,7 @@ export default function EmpresasView({
   city,
   peopleGroup,
   companySize,
+  inclusionDEI,
   selectedFilters,
   onSearchTermChange,
   onSectorChange,
@@ -83,6 +86,7 @@ export default function EmpresasView({
   onCityChange,
   onPeopleGroupChange,
   onCompanySizeChange,
+  onInclusionDEIChange,
   sortField,
   sortDirection,
   onSortChange,
@@ -91,11 +95,16 @@ export default function EmpresasView({
   onRemoveFilter
 }: EmpresasViewProps) {
   const [recentCompanies, setRecentCompanies] = useState<Company[]>([]);
+  const [isClient, setIsClient] = useState(false);
   
   // Estados para departamentos y ciudades
   const [departamentosOptions] = useState(() => getDepartamentosOptions());
   const [ciudadesOptions, setCiudadesOptions] = useState<{ value: string; label: string; }[]>([]);
-
+  
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+  
   useEffect(() => {
     try {
       const stored = JSON.parse(localStorage.getItem('recentCompanies') || '[]');
@@ -226,133 +235,206 @@ export default function EmpresasView({
           </div>
         </div>
         <div className="container mx-auto px-4 py-8">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+          <div className="flex flex-col justify-between items-start gap-4 mb-6">
             <h2 className="text-xl font-semibold text-gray-800">Empresas</h2>
-            <div className="flex flex-wrap gap-2 md:gap-x-4">
+            <div className="flex flex-wrap gap-4 md:gap-x-4">
               <div className="min-w-[150px]">
-                <ReactSelect
-                  isMulti
-                  options={ciiuOptions}
-                  value={ciiuOptions.filter(opt => sector.includes(opt.value))}
-                  onChange={(selected) => {
-                    if (selected && Array.isArray(selected)) {
-                      onSectorChange(selected.map(s => s.value));
-                    } else {
-                      onSectorChange([]);
-                    }
-                  }}
-                  placeholder="Sectores (CIIU)"
-                  styles={filterSelectStyles}
-                  className="text-sm"
-                  noOptionsMessage={() => "No hay opciones"}
-                />
+                <Label htmlFor="sector-filter" className="text-sm font-medium text-gray-700 mb-1 block">
+                  Sector (CIIU)
+                </Label>
+                {isClient ? (
+                  <ReactSelect
+                    id="sector-filter"
+                    instanceId="sector-filter-select"
+                    isMulti
+                    options={ciiuOptions}
+                    value={ciiuOptions.filter(opt => sector.includes(opt.value))}
+                    onChange={(selected) => {
+                      if (selected && Array.isArray(selected)) {
+                        onSectorChange(selected.map(s => s.value));
+                      } else {
+                        onSectorChange([]);
+                      }
+                    }}
+                    placeholder="Seleccionar sectores"
+                    styles={filterSelectStyles}
+                    className="text-sm"
+                    noOptionsMessage={() => "No hay opciones"}
+                  />
+                ) : (
+                  <div className="h-10 bg-blue-50 border border-blue-300 rounded text-sm flex items-center px-3 text-gray-500">
+                    Cargando...
+                  </div>
+                )}
               </div>
-              <Select 
-                value={department} 
-                onChange={(e) => onDepartmentChange(e.target.value)}
-                className="min-w-[150px]"
-                theme={{
-                  field: {
-                    select: {
-                      base: "bg-blue-50 border-blue-300 text-sm focus:border-blue-500 focus:ring-blue-500"
-                    }
-                  }
-                }}
-              >
-                <option value="">Todos los departamentos</option>
-                {departamentosOptions.map((option) => (
-                  <option key={option.value} value={option.value}>{option.label}</option>
-                ))}
-              </Select>
-              <Select 
-                value={city} 
-                onChange={(e) => onCityChange(e.target.value)}
-                className="min-w-[150px]"
-                disabled={!department}
-                theme={{
-                  field: {
-                    select: {
-                      base: `bg-blue-50 border-blue-300 text-sm focus:border-blue-500 focus:ring-blue-500 ${!department ? "bg-gray-100 text-gray-500 border-gray-200" : ""}`
-                    }
-                  }
-                }}
-              >
-                <option value="">Todas las ciudades</option>
-                {ciudadesOptions.map((option) => (
-                  <option key={option.value} value={option.value}>{option.label}</option>
-                ))}
-              </Select>
               <div className="min-w-[150px]">
-                <ReactSelect
-                  isMulti
-                  options={companySizeOptions}
-                  value={companySizeOptions.filter(opt => companySize.includes(opt.value))}
-                  onChange={(selected) => {
-                    if (selected && Array.isArray(selected)) {
-                      onCompanySizeChange(selected.map(s => s.value));
-                    } else {
-                      onCompanySizeChange([]);
-                    }
-                  }}
-                  placeholder="Tamaño de empresa"
-                  styles={filterSelectStyles}
-                  className="text-sm"
-                  noOptionsMessage={() => "No hay opciones"}
-                />
-              </div>
-              <div className="min-w-[180px]">
-                <ReactSelect
-                  isMulti
-                  options={peopleGroupOptions}
-                  value={peopleGroupOptions.filter(opt => peopleGroup.includes(opt.value))}
-                  onChange={(selected) => {
-                    if (selected && Array.isArray(selected)) {
-                      onPeopleGroupChange(selected.map(s => s.value));
-                    } else {
-                      onPeopleGroupChange([]);
-                    }
-                  }}
-                  placeholder="Grupos poblacionales"
-                  styles={filterSelectStyles}
-                  className="text-sm"
-                  noOptionsMessage={() => "No hay opciones"}
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <Select
-                  value={sortField}
-                  onChange={(e) => onSortChange(e.target.value as 'nameCompany' | '_createdAt', sortDirection)}
-                  className="min-w-[120px]"
+                <Label htmlFor="department-filter" className="text-sm font-medium text-gray-700 mb-1 block">
+                  Departamento
+                </Label>
+                <Select 
+                  id="department-filter"
+                  value={department} 
+                  onChange={(e) => onDepartmentChange(e.target.value)}
+                  className="min-w-[150px]"
                   theme={{
                     field: {
                       select: {
-                        base: "bg-gray-50 border-gray-300 text-sm text-gray-700 focus:border-gray-400 focus:ring-gray-400"
+                        base: "bg-blue-50 border-blue-300 text-sm focus:border-blue-500 focus:ring-blue-500"
                       }
                     }
                   }}
                 >
-                  <option value="_createdAt">Fecha</option>
-                  <option value="nameCompany">Nombre</option>
+                  <option value="">Todos los departamentos</option>
+                  {departamentosOptions.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
                 </Select>
-                <div className="flex items-center gap-1">
-                  <Button
-                    size="xs"
-                    color={sortDirection === 'asc' ? 'gray' : 'light'}
-                    onClick={() => onSortChange(sortField, 'asc')}
-                    className="flex items-center"
-                    title="Orden ascendente"
+              </div>
+              <div className="min-w-[150px]">
+                <Label htmlFor="city-filter" className="text-sm font-medium text-gray-700 mb-1 block">
+                  Ciudad
+                </Label>
+                <Select 
+                  id="city-filter"
+                  value={city} 
+                  onChange={(e) => onCityChange(e.target.value)}
+                  className="min-w-[150px]"
+                  disabled={!department}
+                  theme={{
+                    field: {
+                      select: {
+                        base: `bg-blue-50 border-blue-300 text-sm focus:border-blue-500 focus:ring-blue-500 ${!department ? "bg-gray-100 text-gray-500 border-gray-200" : ""}`
+                      }
+                    }
+                  }}
+                >
+                  <option value="">Todas las ciudades</option>
+                  {ciudadesOptions.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </Select>
+              </div>
+              <div className="min-w-[150px]">
+                <Label htmlFor="company-size-filter" className="text-sm font-medium text-gray-700 mb-1 block">
+                  Tamaño de empresa
+                </Label>
+                {isClient ? (
+                  <ReactSelect
+                    id="company-size-filter"
+                    instanceId="company-size-filter-select"
+                    isMulti
+                    options={companySizeOptions}
+                    value={companySizeOptions.filter(opt => companySize.includes(opt.value))}
+                    onChange={(selected) => {
+                      if (selected && Array.isArray(selected)) {
+                        onCompanySizeChange(selected.map(s => s.value));
+                      } else {
+                        onCompanySizeChange([]);
+                      }
+                    }}
+                    placeholder="Seleccionar tamaños"
+                    styles={filterSelectStyles}
+                    className="text-sm"
+                    noOptionsMessage={() => "No hay opciones"}
+                  />
+                ) : (
+                  <div className="h-10 bg-blue-50 border border-blue-300 rounded text-sm flex items-center px-3 text-gray-500">
+                    Cargando...
+                  </div>
+                )}
+              </div>
+              <div className="min-w-[180px]">
+                <Label htmlFor="people-group-filter" className="text-sm font-medium text-gray-700 mb-1 block">
+                  Grupo poblacional
+                </Label>
+                {isClient ? (
+                  <ReactSelect
+                    id="people-group-filter"
+                    instanceId="people-group-filter-select"
+                    isMulti
+                    options={peopleGroupOptions}
+                    value={peopleGroupOptions.filter(opt => peopleGroup.includes(opt.value))}
+                    onChange={(selected) => {
+                      if (selected && Array.isArray(selected)) {
+                        onPeopleGroupChange(selected.map(s => s.value));
+                      } else {
+                        onPeopleGroupChange([]);
+                      }
+                    }}
+                    placeholder="Seleccionar grupos"
+                    styles={filterSelectStyles}
+                    className="text-sm"
+                    noOptionsMessage={() => "No hay opciones"}
+                  />
+                ) : (
+                  <div className="h-10 bg-blue-50 border border-blue-300 rounded text-sm flex items-center px-3 text-gray-500">
+                    Cargando...
+                  </div>
+                )}
+              </div>
+              <div className="min-w-[150px]">
+                <Label htmlFor="inclusion-dei-filter" className="text-sm font-medium text-gray-700 mb-1 block">
+                  Política DEI
+                </Label>
+                <Select 
+                  id="inclusion-dei-filter"
+                  value={inclusionDEI} 
+                  onChange={(e) => onInclusionDEIChange(e.target.value)}
+                  className="min-w-[150px]"
+                  theme={{
+                    field: {
+                      select: {
+                        base: "bg-blue-50 border-blue-300 text-sm focus:border-blue-500 focus:ring-blue-500"
+                      }
+                    }
+                  }}
+                >
+                  <option value="">Todas las empresas</option>
+                  <option value="yes">Empresa Aliada DEI</option>
+                  <option value="no">Sin política DEI</option>
+                </Select>
+              </div>
+              <div className="flex flex-col gap-1">
+                <Label htmlFor="sort-field" className="text-sm font-medium text-gray-700">
+                  Ordenar por
+                </Label>
+                <div className="flex items-center gap-2">
+                  <Select
+                    id="sort-field"
+                    value={sortField}
+                    onChange={(e) => onSortChange(e.target.value as 'nameCompany' | '_createdAt', sortDirection)}
+                    className="min-w-[120px]"
+                    theme={{
+                      field: {
+                        select: {
+                          base: "bg-gray-50 border-gray-300 text-sm text-gray-700 focus:border-gray-400 focus:ring-gray-400"
+                        }
+                      }
+                    }}
                   >
-                    <HiArrowUp className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    size="xs"
-                    color={sortDirection === 'desc' ? 'gray' : 'light'}
-                    onClick={() => onSortChange(sortField, 'desc')}
-                    className="flex items-center"
-                    title="Orden descendente"
-                  >
-                    <HiArrowDown className="w-4 h-4" />
-                  </Button>
+                    <option value="_createdAt">Fecha</option>
+                    <option value="nameCompany">Nombre</option>
+                  </Select>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      size="xs"
+                      color={sortDirection === 'asc' ? 'gray' : 'light'}
+                      onClick={() => onSortChange(sortField, 'asc')}
+                      className="flex items-center"
+                      title="Orden ascendente"
+                    >
+                      <HiArrowUp className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      size="xs"
+                      color={sortDirection === 'desc' ? 'gray' : 'light'}
+                      onClick={() => onSortChange(sortField, 'desc')}
+                      className="flex items-center"
+                      title="Orden descendente"
+                    >
+                      <HiArrowDown className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>

@@ -42,6 +42,7 @@ export default function EmpresasPage() {
   const [city, setCity] = useState('');
   const [peopleGroup, setPeopleGroup] = useState<string[]>([]);
   const [companySize, setCompanySize] = useState<string[]>([]);
+  const [inclusionDEI, setInclusionDEI] = useState<string>('');
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
   const [sortField, setSortField] = useState<'nameCompany' | '_createdAt'>('_createdAt');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
@@ -72,6 +73,11 @@ export default function EmpresasPage() {
       if (companySize.length > 0) {
         const sizeFilter = companySize.map(size => `"${size}"`).join(', ');
         filters.push(`companySize in [${sizeFilter}]`);
+      }
+      if (inclusionDEI === 'yes') {
+        filters.push(`inclusionDEI == true`);
+      } else if (inclusionDEI === 'no') {
+        filters.push(`(inclusionDEI == false || !defined(inclusionDEI))`);
       }
       
       if (filters.length > 0) {
@@ -115,11 +121,11 @@ export default function EmpresasPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, sector, department, city, searchTerm, peopleGroup, companySize, sortField, sortDirection]);
+  }, [currentPage, sector, department, city, searchTerm, peopleGroup, companySize, inclusionDEI, sortField, sortDirection]);
 
   useEffect(() => {
     fetchCompanies();
-  }, [currentPage, sector, department, city, searchTerm, peopleGroup, companySize, sortField, sortDirection]);
+  }, [currentPage, sector, department, city, searchTerm, peopleGroup, companySize, inclusionDEI, sortField, sortDirection]);
 
   useEffect(() => {
     if (searchTerm === '') {
@@ -154,6 +160,12 @@ export default function EmpresasPage() {
     companySize.forEach(size => {
       newFilters.push(companySizeLabels[size] || size);
     });
+    
+    if (inclusionDEI === 'yes') {
+      newFilters.push('Empresa Aliada DEI');
+    } else if (inclusionDEI === 'no') {
+      newFilters.push('Sin política DEI');
+    }
     
     const peopleGroupLabels: { [key: string]: string } = {
       'lgbtiq': 'LGBTIQ+',
@@ -232,6 +244,9 @@ export default function EmpresasPage() {
       setCompanySize(companySize.filter(size => size !== sizeValue));
     }
     
+    if (filter === 'Empresa Aliada DEI') setInclusionDEI('');
+    if (filter === 'Sin política DEI') setInclusionDEI('');
+    
     const pgValue = peopleGroupLabels[filter];
     if (pgValue && peopleGroup.includes(pgValue)) {
       setPeopleGroup(peopleGroup.filter(pg => pg !== pgValue));
@@ -262,6 +277,8 @@ export default function EmpresasPage() {
       onPeopleGroupChange={(values: string[]) => setPeopleGroup(values)}
       companySize={companySize}
       onCompanySizeChange={(values: string[]) => setCompanySize(values)}
+      inclusionDEI={inclusionDEI}
+      onInclusionDEIChange={(value: string) => setInclusionDEI(value)}
       sortField={sortField}
       sortDirection={sortDirection}
       onSortChange={(field: 'nameCompany' | '_createdAt', direction: 'asc' | 'desc') => {
