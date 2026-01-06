@@ -148,6 +148,8 @@ export default function RegisterForm() {
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [chamberOfCommerce, setChamberOfCommerce] = useState<File | null>(null);
+  const [dianDocument, setDianDocument] = useState<File | null>(null);
   const [optionsCIIU, setOptionsCIIU] = useState<
     { value: string; label: string }[]
   >([]);
@@ -163,6 +165,8 @@ export default function RegisterForm() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
+  const chamberOfCommerceInputRef = useRef<HTMLInputElement>(null);
+  const dianDocumentInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
   const { register, handleSubmit, watch, setValue } = useForm<FormData>();
@@ -682,9 +686,11 @@ export default function RegisterForm() {
       const firebaseUser = await registerUser(data.email, data.password);
 
       if (firebaseUser) {
-        // 2. Subir imágenes a Sanity primero
+        // 2. Subir imágenes y archivos a Sanity primero
         let logoSanity = null;
         let photoSanity = null;
+        let chamberOfCommerceSanity = null;
+        let dianDocumentSanity = null;
 
         if (logo) {
           logoSanity = await uploadImageToSanity(logo);
@@ -692,8 +698,26 @@ export default function RegisterForm() {
         if (photo) {
           photoSanity = await uploadImageToSanity(photo);
         }
+        if (chamberOfCommerce) {
+          try {
+            chamberOfCommerceSanity = await uploadFileToSanity(chamberOfCommerce);
+            console.log("Cámara de Comercio subida exitosamente:", chamberOfCommerceSanity);
+          } catch (error) {
+            console.error("Error al subir Cámara de Comercio:", error);
+            throw new Error(`Error al subir Cámara de Comercio: ${error instanceof Error ? error.message : "Error desconocido"}`);
+          }
+        }
+        if (dianDocument) {
+          try {
+            dianDocumentSanity = await uploadFileToSanity(dianDocument);
+            console.log("Documento DIAN subido exitosamente:", dianDocumentSanity);
+          } catch (error) {
+            console.error("Error al subir Documento DIAN:", error);
+            throw new Error(`Error al subir Documento DIAN: ${error instanceof Error ? error.message : "Error desconocido"}`);
+          }
+        }
 
-        // 3. Crear usuario en Sanity con las referencias de las imágenes
+        // 3. Crear usuario en Sanity con las referencias de las imágenes y archivos
         const response = await fetch("/api/create-sanity-user", {
           method: "POST",
           body: JSON.stringify({
@@ -701,6 +725,8 @@ export default function RegisterForm() {
             firebaseUid: firebaseUser.uid,
             logo: logoSanity,
             photo: photoSanity,
+            chamberOfCommerce: chamberOfCommerceSanity,
+            dianDocument: dianDocumentSanity,
             annualRevenue: parseInt(annualRevenue.replace(/[^\d]/g, ""), 10) || 0,
           }),
           headers: {
@@ -761,6 +787,46 @@ export default function RegisterForm() {
     }
   };
 
+  // Función auxiliar para subir archivos PDF a Sanity
+  const uploadFileToSanity = async (file: File) => {
+    try {
+      // Convertir archivo a base64
+      const reader = new FileReader();
+      const base64Promise = new Promise((resolve) => {
+        reader.onload = () => resolve(reader.result);
+        reader.readAsDataURL(file);
+      });
+
+      const base64 = await base64Promise;
+      const fileType = 'pdf';
+      const fileName = file.name || `document-${Date.now()}.pdf`;
+
+      const response = await fetch("/api/upload-file", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          file: base64,
+          fileType,
+          fileName,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: "Error desconocido" }));
+        throw new Error(errorData.message || "Error al subir el archivo");
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error("Error al subir archivo:", error);
+      const errorMessage = error instanceof Error ? error.message : "Error desconocido al subir archivo";
+      throw new Error(errorMessage);
+    }
+  };
+
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; // Obtiene el archivo seleccionado
     if (file) {
@@ -786,6 +852,42 @@ export default function RegisterForm() {
   const handlePhotoUploadClick = () => {
     if (photoInputRef.current) {
       photoInputRef.current.click();
+    }
+  };
+
+  const handleChamberOfCommerceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.type !== 'application/pdf') {
+        setValidationErrors((prev) => ({
+          ...prev,
+          chamberOfCommerce: "Solo se aceptan archivos PDF",
+        }));
+        return;
+      }
+      setChamberOfCommerce(file);
+      setValidationErrors((prev) => {
+        const { chamberOfCommerce, ...rest } = prev;
+        return rest;
+      });
+    }
+  };
+
+  const handleDianDocumentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.type !== 'application/pdf') {
+        setValidationErrors((prev) => ({
+          ...prev,
+          dianDocument: "Solo se aceptan archivos PDF",
+        }));
+        return;
+      }
+      setDianDocument(file);
+      setValidationErrors((prev) => {
+        const { dianDocument, ...rest } = prev;
+        return rest;
+      });
     }
   };
 
@@ -1627,6 +1729,82 @@ export default function RegisterForm() {
                              {validationErrors.inclusionDEI}
                            </p>
                          )}
+                       </div>
+
+                       <div className="w-full md:w-1/2 px-2 space-y-1 md:mt-6">
+                         <Label htmlFor="chamberOfCommerce">
+                           Cámara de comercio (PDF)
+                         </Label>
+                         <div className="flex flex-col md:flex-row md:items-center space-y-3 md:space-y-0 md:space-x-4">
+                           <Button
+                             onClick={() => chamberOfCommerceInputRef.current?.click()}
+                             className="font-bold"
+                             color="light"
+                             type="button"
+                           >
+                             {chamberOfCommerce ? "Cambiar archivo" : "Subir PDF"}
+                           </Button>
+                           {chamberOfCommerce && (
+                             <span className="text-sm text-gray-600">
+                               {chamberOfCommerce.name}
+                             </span>
+                           )}
+                         </div>
+                         <input
+                           accept=".pdf"
+                           ref={chamberOfCommerceInputRef}
+                           className="hidden"
+                           type="file"
+                           name="chamberOfCommerce"
+                           id="chamberOfCommerce"
+                           onChange={handleChamberOfCommerceChange}
+                         />
+                         {validationErrors.chamberOfCommerce && (
+                           <p className="text-red-500 text-sm mt-1">
+                             {validationErrors.chamberOfCommerce}
+                           </p>
+                         )}
+                         <p className="text-xs text-gray-500 mt-1">
+                           Formato: PDF (máximo 10MB)
+                         </p>
+                       </div>
+
+                       <div className="w-full md:w-1/2 px-2 space-y-1 md:mt-6">
+                         <Label htmlFor="dianDocument">
+                           Documento Identificación DIAN (PDF)
+                         </Label>
+                         <div className="flex flex-col md:flex-row md:items-center space-y-3 md:space-y-0 md:space-x-4">
+                           <Button
+                             onClick={() => dianDocumentInputRef.current?.click()}
+                             className="font-bold"
+                             color="light"
+                             type="button"
+                           >
+                             {dianDocument ? "Cambiar archivo" : "Subir PDF"}
+                           </Button>
+                           {dianDocument && (
+                             <span className="text-sm text-gray-600">
+                               {dianDocument.name}
+                             </span>
+                           )}
+                         </div>
+                         <input
+                           accept=".pdf"
+                           ref={dianDocumentInputRef}
+                           className="hidden"
+                           type="file"
+                           name="dianDocument"
+                           id="dianDocument"
+                           onChange={handleDianDocumentChange}
+                         />
+                         {validationErrors.dianDocument && (
+                           <p className="text-red-500 text-sm mt-1">
+                             {validationErrors.dianDocument}
+                           </p>
+                         )}
+                         <p className="text-xs text-gray-500 mt-1">
+                           Formato: PDF (máximo 10MB)
+                         </p>
                        </div>
 
                        <div className="w-full px-2 space-y-4 text-center py-5 gap-2 bg-blue-100 rounded-lg md:mt-6">

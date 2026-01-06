@@ -44,7 +44,13 @@ async function getProfile(userId: string) {
           tiktok,
           pinterest,
           linkedin,
-          xtwitter
+          xtwitter,
+          chamberOfCommerce,
+          dianDocument,
+          chamberOfCommerceValidated,
+          dianDocumentValidated,
+          chamberOfCommerceComments,
+          dianDocumentComments
         }
       }`,
       { userId }

@@ -42,6 +42,8 @@ export async function POST(request: Request) {
       friendlyBizz,
       inclusionDEI,
       annualRevenue,
+      chamberOfCommerce,
+      dianDocument,
     } = await request.json()
 
     if (!logo || !photo) {
@@ -83,6 +85,8 @@ export async function POST(request: Request) {
       inclusionDEI: inclusionDEI === 'yes' ? true : false,
       membership: membership === 'yes' ? true : false,
       annualRevenue: annualRevenue || 0,
+      chamberOfCommerce,
+      dianDocument,
       active: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),

@@ -77,7 +77,13 @@ export async function POST(request: Request) {
           tiktok,
           pinterest,
           linkedin,
-          xtwitter
+          xtwitter,
+          chamberOfCommerce,
+          dianDocument,
+          chamberOfCommerceValidated,
+          dianDocumentValidated,
+          chamberOfCommerceComments,
+          dianDocumentComments
         }
       }`,
       { uid: userId }
@@ -158,7 +164,13 @@ export async function POST(request: Request) {
           tiktok,
           pinterest,
           linkedin,
-          xtwitter
+          xtwitter,
+          chamberOfCommerce,
+          dianDocument,
+          chamberOfCommerceValidated,
+          dianDocumentValidated,
+          chamberOfCommerceComments,
+          dianDocumentComments
         }
       }`,
       { uid: userId }

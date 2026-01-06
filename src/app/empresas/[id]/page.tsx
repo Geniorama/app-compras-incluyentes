@@ -29,6 +29,8 @@ interface Company {
   ciiu: string;
   phone: string;
   inclusionDEI?: boolean;
+  chamberOfCommerceValidated?: 'pendiente' | 'en-progreso' | 'valido' | 'invalido';
+  dianDocumentValidated?: 'pendiente' | 'en-progreso' | 'valido' | 'invalido';
   facebook?: string;
   instagram?: string;
   tiktok?: string;
@@ -65,6 +67,8 @@ export default function EmpresaPage() {
             ciiu,
             phone,
             inclusionDEI,
+            chamberOfCommerceValidated,
+            dianDocumentValidated,
             facebook,
             instagram,
             tiktok,

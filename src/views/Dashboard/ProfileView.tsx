@@ -17,7 +17,7 @@ import toast from "react-hot-toast";
 import { updateEmail, sendEmailVerification, getAuth } from "firebase/auth";
 import { FirebaseError } from "firebase/app";
 import DashboardSidebar from "@/components/DashboardSidebar";
-import type { UserProfile, SanityImage } from "@/types";
+import type { UserProfile, SanityImage, CompanyData } from "@/types";
 import { getCIIUOptions, getSectorFromCIIU } from "@/utils/ciiuOptions";
 import ReactSelect from "react-select";
 
@@ -102,8 +102,12 @@ export default function ProfileView({
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [chamberOfCommerceFile, setChamberOfCommerceFile] = useState<File | null>(null);
+  const [dianDocumentFile, setDianDocumentFile] = useState<File | null>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
+  const chamberOfCommerceInputRef = useRef<HTMLInputElement>(null);
+  const dianDocumentInputRef = useRef<HTMLInputElement>(null);
   const [isClient, setIsClient] = useState(false);
   
   // Estados para CIIU
@@ -147,6 +151,12 @@ export default function ProfileView({
         pinterest: initialProfile.company?.pinterest || "",
         linkedin: initialProfile.company?.linkedin || "",
         xtwitter: initialProfile.company?.xtwitter || "",
+        chamberOfCommerce: initialProfile.company?.chamberOfCommerce,
+        dianDocument: initialProfile.company?.dianDocument,
+        chamberOfCommerceValidated: initialProfile.company?.chamberOfCommerceValidated || 'pendiente',
+        dianDocumentValidated: initialProfile.company?.dianDocumentValidated || 'pendiente',
+        chamberOfCommerceComments: initialProfile.company?.chamberOfCommerceComments || '',
+        dianDocumentComments: initialProfile.company?.dianDocumentComments || '',
       };
       const typedCombinedProfile: UserProfile = {
         ...combinedProfile,
@@ -165,6 +175,109 @@ export default function ProfileView({
       }
     }
   }, [initialProfile]);
+
+  // Refrescar el perfil periódicamente para obtener actualizaciones de validación
+  useEffect(() => {
+    if (!user?.uid) return;
+
+    const refreshProfile = async () => {
+      try {
+        const response = await fetch(`/api/profile/get?userId=${user.uid}`);
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.data) {
+            const updatedUser = result.data.user;
+            const updatedCompany = result.data.company;
+            
+            const {
+              company: _company,
+              ...userFields
+            } = updatedUser;
+            
+            const combinedProfile = {
+              ...userFields,
+              nameCompany: updatedCompany?.nameCompany || "",
+              businessName: updatedCompany?.businessName || "",
+              typeDocumentCompany: updatedCompany?.typeDocumentCompany || "",
+              numDocumentCompany: updatedCompany?.numDocumentCompany || "",
+              ciiu: updatedCompany?.ciiu || "",
+              webSite: updatedCompany?.webSite || "",
+              addressCompany: updatedCompany?.addressCompany || "",
+              department: updatedCompany?.department || "",
+              city: updatedCompany?.city || "",
+              country: updatedCompany?.country || "",
+              companySize: updatedCompany?.companySize || "",
+              peopleGroup: Array.isArray(updatedCompany?.peopleGroup)
+                ? updatedCompany.peopleGroup
+                : updatedCompany?.peopleGroup
+                ? [updatedCompany.peopleGroup]
+                : [],
+              otherPeopleGroup: updatedCompany?.otherPeopleGroup || "",
+              friendlyBizz: updatedCompany?.friendlyBizz || false,
+              inclusionDEI: updatedCompany?.inclusionDEI ? "yes" : "no",
+              membership: updatedCompany?.membership || false,
+              annualRevenue: updatedCompany?.annualRevenue ?? 0,
+              logo: updatedCompany?.logo,
+              facebook: updatedCompany?.facebook || "",
+              instagram: updatedCompany?.instagram || "",
+              tiktok: updatedCompany?.tiktok || "",
+              pinterest: updatedCompany?.pinterest || "",
+              linkedin: updatedCompany?.linkedin || "",
+              xtwitter: updatedCompany?.xtwitter || "",
+              chamberOfCommerce: updatedCompany?.chamberOfCommerce,
+              dianDocument: updatedCompany?.dianDocument,
+              chamberOfCommerceValidated: updatedCompany?.chamberOfCommerceValidated || 'pendiente',
+              dianDocumentValidated: updatedCompany?.dianDocumentValidated || 'pendiente',
+              chamberOfCommerceComments: updatedCompany?.chamberOfCommerceComments || '',
+              dianDocumentComments: updatedCompany?.dianDocumentComments || '',
+            };
+            const typedCombinedProfile: UserProfile = {
+              ...combinedProfile,
+              logo: combinedProfile.logo as SanityImage | undefined,
+            };
+            
+            // Actualizar el perfil con los datos más recientes
+            setProfile((prevProfile) => {
+              if (!prevProfile) return typedCombinedProfile;
+              
+              // Solo actualizar si hay cambios en los campos de validación o comentarios
+              const hasValidationChanges = 
+                prevProfile.chamberOfCommerceValidated !== typedCombinedProfile.chamberOfCommerceValidated ||
+                prevProfile.dianDocumentValidated !== typedCombinedProfile.dianDocumentValidated ||
+                prevProfile.chamberOfCommerceComments !== typedCombinedProfile.chamberOfCommerceComments ||
+                prevProfile.dianDocumentComments !== typedCombinedProfile.dianDocumentComments;
+              
+              if (hasValidationChanges) {
+                console.log("Actualizando estados de validación:", {
+                  chamberOfCommerceValidated: typedCombinedProfile.chamberOfCommerceValidated,
+                  dianDocumentValidated: typedCombinedProfile.dianDocumentValidated,
+                });
+                // Combinar el perfil anterior con los nuevos campos de validación
+                return {
+                  ...prevProfile,
+                  chamberOfCommerceValidated: typedCombinedProfile.chamberOfCommerceValidated,
+                  dianDocumentValidated: typedCombinedProfile.dianDocumentValidated,
+                  chamberOfCommerceComments: typedCombinedProfile.chamberOfCommerceComments,
+                  dianDocumentComments: typedCombinedProfile.dianDocumentComments,
+                  chamberOfCommerce: typedCombinedProfile.chamberOfCommerce,
+                  dianDocument: typedCombinedProfile.dianDocument,
+                };
+              }
+              return prevProfile;
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Error al refrescar el perfil:", error);
+      }
+    };
+
+    // Refrescar inmediatamente y luego cada 30 segundos
+    refreshProfile();
+    const interval = setInterval(refreshProfile, 30000);
+
+    return () => clearInterval(interval);
+  }, [user?.uid]);
 
   useEffect(() => {
     setIsClient(true);
@@ -270,8 +383,8 @@ export default function ProfileView({
       "logo",
     ];
 
-    // Si hay una nueva foto o logo seleccionados, hay cambios
-    if (photoFile || logoFile) return true;
+    // Si hay una nueva foto, logo o archivos PDF seleccionados, hay cambios
+    if (photoFile || logoFile || chamberOfCommerceFile || dianDocumentFile) return true;
 
     // Verificar si annualRevenueDisplay ha cambiado
     const originalAnnualRevenueDisplay = originalProfile.annualRevenue ? originalProfile.annualRevenue.toString() : "";
@@ -280,7 +393,7 @@ export default function ProfileView({
     return fieldsToCompare.some(
       (field) => profile[field] !== originalProfile[field]
     );
-  }, [profile, originalProfile, photoFile, logoFile, annualRevenueDisplay]);
+  }, [profile, originalProfile, photoFile, logoFile, annualRevenueDisplay, chamberOfCommerceFile, dianDocumentFile]);
 
   // Al seleccionar nueva foto
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -290,6 +403,36 @@ export default function ProfileView({
       setPhotoPreview(URL.createObjectURL(file));
       if (profile) {
         setProfile({ ...profile, photo: "new" }); // Valor temporal para disparar el cambio
+      }
+    }
+  };
+
+  // Al seleccionar nuevo documento de Cámara de Comercio
+  const handleChamberOfCommerceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.type !== 'application/pdf') {
+        toast.error("Solo se aceptan archivos PDF");
+        return;
+      }
+      setChamberOfCommerceFile(file);
+      if (profile) {
+        setProfile({ ...profile, chamberOfCommerce: "new" }); // Valor temporal para disparar el cambio
+      }
+    }
+  };
+
+  // Al seleccionar nuevo documento DIAN
+  const handleDianDocumentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.type !== 'application/pdf') {
+        toast.error("Solo se aceptan archivos PDF");
+        return;
+      }
+      setDianDocumentFile(file);
+      if (profile) {
+        setProfile({ ...profile, dianDocument: "new" }); // Valor temporal para disparar el cambio
       }
     }
   };
@@ -361,6 +504,40 @@ export default function ProfileView({
         const uploadData = await uploadRes.json();
         logoSanity = { _type: "image", asset: uploadData.asset };
       }
+      // Subir Cámara de Comercio si hay nuevo
+      let chamberOfCommerceSanity = profile.chamberOfCommerce;
+      if (chamberOfCommerceFile) {
+        const formData = new FormData();
+        formData.append("file", chamberOfCommerceFile);
+        const uploadRes = await fetch("/api/upload-file", {
+          method: "POST",
+          body: formData,
+        });
+        if (!uploadRes.ok) {
+          const errorData = await uploadRes.json().catch(() => ({ message: "Error desconocido" }));
+          throw new Error(`Error al subir el documento de Cámara de Comercio: ${errorData.message || "Error desconocido"}`);
+        }
+        const uploadData = await uploadRes.json();
+        chamberOfCommerceSanity = uploadData.asset;
+        console.log("Cámara de Comercio subida exitosamente:", chamberOfCommerceSanity);
+      }
+      // Subir Documento DIAN si hay nuevo
+      let dianDocumentSanity = profile.dianDocument;
+      if (dianDocumentFile) {
+        const formData = new FormData();
+        formData.append("file", dianDocumentFile);
+        const uploadRes = await fetch("/api/upload-file", {
+          method: "POST",
+          body: formData,
+        });
+        if (!uploadRes.ok) {
+          const errorData = await uploadRes.json().catch(() => ({ message: "Error desconocido" }));
+          throw new Error(`Error al subir el documento DIAN: ${errorData.message || "Error desconocido"}`);
+        }
+        const uploadData = await uploadRes.json();
+        dianDocumentSanity = uploadData.asset;
+        console.log("Documento DIAN subido exitosamente:", dianDocumentSanity);
+      }
 
       // Separar datos del usuario y la empresa
       const userData = {
@@ -380,7 +557,16 @@ export default function ProfileView({
       
 
       
-      const companyData = {
+      const companyData: Omit<Partial<CompanyData>, 'logo' | 'chamberOfCommerce' | 'dianDocument'> & {
+        updatedAt: string;
+        logo?: string | SanityImage;
+        chamberOfCommerce?: string | SanityImage;
+        dianDocument?: string | SanityImage;
+        chamberOfCommerceValidated?: 'pendiente' | 'en-progreso' | 'valido' | 'invalido';
+        dianDocumentValidated?: 'pendiente' | 'en-progreso' | 'valido' | 'invalido';
+        chamberOfCommerceComments?: string;
+        dianDocumentComments?: string;
+      } = {
         nameCompany: profile.nameCompany,
         businessName: profile.businessName,
         typeDocumentCompany: profile.typeDocumentCompany,
@@ -407,6 +593,25 @@ export default function ProfileView({
         logo: logoSanity,
         updatedAt: new Date().toISOString(),
       };
+
+      // Solo incluir campos de documentos si hay cambios
+      if (chamberOfCommerceSanity) {
+        companyData.chamberOfCommerce = chamberOfCommerceSanity;
+        // Si se subió un nuevo documento, establecer el estado en pendiente y limpiar comentarios
+        if (chamberOfCommerceFile) {
+          companyData.chamberOfCommerceValidated = 'pendiente';
+          companyData.chamberOfCommerceComments = '';
+        }
+      }
+
+      if (dianDocumentSanity) {
+        companyData.dianDocument = dianDocumentSanity;
+        // Si se subió un nuevo documento, establecer el estado en pendiente y limpiar comentarios
+        if (dianDocumentFile) {
+          companyData.dianDocumentValidated = 'pendiente';
+          companyData.dianDocumentComments = '';
+        }
+      }
 
       // Llamar al endpoint de actualización
       const response = await fetch("/api/profile/update", {
@@ -471,6 +676,12 @@ export default function ProfileView({
           pinterest: updatedCompany?.pinterest || "",
           linkedin: updatedCompany?.linkedin || "",
           xtwitter: updatedCompany?.xtwitter || "",
+          chamberOfCommerce: updatedCompany?.chamberOfCommerce,
+          dianDocument: updatedCompany?.dianDocument,
+          chamberOfCommerceValidated: updatedCompany?.chamberOfCommerceValidated || 'pendiente',
+          dianDocumentValidated: updatedCompany?.dianDocumentValidated || 'pendiente',
+          chamberOfCommerceComments: updatedCompany?.chamberOfCommerceComments || '',
+          dianDocumentComments: updatedCompany?.dianDocumentComments || '',
         };
         const typedCombinedProfile: UserProfile = {
           ...combinedProfile,
@@ -478,6 +689,14 @@ export default function ProfileView({
         };
         setProfile(typedCombinedProfile);
         setOriginalProfile(typedCombinedProfile);
+        
+        // Limpiar archivos temporales después de guardar
+        setPhotoFile(null);
+        setLogoFile(null);
+        setChamberOfCommerceFile(null);
+        setDianDocumentFile(null);
+        setPhotoPreview(null);
+        setLogoPreview(null);
         
         // Actualizar annualRevenueDisplay con el valor guardado
         if (typedCombinedProfile.annualRevenue !== undefined && typedCombinedProfile.annualRevenue !== null) {
@@ -1296,6 +1515,144 @@ export default function ProfileView({
                       <option value="no">No</option>
                       <option value="yes">Sí</option>
                     </Select>
+                  </div>
+
+                  <div className="w-full md:w-1/2 px-2 space-y-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Label htmlFor="chamberOfCommerce">
+                        Cámara de comercio (PDF)
+                      </Label>
+                      {!profile?.chamberOfCommerce ? (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                          No cargado
+                        </span>
+                      ) : profile?.chamberOfCommerceValidated === 'valido' ? (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          ✓ Válido
+                        </span>
+                      ) : profile?.chamberOfCommerceValidated === 'invalido' ? (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                          ✗ Inválido
+                        </span>
+                      ) : profile?.chamberOfCommerceValidated === 'en-progreso' ? (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          ⏳ En progreso
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                          ⏳ Pendiente
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex flex-col md:flex-row md:items-center space-y-3 md:space-y-0 md:space-x-4">
+                      <Button
+                        onClick={() => chamberOfCommerceInputRef.current?.click()}
+                        className="font-bold"
+                        color="light"
+                        type="button"
+                        disabled={isUserOnly}
+                      >
+                        {chamberOfCommerceFile ? "Cambiar archivo" : profile?.chamberOfCommerce ? "Reemplazar PDF" : "Subir PDF"}
+                      </Button>
+                      {chamberOfCommerceFile && (
+                        <span className="text-sm text-gray-600">
+                          {chamberOfCommerceFile.name}
+                        </span>
+                      )}
+                      {!chamberOfCommerceFile && profile?.chamberOfCommerce && (
+                        <span className="text-sm text-gray-600">
+                          Documento existente
+                        </span>
+                      )}
+                    </div>
+                    <input
+                      accept=".pdf"
+                      ref={chamberOfCommerceInputRef}
+                      className="hidden"
+                      type="file"
+                      name="chamberOfCommerce"
+                      id="chamberOfCommerce"
+                      onChange={handleChamberOfCommerceChange}
+                      disabled={isUserOnly}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Formato: PDF (máximo 10MB)
+                    </p>
+                    {profile?.chamberOfCommerceComments && (
+                      <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <p className="text-xs font-medium text-blue-900 mb-1">Comentarios:</p>
+                        <p className="text-sm text-blue-800">{profile.chamberOfCommerceComments}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="w-full md:w-1/2 px-2 space-y-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Label htmlFor="dianDocument">
+                        Documento Identificación DIAN (PDF)
+                      </Label>
+                      {!profile?.dianDocument ? (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                          No cargado
+                        </span>
+                      ) : profile?.dianDocumentValidated === 'valido' ? (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          ✓ Válido
+                        </span>
+                      ) : profile?.dianDocumentValidated === 'invalido' ? (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                          ✗ Inválido
+                        </span>
+                      ) : profile?.dianDocumentValidated === 'en-progreso' ? (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          ⏳ En progreso
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                          ⏳ Pendiente
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex flex-col md:flex-row md:items-center space-y-3 md:space-y-0 md:space-x-4">
+                      <Button
+                        onClick={() => dianDocumentInputRef.current?.click()}
+                        className="font-bold"
+                        color="light"
+                        type="button"
+                        disabled={isUserOnly}
+                      >
+                        {dianDocumentFile ? "Cambiar archivo" : profile?.dianDocument ? "Reemplazar PDF" : "Subir PDF"}
+                      </Button>
+                      {dianDocumentFile && (
+                        <span className="text-sm text-gray-600">
+                          {dianDocumentFile.name}
+                        </span>
+                      )}
+                      {!dianDocumentFile && profile?.dianDocument && (
+                        <span className="text-sm text-gray-600">
+                          Documento existente
+                        </span>
+                      )}
+                    </div>
+                    <input
+                      accept=".pdf"
+                      ref={dianDocumentInputRef}
+                      className="hidden"
+                      type="file"
+                      name="dianDocument"
+                      id="dianDocument"
+                      onChange={handleDianDocumentChange}
+                      disabled={isUserOnly}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Formato: PDF (máximo 10MB)
+                    </p>
+                    {profile?.dianDocumentComments && (
+                      <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <p className="text-xs font-medium text-blue-900 mb-1">Comentarios:</p>
+                        <p className="text-sm text-blue-800">{profile.dianDocumentComments}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
 

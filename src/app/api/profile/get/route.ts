@@ -63,7 +63,13 @@ export async function GET(request: Request) {
           tiktok,
           pinterest,
           linkedin,
-          xtwitter
+          xtwitter,
+          chamberOfCommerce,
+          dianDocument,
+          chamberOfCommerceValidated,
+          dianDocumentValidated,
+          chamberOfCommerceComments,
+          dianDocumentComments
         }
       }`,
       { userId }

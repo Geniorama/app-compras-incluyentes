@@ -58,6 +58,12 @@ export interface CompanyData {
     photo?: string | import('./sanity').SanityImage;
     products?: Product[];
     services?: Service[];
+    chamberOfCommerce?: string | import('./sanity').SanityImage;
+    dianDocument?: string | import('./sanity').SanityImage;
+    chamberOfCommerceValidated?: 'pendiente' | 'en-progreso' | 'valido' | 'invalido';
+    dianDocumentValidated?: 'pendiente' | 'en-progreso' | 'valido' | 'invalido';
+    chamberOfCommerceComments?: string;
+    dianDocumentComments?: string;
 }
 
 export interface SanityCompanyDocument extends SanityResponse, CompanyData {}
@@ -102,6 +108,12 @@ export interface UserProfile extends UserData {
     linkedin?: string;
     xtwitter?: string;
     photo?: string | import('./sanity').SanityImage;
+    chamberOfCommerce?: string | import('./sanity').SanityImage;
+    dianDocument?: string | import('./sanity').SanityImage;
+    chamberOfCommerceValidated?: 'pendiente' | 'en-progreso' | 'valido' | 'invalido';
+    dianDocumentValidated?: 'pendiente' | 'en-progreso' | 'valido' | 'invalido';
+    chamberOfCommerceComments?: string;
+    dianDocumentComments?: string;
 }
 
 // Centralizar types de productos y servicios

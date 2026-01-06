@@ -43,6 +43,8 @@ export default function EmpresaView({ company }: EmpresaViewProps) {
     ciiu,
     phone,
     inclusionDEI,
+    chamberOfCommerceValidated,
+    dianDocumentValidated,
     facebook,
     instagram,
     tiktok,
@@ -53,6 +55,9 @@ export default function EmpresaView({ company }: EmpresaViewProps) {
     services = [],
     _id,
   } = company;
+
+  // Verificar si la empresa está validada (ambos documentos deben estar validados)
+  const isCompanyValidated = chamberOfCommerceValidated === 'valido' && dianDocumentValidated === 'valido';
 
   const formatPhoneForWhatsApp = (phone?: string) => {
     if (!phone) return '';
@@ -94,6 +99,12 @@ export default function EmpresaView({ company }: EmpresaViewProps) {
           <div className="bg-white rounded-lg shadow p-6 mb-8 flex flex-col items-center">
             <h1 className="text-3xl font-bold mb-2">{nameCompany}</h1>
             <div className="flex flex-wrap gap-2 mb-4">
+              {isCompanyValidated && (
+                <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 border border-green-300">
+                  <span>✓</span>
+                  <span>Empresa Validada</span>
+                </span>
+              )}
               {inclusionDEI && (
                 <span className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
                   <span>🏆</span>
