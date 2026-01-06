@@ -19,6 +19,7 @@ import { FirebaseError } from "firebase/app";
 import DashboardSidebar from "@/components/DashboardSidebar";
 import type { UserProfile, SanityImage } from "@/types";
 import { getCIIUOptions, getSectorFromCIIU } from "@/utils/ciiuOptions";
+import ReactSelect from "react-select";
 
 const COUNTRIES_OPTIONS = [
   { title: 'Argentina', value: 'AR' },
@@ -42,6 +43,31 @@ const COUNTRIES_OPTIONS = [
   { title: 'Puerto Rico', value: 'PR' },
   { title: 'Uruguay', value: 'UY' },
   { title: 'Venezuela', value: 'VE' },
+];
+
+const PEOPLE_GROUP_OPTIONS = [
+  { value: 'lgbtiq', label: 'LGBTIQ+' },
+  { value: 'discapacidad-sensorial', label: 'Personas con discapacidad Sensorial' },
+  { value: 'discapacidad-fisico-motora', label: 'Personas con discapacidad Físico Motora' },
+  { value: 'discapacidad-psicosocial', label: 'Personas con discapacidad Psicosocial' },
+  { value: 'discapacidad-cognitiva', label: 'Personas con discapacidad Cognitiva' },
+  { value: 'migrantes', label: 'Migrantes' },
+  { value: 'etnia-afrodescendientes', label: 'Etnia y Raza: Afrodescendientes, raizales y palenqueros' },
+  { value: 'etnia-indigenas', label: 'Etnia y Raza: Indígenas' },
+  { value: 'victimas-reconciliacion-paz', label: 'Víctimas de reconciliación y paz (víctimas, victimarios)' },
+  { value: 'pospenadas', label: 'Pospenadas' },
+  { value: 'diversidad-generacional-mayores-50', label: 'Diversidad Generacional mayores de 50 años' },
+  { value: 'diversidad-generacional-primer-empleo', label: 'Diversidad Generacional primer empleo' },
+  { value: 'madres-cabeza-familia', label: 'Madres cabeza de familia' },
+  { value: 'diversidad-sexual', label: 'Diversidad Sexual' },
+  { value: 'personas-discapacidad', label: 'Personas con discapacidad' },
+  { value: 'etnia-raza-afro', label: 'Etnia, raza o afro' },
+  { value: 'personas-migrantes', label: 'Personas migrantes' },
+  { value: 'generacional', label: 'Generacional' },
+  { value: 'equidad-genero', label: 'Equidad de Género' },
+  { value: 'pospenados-reinsertados', label: 'Pospenados o reinsertados' },
+  { value: 'ninguno', label: 'Ninguno' },
+  { value: 'otro', label: 'Otro' },
 ];
 
 interface ProfileViewProps {
@@ -78,7 +104,7 @@ export default function ProfileView({
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
-  
+  const [isClient, setIsClient] = useState(false);
   
   // Estados para CIIU
   const [ciiuOptions] = useState(() => getCIIUOptions());
@@ -104,7 +130,11 @@ export default function ProfileView({
         city: initialProfile.company?.city || "",
         country: initialProfile.company?.country || "",
         companySize: initialProfile.company?.companySize || "",
-        peopleGroup: initialProfile.company?.peopleGroup || "",
+        peopleGroup: Array.isArray(initialProfile.company?.peopleGroup)
+          ? initialProfile.company.peopleGroup
+          : initialProfile.company?.peopleGroup
+          ? [initialProfile.company.peopleGroup]
+          : [],
         otherPeopleGroup: initialProfile.company?.otherPeopleGroup || "",
         friendlyBizz: initialProfile.company?.friendlyBizz || false,
         inclusionDEI: initialProfile.company?.inclusionDEI ? "yes" : "no",
@@ -135,6 +165,10 @@ export default function ProfileView({
       }
     }
   }, [initialProfile]);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
 
   // Actualizar sector cuando cambie el CIIU
@@ -177,12 +211,19 @@ export default function ProfileView({
     }
   }, [sector, annualRevenueDisplay]); // Remover profile de las dependencias
 
-  const handleChange = (field: keyof UserProfile, value: string) => {
+  const handleChange = (field: keyof UserProfile, value: string | string[]) => {
     if (profile) {
       // Si cambia el departamento, limpiar la ciudad
-      // Si cambia el grupo poblacional y no es "otro", limpiar otherPeopleGroup
-      if (field === 'peopleGroup' && value !== 'otro') {
-        setProfile({ ...profile, [field]: value, otherPeopleGroup: '' });
+      // Si cambia el grupo poblacional y no incluye "otro", limpiar otherPeopleGroup
+      if (field === 'peopleGroup') {
+        const hasOtro = Array.isArray(value) 
+          ? value.includes('otro')
+          : value === 'otro';
+        if (!hasOtro) {
+          setProfile({ ...profile, [field]: value, otherPeopleGroup: '' });
+        } else {
+          setProfile({ ...profile, [field]: value });
+        }
       } else {
         setProfile({ ...profile, [field]: value });
       }
@@ -413,7 +454,11 @@ export default function ProfileView({
           city: updatedCompany?.city || "",
           country: updatedCompany?.country || "",
           companySize: updatedCompany?.companySize || "",
-          peopleGroup: updatedCompany?.peopleGroup || "",
+          peopleGroup: Array.isArray(updatedCompany?.peopleGroup)
+            ? updatedCompany.peopleGroup
+            : updatedCompany?.peopleGroup
+            ? [updatedCompany.peopleGroup]
+            : [],
           otherPeopleGroup: updatedCompany?.otherPeopleGroup || "",
           friendlyBizz: updatedCompany?.friendlyBizz || false,
           inclusionDEI: updatedCompany?.inclusionDEI ? "yes" : "no",
@@ -1166,34 +1211,48 @@ export default function ProfileView({
 
                   <div className="w-full md:w-1/2 px-2 space-y-1">
                     <Label htmlFor="peopleGroup">¿El 50% de los accionistas de la empresa pertenece a algún grupo poblacional?</Label>
-                    <Select
-                      id="peopleGroup"
-                      value={profile?.peopleGroup || ""}
-                      onChange={(e) => handleChange("peopleGroup", e.target.value)}
-                      color="blue"
-                      disabled={isUserOnly}
-                      theme={{
-                        field: {
-                          select: {
-                            base: `border-slate-200 focus:border-blue-600 w-full ${isUserOnly ? "bg-gray-100 text-gray-500" : ""}`,
-                          },
-                        },
-                      }}
-                    >
-                      <option value="">Selecciona una opción</option>
-                      <option value="diversidad-sexual">Diversidad Sexual</option>
-                      <option value="personas-discapacidad">Personas con discapacidad</option>
-                      <option value="etnia-raza-afro">Etnia, raza o afro</option>
-                      <option value="personas-migrantes">Personas migrantes</option>
-                      <option value="generacional">Generacional</option>
-                      <option value="equidad-genero">Equidad de Género</option>
-                      <option value="pospenados-reinsertados">Pospenados o reinsertados</option>
-                      <option value="ninguno">Ninguno</option>
-                      <option value="otro">Otro</option>
-                    </Select>
+                    {isClient ? (
+                      <ReactSelect
+                        isMulti
+                        options={PEOPLE_GROUP_OPTIONS}
+                        value={
+                          Array.isArray(profile?.peopleGroup)
+                            ? PEOPLE_GROUP_OPTIONS.filter((option) =>
+                                (profile.peopleGroup as string[]).includes(option.value)
+                              )
+                            : profile?.peopleGroup && typeof profile.peopleGroup === 'string'
+                            ? PEOPLE_GROUP_OPTIONS.filter(
+                                (option) => option.value === profile.peopleGroup
+                              )
+                            : []
+                        }
+                        key={Array.isArray(profile?.peopleGroup) ? profile.peopleGroup.join(',') : profile?.peopleGroup || ''}
+                        onChange={(selected) => {
+                          let values = Array.isArray(selected)
+                            ? (selected as Array<{ value: string; label: string }>).map((s) => s.value)
+                            : [];
+                          
+                          // Si se selecciona "ninguno", solo mantener "ninguno"
+                          if (values.includes("ninguno")) {
+                            values = ["ninguno"];
+                          } else {
+                            // Si se selecciona cualquier otra opción, eliminar "ninguno" si está presente
+                            values = values.filter(v => v !== "ninguno");
+                          }
+                          
+                          handleChange("peopleGroup", values);
+                        }}
+                        placeholder="Selecciona una o más opciones"
+                        noOptionsMessage={() => "No hay opciones"}
+                        instanceId="peopleGroup-select-edit"
+                        isDisabled={isUserOnly}
+                      />
+                    ) : (
+                      <div className="w-full h-10 border border-gray-300 rounded bg-gray-100"></div>
+                    )}
                   </div>
 
-                  {profile?.peopleGroup === "otro" && (
+                  {(Array.isArray(profile?.peopleGroup) ? profile.peopleGroup.includes("otro") : profile?.peopleGroup === "otro") && (
                     <div className="w-full md:w-1/2 px-2 space-y-1">
                       <Label htmlFor="otherPeopleGroup">Especificar otro grupo poblacional</Label>
                       <TextInput

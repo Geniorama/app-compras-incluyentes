@@ -40,7 +40,7 @@ export interface CompanyData {
     city?: string;
     country?: string;
     companySize?: string;
-    peopleGroup?: string;
+    peopleGroup?: string | string[];
     otherPeopleGroup?: string;
     friendlyBizz?: boolean;
     inclusionDEI?: boolean;
@@ -88,7 +88,7 @@ export interface UserProfile extends UserData {
     city?: string;
     country?: string;
     companySize?: string;
-    peopleGroup?: string;
+    peopleGroup?: string | string[];
     otherPeopleGroup?: string;
     friendlyBizz?: boolean;
     inclusionDEI?: boolean | string;

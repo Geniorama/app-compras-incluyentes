@@ -65,6 +65,31 @@ const COUNTRIES_OPTIONS = [
   { title: 'Venezuela', value: 'VE' },
 ];
 
+const PEOPLE_GROUP_OPTIONS = [
+  { value: 'lgbtiq', label: 'LGBTIQ+' },
+  { value: 'discapacidad-sensorial', label: 'Personas con discapacidad Sensorial' },
+  { value: 'discapacidad-fisico-motora', label: 'Personas con discapacidad Físico Motora' },
+  { value: 'discapacidad-psicosocial', label: 'Personas con discapacidad Psicosocial' },
+  { value: 'discapacidad-cognitiva', label: 'Personas con discapacidad Cognitiva' },
+  { value: 'migrantes', label: 'Migrantes' },
+  { value: 'etnia-afrodescendientes', label: 'Etnia y Raza: Afrodescendientes, raizales y palenqueros' },
+  { value: 'etnia-indigenas', label: 'Etnia y Raza: Indígenas' },
+  { value: 'victimas-reconciliacion-paz', label: 'Víctimas de reconciliación y paz (víctimas, victimarios)' },
+  { value: 'pospenadas', label: 'Pospenadas' },
+  { value: 'diversidad-generacional-mayores-50', label: 'Diversidad Generacional mayores de 50 años' },
+  { value: 'diversidad-generacional-primer-empleo', label: 'Diversidad Generacional primer empleo' },
+  { value: 'madres-cabeza-familia', label: 'Madres cabeza de familia' },
+  { value: 'diversidad-sexual', label: 'Diversidad Sexual' },
+  { value: 'personas-discapacidad', label: 'Personas con discapacidad' },
+  { value: 'etnia-raza-afro', label: 'Etnia, raza o afro' },
+  { value: 'personas-migrantes', label: 'Personas migrantes' },
+  { value: 'generacional', label: 'Generacional' },
+  { value: 'equidad-genero', label: 'Equidad de Género' },
+  { value: 'pospenados-reinsertados', label: 'Pospenados o reinsertados' },
+  { value: 'ninguno', label: 'Ninguno' },
+  { value: 'otro', label: 'Otro' },
+];
+
 interface FormData {
   nameCompany: string;
   businessName: string;
@@ -94,7 +119,7 @@ interface FormData {
   xtwitter?: string;
   membership?: string;
   companySize?: "micro" | "pequena" | "mediana" | "grande" | "indefinido";
-  peopleGroup?: string;
+  peopleGroup?: string[];
   otherPeopleGroup?: string;
   dataTreatmentConsent: boolean;
   infoVisibilityConsent: boolean;
@@ -183,7 +208,7 @@ export default function RegisterForm() {
   const validateField = useCallback(
     (
       name: string,
-      value: string | boolean | undefined
+      value: string | string[] | boolean | undefined
     ): string | null => {
       if (value === undefined) return "Este campo es obligatorio";
       switch (name) {
@@ -269,13 +294,22 @@ export default function RegisterForm() {
 
       case "peopleGroup":
         // Solo es obligatorio si la empresa NO es grande
-        if (companySize !== "grande" && !value) {
-          return "Debe seleccionar una opción para empresas pequeñas y medianas";
+        if (companySize !== "grande") {
+          if (Array.isArray(value)) {
+            if (value.length === 0) {
+              return "Debe seleccionar al menos una opción para empresas pequeñas y medianas";
+            }
+          } else if (!value) {
+            return "Debe seleccionar al menos una opción para empresas pequeñas y medianas";
+          }
         }
         return null;
 
       case "otherPeopleGroup":
-        if (peopleGroup === "otro" && !value) {
+        const hasOtro = Array.isArray(peopleGroup) 
+          ? peopleGroup.includes("otro")
+          : peopleGroup === "otro";
+        if (hasOtro && !value) {
           return "Debe especificar el grupo poblacional cuando selecciona 'Otro'";
         }
         return null;
@@ -393,8 +427,11 @@ export default function RegisterForm() {
         "companySize",
       ];
 
-      // Validar otherPeopleGroup solo si peopleGroup es "otro"
-      if (peopleGroup === "otro") {
+      // Validar otherPeopleGroup solo si peopleGroup incluye "otro"
+      const hasOtro = Array.isArray(peopleGroup) 
+        ? peopleGroup.includes("otro")
+        : peopleGroup === "otro";
+      if (hasOtro) {
         fieldsToValidate.push("otherPeopleGroup");
       }
       // Validar peopleGroup solo si companySize NO es "grande"
@@ -631,8 +668,8 @@ export default function RegisterForm() {
 
   // Limpiar campos de grupo poblacional si no es empresa grande
   useEffect(() => {
-    if (companySize !== "grande") {
-      setValue("peopleGroup", "");
+    if (companySize === "grande") {
+      setValue("peopleGroup", []);
       setValue("otherPeopleGroup", "");
     }
   }, [companySize, setValue]);
@@ -1442,15 +1479,34 @@ export default function RegisterForm() {
                             algún grupo poblacional?{" "}
                             <span className="text-red-500">*</span>
                           </Label>
-                          <Select
-                            {...register("peopleGroup", {
-                              required:
-                                "Debe seleccionar una opción para empresas pequeñas y medianas",
-                              onChange: (e) => {
-                                const error = validateField(
-                                  "peopleGroup",
-                                  e.target.value
-                                );
+                          {isClient ? (
+                            <ReactSelect
+                              isMulti
+                              options={PEOPLE_GROUP_OPTIONS}
+                              value={Array.isArray(peopleGroup)
+                                ? PEOPLE_GROUP_OPTIONS.filter((option) =>
+                                    peopleGroup.includes(option.value)
+                                  )
+                                : peopleGroup
+                                ? PEOPLE_GROUP_OPTIONS.filter(
+                                    (option) => option.value === peopleGroup
+                                  )
+                                : []}
+                              onChange={(selected) => {
+                                let values = Array.isArray(selected)
+                                  ? (selected as Array<{ value: string; label: string }>).map((s) => s.value)
+                                  : [];
+                                
+                                // Si se selecciona "ninguno", solo mantener "ninguno"
+                                if (values.includes("ninguno")) {
+                                  values = ["ninguno"];
+                                } else {
+                                  // Si se selecciona cualquier otra opción, eliminar "ninguno" si está presente
+                                  values = values.filter(v => v !== "ninguno");
+                                }
+                                
+                                setValue("peopleGroup", values);
+                                const error = validateField("peopleGroup", values);
                                 if (error) {
                                   setValidationErrors((prev) => ({
                                     ...prev,
@@ -1462,37 +1518,14 @@ export default function RegisterForm() {
                                     return rest;
                                   });
                                 }
-                              },
-                            })}
-                            id="peopleGroup"
-                            className="w-full"
-                            color={
-                              validationErrors.peopleGroup ? "failure" : "blue"
-                            }
-                          >
-                            <option value="">Selecciona una opción</option>
-                            <option value="diversidad-sexual">
-                              Diversidad Sexual
-                            </option>
-                            <option value="personas-discapacidad">
-                              Personas con discapacidad
-                            </option>
-                            <option value="etnia-raza-afro">
-                              Etnia, raza o afro
-                            </option>
-                            <option value="personas-migrantes">
-                              Personas migrantes
-                            </option>
-                            <option value="generacional">Generacional</option>
-                            <option value="equidad-genero">
-                              Equidad de Género
-                            </option>
-                            <option value="pospenados-reinsertados">
-                              Pospenados o reinsertados
-                            </option>
-                            <option value="ninguno">Ninguno</option>
-                            <option value="otro">Otro</option>
-                          </Select>
+                              }}
+                              placeholder="Selecciona una o más opciones"
+                              noOptionsMessage={() => "No hay opciones"}
+                              instanceId="peopleGroup-select"
+                            />
+                          ) : (
+                            <div className="w-full h-10 border border-gray-300 rounded bg-gray-100"></div>
+                          )}
                           {validationErrors.peopleGroup && (
                             <p className="text-red-500 text-sm mt-1">
                               {validationErrors.peopleGroup}
@@ -1501,7 +1534,7 @@ export default function RegisterForm() {
                         </div>
                       )}
 
-                      {companySize !== "grande" && peopleGroup === "otro" && (
+                      {companySize !== "grande" && (Array.isArray(peopleGroup) ? peopleGroup.includes("otro") : peopleGroup === "otro") && (
                         <div className="w-full md:w-1/2 lg:w-1/2 px-2 space-y-1">
                           <Label htmlFor="otherPeopleGroup">
                             Especificar otro grupo poblacional{" "}
