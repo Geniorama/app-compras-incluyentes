@@ -35,15 +35,35 @@ import { registerUser } from "@/lib/auth";
 import { RiEyeLine } from "react-icons/ri";
 import { RiEyeOffLine } from "react-icons/ri";
 import ReactSelect from "react-select";
-import {
-  getDepartamentosOptions,
-  getCiudadesOptionsByDepartamento,
-} from "@/utils/departamentosCiudades";
 import { getSectorFromCIIU } from "@/utils/ciiuOptions";
 
 const SPECIAL_CHAR_REGEX = /[!@#$%^&*()_.,?":{}|<>-]/;
 const PASSWORD_REGEX =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_.,?":{}|<>-])[A-Za-z\d!@#$%^&*()_.,?":{}|<>-]{10,}$/;
+
+const COUNTRIES_OPTIONS = [
+  { title: 'Argentina', value: 'AR' },
+  { title: 'Bolivia', value: 'BO' },
+  { title: 'Brasil', value: 'BR' },
+  { title: 'Chile', value: 'CL' },
+  { title: 'Colombia', value: 'CO' },
+  { title: 'Costa Rica', value: 'CR' },
+  { title: 'Cuba', value: 'CU' },
+  { title: 'República Dominicana', value: 'DO' },
+  { title: 'Ecuador', value: 'EC' },
+  { title: 'El Salvador', value: 'SV' },
+  { title: 'Guatemala', value: 'GT' },
+  { title: 'Haití', value: 'HT' },
+  { title: 'Honduras', value: 'HN' },
+  { title: 'México', value: 'MX' },
+  { title: 'Nicaragua', value: 'NI' },
+  { title: 'Panamá', value: 'PA' },
+  { title: 'Paraguay', value: 'PY' },
+  { title: 'Perú', value: 'PE' },
+  { title: 'Puerto Rico', value: 'PR' },
+  { title: 'Uruguay', value: 'UY' },
+  { title: 'Venezuela', value: 'VE' },
+];
 
 interface FormData {
   nameCompany: string;
@@ -55,6 +75,7 @@ interface FormData {
   addressCompany: string;
   department: string;
   city: string;
+  country: string;
   firstName: string;
   lastName: string;
   email: string;
@@ -112,9 +133,6 @@ export default function RegisterForm() {
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>(
     {}
   );
-  const [ciudadesOptions, setCiudadesOptions] = useState<
-    { value: string; label: string }[]
-  >([]);
   const [annualRevenue, setAnnualRevenue] = useState<string>("");
   const [sector, setSector] = useState<string>("");
 
@@ -132,6 +150,7 @@ export default function RegisterForm() {
   const addressCompany = watch("addressCompany");
   const department = watch("department");
   const city = watch("city");
+  const country = watch("country");
   const companySize = watch("companySize");
   const peopleGroup = watch("peopleGroup");
   const otherPeopleGroup = watch("otherPeopleGroup");
@@ -221,11 +240,27 @@ export default function RegisterForm() {
         return null;
 
       case "department":
-        if (!value) return "El departamento es obligatorio";
+        if (!value) return "La región / departamento es obligatorio";
+        if (typeof value === "string") {
+          if (value.length < 2)
+            return "La región / departamento debe tener al menos 2 caracteres";
+          if (value.length > 100)
+            return "La región / departamento no puede exceder 100 caracteres";
+        }
         return null;
 
       case "city":
-        if (!value) return "La ciudad es obligatoria";
+        if (!value) return "La ciudad / municipio es obligatorio";
+        if (typeof value === "string") {
+          if (value.length < 2)
+            return "La ciudad / municipio debe tener al menos 2 caracteres";
+          if (value.length > 100)
+            return "La ciudad / municipio no puede exceder 100 caracteres";
+        }
+        return null;
+
+      case "country":
+        if (!value) return "El país es obligatorio";
         return null;
 
       case "companySize":
@@ -354,6 +389,7 @@ export default function RegisterForm() {
         "addressCompany",
         "department",
         "city",
+        "country",
         "companySize",
       ];
 
@@ -486,6 +522,7 @@ export default function RegisterForm() {
     addressCompany,
     department,
     city,
+    country,
     firstName,
     lastName,
     email,
@@ -539,17 +576,6 @@ export default function RegisterForm() {
     setOptionsCIIU(options);
   }, []);
 
-  // Actualizar opciones de ciudades cuando cambie el departamento
-  useEffect(() => {
-    if (department) {
-      const ciudades = getCiudadesOptionsByDepartamento(department);
-      setCiudadesOptions(ciudades);
-      // Limpiar la ciudad seleccionada cuando cambie el departamento
-      setValue("city", "");
-    } else {
-      setCiudadesOptions([]);
-    }
-  }, [department, setValue]);
 
   // Actualizar sector cuando cambie el CIIU
   useEffect(() => {
@@ -1270,11 +1296,11 @@ export default function RegisterForm() {
                       </div>
                       <div className="w-full md:w-1/2 lg:w-1/2 px-2 space-y-1">
                         <Label htmlFor="department">
-                          Departamento <span className="text-red-500">*</span>
+                          Región / Departamento <span className="text-red-500">*</span>
                         </Label>
-                        <Select
+                        <TextInput
                           {...register("department", {
-                            required: "El departamento es obligatorio",
+                            required: "La región / departamento es obligatorio",
                             onChange: (e) => {
                               const error = validateField(
                                 "department",
@@ -1293,17 +1319,12 @@ export default function RegisterForm() {
                               }
                             },
                           })}
+                          color={
+                            validationErrors.department ? "failure" : "blue"
+                          }
                           id="department"
-                          className="w-full"
-                          color="blue"
-                        >
-                          <option value="">Selecciona un departamento</option>
-                          {getDepartamentosOptions().map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </Select>
+                          placeholder="Ej: Cundinamarca"
+                        />
                         {validationErrors.department && (
                           <p className="text-red-500 text-sm mt-1">
                             {validationErrors.department}
@@ -1312,11 +1333,11 @@ export default function RegisterForm() {
                       </div>
                       <div className="w-full md:w-1/2 lg:w-1/2 px-2 space-y-1">
                         <Label htmlFor="city">
-                          Ciudad <span className="text-red-500">*</span>
+                          Ciudad / Municipio <span className="text-red-500">*</span>
                         </Label>
-                        <Select
+                        <TextInput
                           {...register("city", {
-                            required: "La ciudad es obligatoria",
+                            required: "La ciudad / municipio es obligatorio",
                             onChange: (e) => {
                               const error = validateField(
                                 "city",
@@ -1335,21 +1356,57 @@ export default function RegisterForm() {
                               }
                             },
                           })}
+                          color={
+                            validationErrors.city ? "failure" : "blue"
+                          }
                           id="city"
-                          className="w-full"
-                          color="blue"
-                          disabled={!department}
-                        >
-                          <option value="">Selecciona una ciudad</option>
-                          {ciudadesOptions.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </Select>
+                          placeholder="Ej: Bogotá"
+                        />
                         {validationErrors.city && (
                           <p className="text-red-500 text-sm mt-1">
                             {validationErrors.city}
+                          </p>
+                        )}
+                      </div>
+                      <div className="w-full md:w-1/2 lg:w-1/2 px-2 space-y-1">
+                        <Label htmlFor="country">
+                          País <span className="text-red-500">*</span>
+                        </Label>
+                        <Select
+                          {...register("country", {
+                            required: "El país es obligatorio",
+                            onChange: (e) => {
+                              const error = validateField(
+                                "country",
+                                e.target.value
+                              );
+                              if (error) {
+                                setValidationErrors((prev) => ({
+                                  ...prev,
+                                  country: error,
+                                }));
+                              } else {
+                                setValidationErrors((prev) => {
+                                  const { ...rest } = prev;
+                                  return rest;
+                                });
+                              }
+                            },
+                          })}
+                          id="country"
+                          className="w-full"
+                          color="blue"
+                        >
+                          <option value="">Selecciona un país</option>
+                          {COUNTRIES_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.title}
+                            </option>
+                          ))}
+                        </Select>
+                        {validationErrors.country && (
+                          <p className="text-red-500 text-sm mt-1">
+                            {validationErrors.country}
                           </p>
                         )}
                       </div>

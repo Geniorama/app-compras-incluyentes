@@ -38,6 +38,7 @@ export interface CompanyData {
     addressCompany?: string;
     department?: string;
     city?: string;
+    country?: string;
     companySize?: string;
     peopleGroup?: string;
     otherPeopleGroup?: string;
@@ -85,6 +86,7 @@ export interface UserProfile extends UserData {
     addressCompany?: string;
     department?: string;
     city?: string;
+    country?: string;
     companySize?: string;
     peopleGroup?: string;
     otherPeopleGroup?: string;

@@ -49,6 +49,7 @@ export async function GET(request: Request) {
           addressCompany,
           department,
           city,
+          country,
           companySize,
           peopleGroup,
           otherPeopleGroup,

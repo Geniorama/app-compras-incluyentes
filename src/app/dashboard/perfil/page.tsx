@@ -33,6 +33,7 @@ async function getProfile(userId: string) {
           addressCompany,
           department,
           city,
+          country,
           companySize,
           peopleGroup,
           otherPeopleGroup,

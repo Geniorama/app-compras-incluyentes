@@ -18,8 +18,31 @@ import { updateEmail, sendEmailVerification, getAuth } from "firebase/auth";
 import { FirebaseError } from "firebase/app";
 import DashboardSidebar from "@/components/DashboardSidebar";
 import type { UserProfile, SanityImage } from "@/types";
-import { getDepartamentosOptions, getCiudadesOptionsByDepartamento } from "@/utils/departamentosCiudades";
 import { getCIIUOptions, getSectorFromCIIU } from "@/utils/ciiuOptions";
+
+const COUNTRIES_OPTIONS = [
+  { title: 'Argentina', value: 'AR' },
+  { title: 'Bolivia', value: 'BO' },
+  { title: 'Brasil', value: 'BR' },
+  { title: 'Chile', value: 'CL' },
+  { title: 'Colombia', value: 'CO' },
+  { title: 'Costa Rica', value: 'CR' },
+  { title: 'Cuba', value: 'CU' },
+  { title: 'República Dominicana', value: 'DO' },
+  { title: 'Ecuador', value: 'EC' },
+  { title: 'El Salvador', value: 'SV' },
+  { title: 'Guatemala', value: 'GT' },
+  { title: 'Haití', value: 'HT' },
+  { title: 'Honduras', value: 'HN' },
+  { title: 'México', value: 'MX' },
+  { title: 'Nicaragua', value: 'NI' },
+  { title: 'Panamá', value: 'PA' },
+  { title: 'Paraguay', value: 'PY' },
+  { title: 'Perú', value: 'PE' },
+  { title: 'Puerto Rico', value: 'PR' },
+  { title: 'Uruguay', value: 'UY' },
+  { title: 'Venezuela', value: 'VE' },
+];
 
 interface ProfileViewProps {
   initialProfile?: UserProfile | null;
@@ -56,9 +79,6 @@ export default function ProfileView({
   const photoInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
   
-  // Estados para departamentos y ciudades
-  const [departamentosOptions] = useState(() => getDepartamentosOptions());
-  const [ciudadesOptions, setCiudadesOptions] = useState<{ value: string; label: string; }[]>([]);
   
   // Estados para CIIU
   const [ciiuOptions] = useState(() => getCIIUOptions());
@@ -82,6 +102,7 @@ export default function ProfileView({
         addressCompany: initialProfile.company?.addressCompany || "",
         department: initialProfile.company?.department || "",
         city: initialProfile.company?.city || "",
+        country: initialProfile.company?.country || "",
         companySize: initialProfile.company?.companySize || "",
         peopleGroup: initialProfile.company?.peopleGroup || "",
         otherPeopleGroup: initialProfile.company?.otherPeopleGroup || "",
@@ -115,15 +136,6 @@ export default function ProfileView({
     }
   }, [initialProfile]);
 
-  // Actualizar opciones de ciudades cuando cambie el departamento
-  useEffect(() => {
-    if (profile?.department) {
-      const ciudades = getCiudadesOptionsByDepartamento(profile.department);
-      setCiudadesOptions(ciudades);
-    } else {
-      setCiudadesOptions([]);
-    }
-  }, [profile?.department]);
 
   // Actualizar sector cuando cambie el CIIU
   useEffect(() => {
@@ -168,11 +180,8 @@ export default function ProfileView({
   const handleChange = (field: keyof UserProfile, value: string) => {
     if (profile) {
       // Si cambia el departamento, limpiar la ciudad
-      if (field === 'department') {
-        setProfile({ ...profile, [field]: value, city: '' });
-      } 
       // Si cambia el grupo poblacional y no es "otro", limpiar otherPeopleGroup
-      else if (field === 'peopleGroup' && value !== 'otro') {
+      if (field === 'peopleGroup' && value !== 'otro') {
         setProfile({ ...profile, [field]: value, otherPeopleGroup: '' });
       } else {
         setProfile({ ...profile, [field]: value });
@@ -208,6 +217,7 @@ export default function ProfileView({
       "addressCompany",
       "department",
       "city",
+      "country",
       "companySize",
       "peopleGroup",
       "otherPeopleGroup",
@@ -339,6 +349,7 @@ export default function ProfileView({
         addressCompany: profile.addressCompany,
         department: profile.department,
         city: profile.city,
+        country: profile.country,
         companySize: profile.companySize,
         peopleGroup: profile.peopleGroup,
         otherPeopleGroup: profile.otherPeopleGroup,
@@ -378,16 +389,60 @@ export default function ProfileView({
 
       if (result.success) {
         // Actualizar el estado con los datos más recientes
-        const updatedProfile = {
-          ...result.data.user,
-          ...result.data.company,
+        // Combinar los datos del usuario y la empresa de la misma manera que en la inicialización
+        const updatedUser = result.data.user;
+        const updatedCompany = result.data.company;
+        
+        // Extraer solo los campos del usuario, excluyendo el objeto company anidado
+        const {
+          company: _company,
+          ...userFields
+        } = updatedUser;
+        
+        const combinedProfile = {
+          ...userFields,
+          // Si existe company, usar sus valores, si no, usar valores vacíos
+          nameCompany: updatedCompany?.nameCompany || "",
+          businessName: updatedCompany?.businessName || "",
+          typeDocumentCompany: updatedCompany?.typeDocumentCompany || "",
+          numDocumentCompany: updatedCompany?.numDocumentCompany || "",
+          ciiu: updatedCompany?.ciiu || "",
+          webSite: updatedCompany?.webSite || "",
+          addressCompany: updatedCompany?.addressCompany || "",
+          department: updatedCompany?.department || "",
+          city: updatedCompany?.city || "",
+          country: updatedCompany?.country || "",
+          companySize: updatedCompany?.companySize || "",
+          peopleGroup: updatedCompany?.peopleGroup || "",
+          otherPeopleGroup: updatedCompany?.otherPeopleGroup || "",
+          friendlyBizz: updatedCompany?.friendlyBizz || false,
+          inclusionDEI: updatedCompany?.inclusionDEI ? "yes" : "no",
+          membership: updatedCompany?.membership || false,
+          annualRevenue: updatedCompany?.annualRevenue ?? 0,
+          logo: updatedCompany?.logo,
+          facebook: updatedCompany?.facebook || "",
+          instagram: updatedCompany?.instagram || "",
+          tiktok: updatedCompany?.tiktok || "",
+          pinterest: updatedCompany?.pinterest || "",
+          linkedin: updatedCompany?.linkedin || "",
+          xtwitter: updatedCompany?.xtwitter || "",
         };
-        setProfile(updatedProfile);
-        setOriginalProfile(updatedProfile);
+        const typedCombinedProfile: UserProfile = {
+          ...combinedProfile,
+          logo: combinedProfile.logo as SanityImage | undefined,
+        };
+        setProfile(typedCombinedProfile);
+        setOriginalProfile(typedCombinedProfile);
         
         // Actualizar annualRevenueDisplay con el valor guardado
-        if (updatedProfile.annualRevenue) {
-          setAnnualRevenueDisplay(updatedProfile.annualRevenue.toString());
+        if (typedCombinedProfile.annualRevenue !== undefined && typedCombinedProfile.annualRevenue !== null) {
+          setAnnualRevenueDisplay(typedCombinedProfile.annualRevenue.toString());
+        }
+        
+        // Actualizar sector si cambió el CIIU
+        if (typedCombinedProfile.ciiu) {
+          const sectorResult = getSectorFromCIIU(typedCombinedProfile.ciiu);
+          setSector(sectorResult || "");
         }
 
         toast.success(
@@ -1026,11 +1081,53 @@ export default function ProfileView({
                   </div>
 
                   <div className="w-full md:w-1/2 px-2 space-y-1">
-                    <Label htmlFor="department">Departamento</Label>
-                    <Select
+                    <Label htmlFor="department">Región / Departamento</Label>
+                    <TextInput
                       id="department"
+                      placeholder="Ej: Cundinamarca"
                       value={profile?.department || ""}
-                      onChange={(e) => handleChange("department", e.target.value)}
+                      onChange={(e) =>
+                        handleChange("department", e.target.value)
+                      }
+                      color="blue"
+                      disabled={isUserOnly}
+                      theme={{
+                        field: {
+                          input: {
+                            base: `border-slate-200 focus:border-blue-600 w-full ${isUserOnly ? "bg-gray-100 text-gray-500" : ""}`,
+                          },
+                        },
+                      }}
+                    />
+                  </div>
+
+                  <div className="w-full md:w-1/2 px-2 space-y-1">
+                    <Label htmlFor="city">Ciudad / Municipio</Label>
+                    <TextInput
+                      id="city"
+                      placeholder="Ej: Bogotá"
+                      value={profile?.city || ""}
+                      onChange={(e) =>
+                        handleChange("city", e.target.value)
+                      }
+                      color="blue"
+                      disabled={isUserOnly}
+                      theme={{
+                        field: {
+                          input: {
+                            base: `border-slate-200 focus:border-blue-600 w-full ${isUserOnly ? "bg-gray-100 text-gray-500" : ""}`,
+                          },
+                        },
+                      }}
+                    />
+                  </div>
+
+                  <div className="w-full md:w-1/2 px-2 space-y-1">
+                    <Label htmlFor="country">País</Label>
+                    <Select
+                      id="country"
+                      value={profile?.country || ""}
+                      onChange={(e) => handleChange("country", e.target.value)}
                       color="blue"
                       disabled={isUserOnly}
                       theme={{
@@ -1041,35 +1138,10 @@ export default function ProfileView({
                         },
                       }}
                     >
-                      <option value="">Seleccionar departamento</option>
-                      {departamentosOptions.map((option) => (
+                      <option value="">Seleccionar país</option>
+                      {COUNTRIES_OPTIONS.map((option) => (
                         <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </Select>
-                  </div>
-
-                  <div className="w-full md:w-1/2 px-2 space-y-1">
-                    <Label htmlFor="city">Ciudad</Label>
-                    <Select
-                      id="city"
-                      value={profile?.city || ""}
-                      onChange={(e) => handleChange("city", e.target.value)}
-                      color="blue"
-                      disabled={isUserOnly || !profile?.department}
-                      theme={{
-                        field: {
-                          select: {
-                            base: `border-slate-200 focus:border-blue-600 w-full ${isUserOnly || !profile?.department ? "bg-gray-100 text-gray-500" : ""}`,
-                          },
-                        },
-                      }}
-                    >
-                      <option value="">Seleccionar ciudad</option>
-                      {ciudadesOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
+                          {option.title}
                         </option>
                       ))}
                     </Select>
