@@ -43,6 +43,42 @@ function formatCompanySize(size?: string): string {
   return sizeMap[size] || size;
 }
 
+// Función para obtener las etiquetas de grupos poblacionales
+function getPeopleGroupLabels(groups?: string | string[]): string[] {
+  if (!groups) return [];
+  
+  const groupsArray = Array.isArray(groups) ? groups : [groups];
+  
+  const peopleGroupMap: { [key: string]: string } = {
+    'lgbtiq': 'LGBTIQ+',
+    'discapacidad-sensorial': 'Personas con discapacidad Sensorial',
+    'discapacidad-fisico-motora': 'Personas con discapacidad Físico Motora',
+    'discapacidad-psicosocial': 'Personas con discapacidad Psicosocial',
+    'discapacidad-cognitiva': 'Personas con discapacidad Cognitiva',
+    'migrantes': 'Migrantes',
+    'etnia-afrodescendientes': 'Etnia y Raza: Afrodescendientes, raizales y palenqueros',
+    'etnia-indigenas': 'Etnia y Raza: Indígenas',
+    'victimas-reconciliacion-paz': 'Víctimas de reconciliación y paz (víctimas, victimarios)',
+    'pospenadas': 'Pospenadas',
+    'diversidad-generacional-mayores-50': 'Diversidad Generacional mayores de 50 años',
+    'diversidad-generacional-primer-empleo': 'Diversidad Generacional primer empleo',
+    'madres-cabeza-familia': 'Madres cabeza de familia',
+    'diversidad-sexual': 'Diversidad Sexual',
+    'personas-discapacidad': 'Personas con discapacidad',
+    'etnia-raza-afro': 'Etnia, raza o afro',
+    'personas-migrantes': 'Personas migrantes',
+    'generacional': 'Generacional',
+    'equidad-genero': 'Equidad de Género',
+    'pospenados-reinsertados': 'Pospenados o reinsertados',
+    'ninguno': 'Ninguno',
+    'otro': 'Otro'
+  };
+  
+  return groupsArray
+    .filter(group => group && group !== 'ninguno' && group !== 'otro')
+    .map(group => peopleGroupMap[group] || group);
+}
+
 export default function EmpresaView({ company }: EmpresaViewProps) {
   const router = useRouter();
   const {
@@ -56,6 +92,7 @@ export default function EmpresaView({ company }: EmpresaViewProps) {
     ciiu,
     phone,
     companySize,
+    peopleGroup,
     inclusionDEI,
     chamberOfCommerceValidated,
     dianDocumentValidated,
@@ -69,6 +106,8 @@ export default function EmpresaView({ company }: EmpresaViewProps) {
     services = [],
     _id,
   } = company;
+  
+  const peopleGroupLabels = getPeopleGroupLabels(peopleGroup);
 
   // Verificar si la empresa está validada (ambos documentos deben estar validados)
   const isCompanyValidated = chamberOfCommerceValidated === 'valido' && dianDocumentValidated === 'valido';
@@ -199,6 +238,42 @@ export default function EmpresaView({ company }: EmpresaViewProps) {
                 <li className='text-sm text-gray-600'> <b>Clasificación:</b> {formatCompanySize(companySize)}</li>
               )}
             </ul>
+            
+            {/* Grupos poblacionales como nube de etiquetas */}
+            {peopleGroupLabels.length > 0 && (
+              <div className="mt-2 w-full">
+                <p className="text-sm font-semibold text-gray-700 mb-2 text-center">Grupos Poblacionales:</p>
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {peopleGroupLabels.map((label, index) => {
+                    // Paleta de colores variada para las etiquetas
+                    const colorClasses = [
+                      'bg-indigo-100 text-indigo-800 border-indigo-200',
+                      'bg-purple-100 text-purple-800 border-purple-200',
+                      'bg-pink-100 text-pink-800 border-pink-200',
+                      'bg-blue-100 text-blue-800 border-blue-200',
+                      'bg-cyan-100 text-cyan-800 border-cyan-200',
+                      'bg-teal-100 text-teal-800 border-teal-200',
+                      'bg-green-100 text-green-800 border-green-200',
+                      'bg-yellow-100 text-yellow-800 border-yellow-200',
+                      'bg-orange-100 text-orange-800 border-orange-200',
+                      'bg-red-100 text-red-800 border-red-200',
+                      'bg-rose-100 text-rose-800 border-rose-200',
+                      'bg-amber-100 text-amber-800 border-amber-200',
+                    ];
+                    const colorClass = colorClasses[index % colorClasses.length];
+                    
+                    return (
+                      <span
+                        key={index}
+                        className={`${colorClass} px-3 py-1 rounded-full text-xs font-medium border`}
+                      >
+                        {label}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             <Button color='light' className='mt-4' onClick={handleContactCompany}>
               Enviar mensaje

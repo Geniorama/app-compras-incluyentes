@@ -29,6 +29,7 @@ interface Company {
   ciiu: string;
   phone: string;
   companySize?: string;
+  peopleGroup?: string | string[];
   inclusionDEI?: boolean;
   chamberOfCommerceValidated?: 'pendiente' | 'en-progreso' | 'valido' | 'invalido';
   dianDocumentValidated?: 'pendiente' | 'en-progreso' | 'valido' | 'invalido';
@@ -68,6 +69,7 @@ export default function EmpresaPage() {
             ciiu,
             phone,
             companySize,
+            peopleGroup,
             inclusionDEI,
             chamberOfCommerceValidated,
             dianDocumentValidated,
