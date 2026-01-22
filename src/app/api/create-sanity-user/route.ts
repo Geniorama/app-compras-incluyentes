@@ -43,7 +43,7 @@ export async function POST(request: Request) {
       inclusionDEI,
       annualRevenue,
       chamberOfCommerce,
-      dianDocument,
+      taxIdentificationDocument,
     } = await request.json()
 
     if (!logo || !photo) {
@@ -86,7 +86,7 @@ export async function POST(request: Request) {
       membership: membership === 'yes' ? true : false,
       annualRevenue: annualRevenue || 0,
       chamberOfCommerce,
-      dianDocument,
+      taxIdentificationDocument,
       active: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),

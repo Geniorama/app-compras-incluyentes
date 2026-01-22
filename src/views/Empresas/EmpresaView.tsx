@@ -95,7 +95,7 @@ export default function EmpresaView({ company }: EmpresaViewProps) {
     peopleGroup,
     inclusionDEI,
     chamberOfCommerceValidated,
-    dianDocumentValidated,
+    taxIdentificationDocumentValidated,
     facebook,
     instagram,
     tiktok,
@@ -110,7 +110,7 @@ export default function EmpresaView({ company }: EmpresaViewProps) {
   const peopleGroupLabels = getPeopleGroupLabels(peopleGroup);
 
   // Verificar si la empresa está validada (ambos documentos deben estar validados)
-  const isCompanyValidated = chamberOfCommerceValidated === 'valido' && dianDocumentValidated === 'valido';
+  const isCompanyValidated = chamberOfCommerceValidated === 'valido' && taxIdentificationDocumentValidated === 'valido';
 
   const formatPhoneForWhatsApp = (phone?: string) => {
     if (!phone) return '';

@@ -46,11 +46,11 @@ async function getProfile(userId: string) {
           linkedin,
           xtwitter,
           chamberOfCommerce,
-          dianDocument,
+          taxIdentificationDocument,
           chamberOfCommerceValidated,
-          dianDocumentValidated,
+          taxIdentificationDocumentValidated,
           chamberOfCommerceComments,
-          dianDocumentComments
+          taxIdentificationDocumentComments
         }
       }`,
       { userId }

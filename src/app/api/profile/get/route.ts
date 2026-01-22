@@ -65,11 +65,11 @@ export async function GET(request: Request) {
           linkedin,
           xtwitter,
           chamberOfCommerce,
-          dianDocument,
+          taxIdentificationDocument,
           chamberOfCommerceValidated,
-          dianDocumentValidated,
+          taxIdentificationDocumentValidated,
           chamberOfCommerceComments,
-          dianDocumentComments
+          taxIdentificationDocumentComments
         }
       }`,
       { userId }

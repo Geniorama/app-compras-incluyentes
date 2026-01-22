@@ -59,11 +59,11 @@ export interface CompanyData {
     products?: Product[];
     services?: Service[];
     chamberOfCommerce?: string | import('./sanity').SanityImage;
-    dianDocument?: string | import('./sanity').SanityImage;
+    taxIdentificationDocument?: string | import('./sanity').SanityImage;
     chamberOfCommerceValidated?: 'pendiente' | 'en-progreso' | 'valido' | 'invalido';
-    dianDocumentValidated?: 'pendiente' | 'en-progreso' | 'valido' | 'invalido';
+    taxIdentificationDocumentValidated?: 'pendiente' | 'en-progreso' | 'valido' | 'invalido';
     chamberOfCommerceComments?: string;
-    dianDocumentComments?: string;
+    taxIdentificationDocumentComments?: string;
 }
 
 export interface SanityCompanyDocument extends SanityResponse, CompanyData {}
@@ -109,11 +109,11 @@ export interface UserProfile extends UserData {
     xtwitter?: string;
     photo?: string | import('./sanity').SanityImage;
     chamberOfCommerce?: string | import('./sanity').SanityImage;
-    dianDocument?: string | import('./sanity').SanityImage;
+    taxIdentificationDocument?: string | import('./sanity').SanityImage;
     chamberOfCommerceValidated?: 'pendiente' | 'en-progreso' | 'valido' | 'invalido';
-    dianDocumentValidated?: 'pendiente' | 'en-progreso' | 'valido' | 'invalido';
+    taxIdentificationDocumentValidated?: 'pendiente' | 'en-progreso' | 'valido' | 'invalido';
     chamberOfCommerceComments?: string;
-    dianDocumentComments?: string;
+    taxIdentificationDocumentComments?: string;
 }
 
 // Centralizar types de productos y servicios

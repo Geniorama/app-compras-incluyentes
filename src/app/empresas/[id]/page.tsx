@@ -32,7 +32,7 @@ interface Company {
   peopleGroup?: string | string[];
   inclusionDEI?: boolean;
   chamberOfCommerceValidated?: 'pendiente' | 'en-progreso' | 'valido' | 'invalido';
-  dianDocumentValidated?: 'pendiente' | 'en-progreso' | 'valido' | 'invalido';
+  taxIdentificationDocumentValidated?: 'pendiente' | 'en-progreso' | 'valido' | 'invalido';
   facebook?: string;
   instagram?: string;
   tiktok?: string;
@@ -72,7 +72,7 @@ export default function EmpresaPage() {
             peopleGroup,
             inclusionDEI,
             chamberOfCommerceValidated,
-            dianDocumentValidated,
+            taxIdentificationDocumentValidated,
             facebook,
             instagram,
             tiktok,

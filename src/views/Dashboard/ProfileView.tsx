@@ -103,11 +103,11 @@ export default function ProfileView({
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [chamberOfCommerceFile, setChamberOfCommerceFile] = useState<File | null>(null);
-  const [dianDocumentFile, setDianDocumentFile] = useState<File | null>(null);
+  const [taxIdentificationDocumentFile, setTaxIdentificationDocumentFile] = useState<File | null>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const chamberOfCommerceInputRef = useRef<HTMLInputElement>(null);
-  const dianDocumentInputRef = useRef<HTMLInputElement>(null);
+  const taxIdentificationDocumentInputRef = useRef<HTMLInputElement>(null);
   const [isClient, setIsClient] = useState(false);
   
   // Estados para CIIU
@@ -135,7 +135,7 @@ export default function ProfileView({
         country: initialProfile.company?.country || "",
         companySize: initialProfile.company?.companySize || "",
         peopleGroup: Array.isArray(initialProfile.company?.peopleGroup)
-          ? initialProfile.company.peopleGroup
+          ? [...initialProfile.company.peopleGroup] // Crear una nueva referencia del array
           : initialProfile.company?.peopleGroup
           ? [initialProfile.company.peopleGroup]
           : [],
@@ -152,11 +152,11 @@ export default function ProfileView({
         linkedin: initialProfile.company?.linkedin || "",
         xtwitter: initialProfile.company?.xtwitter || "",
         chamberOfCommerce: initialProfile.company?.chamberOfCommerce,
-        dianDocument: initialProfile.company?.dianDocument,
+        taxIdentificationDocument: initialProfile.company?.taxIdentificationDocument,
         chamberOfCommerceValidated: initialProfile.company?.chamberOfCommerceValidated || 'pendiente',
-        dianDocumentValidated: initialProfile.company?.dianDocumentValidated || 'pendiente',
+        taxIdentificationDocumentValidated: initialProfile.company?.taxIdentificationDocumentValidated || 'pendiente',
         chamberOfCommerceComments: initialProfile.company?.chamberOfCommerceComments || '',
-        dianDocumentComments: initialProfile.company?.dianDocumentComments || '',
+        taxIdentificationDocumentComments: initialProfile.company?.taxIdentificationDocumentComments || '',
       };
       const typedCombinedProfile: UserProfile = {
         ...combinedProfile,
@@ -208,7 +208,7 @@ export default function ProfileView({
               country: updatedCompany?.country || "",
               companySize: updatedCompany?.companySize || "",
               peopleGroup: Array.isArray(updatedCompany?.peopleGroup)
-                ? updatedCompany.peopleGroup
+                ? [...updatedCompany.peopleGroup] // Crear una nueva referencia del array
                 : updatedCompany?.peopleGroup
                 ? [updatedCompany.peopleGroup]
                 : [],
@@ -225,11 +225,11 @@ export default function ProfileView({
               linkedin: updatedCompany?.linkedin || "",
               xtwitter: updatedCompany?.xtwitter || "",
               chamberOfCommerce: updatedCompany?.chamberOfCommerce,
-              dianDocument: updatedCompany?.dianDocument,
+              taxIdentificationDocument: updatedCompany?.taxIdentificationDocument,
               chamberOfCommerceValidated: updatedCompany?.chamberOfCommerceValidated || 'pendiente',
-              dianDocumentValidated: updatedCompany?.dianDocumentValidated || 'pendiente',
+              taxIdentificationDocumentValidated: updatedCompany?.taxIdentificationDocumentValidated || 'pendiente',
               chamberOfCommerceComments: updatedCompany?.chamberOfCommerceComments || '',
-              dianDocumentComments: updatedCompany?.dianDocumentComments || '',
+              taxIdentificationDocumentComments: updatedCompany?.taxIdentificationDocumentComments || '',
             };
             const typedCombinedProfile: UserProfile = {
               ...combinedProfile,
@@ -243,24 +243,24 @@ export default function ProfileView({
               // Solo actualizar si hay cambios en los campos de validación o comentarios
               const hasValidationChanges = 
                 prevProfile.chamberOfCommerceValidated !== typedCombinedProfile.chamberOfCommerceValidated ||
-                prevProfile.dianDocumentValidated !== typedCombinedProfile.dianDocumentValidated ||
+                prevProfile.taxIdentificationDocumentValidated !== typedCombinedProfile.taxIdentificationDocumentValidated ||
                 prevProfile.chamberOfCommerceComments !== typedCombinedProfile.chamberOfCommerceComments ||
-                prevProfile.dianDocumentComments !== typedCombinedProfile.dianDocumentComments;
+                prevProfile.taxIdentificationDocumentComments !== typedCombinedProfile.taxIdentificationDocumentComments;
               
               if (hasValidationChanges) {
                 console.log("Actualizando estados de validación:", {
                   chamberOfCommerceValidated: typedCombinedProfile.chamberOfCommerceValidated,
-                  dianDocumentValidated: typedCombinedProfile.dianDocumentValidated,
+                  taxIdentificationDocumentValidated: typedCombinedProfile.taxIdentificationDocumentValidated,
                 });
                 // Combinar el perfil anterior con los nuevos campos de validación
                 return {
                   ...prevProfile,
                   chamberOfCommerceValidated: typedCombinedProfile.chamberOfCommerceValidated,
-                  dianDocumentValidated: typedCombinedProfile.dianDocumentValidated,
+                  taxIdentificationDocumentValidated: typedCombinedProfile.taxIdentificationDocumentValidated,
                   chamberOfCommerceComments: typedCombinedProfile.chamberOfCommerceComments,
-                  dianDocumentComments: typedCombinedProfile.dianDocumentComments,
+                  taxIdentificationDocumentComments: typedCombinedProfile.taxIdentificationDocumentComments,
                   chamberOfCommerce: typedCombinedProfile.chamberOfCommerce,
-                  dianDocument: typedCombinedProfile.dianDocument,
+                  taxIdentificationDocument: typedCombinedProfile.taxIdentificationDocument,
                 };
               }
               return prevProfile;
@@ -384,7 +384,7 @@ export default function ProfileView({
     ];
 
     // Si hay una nueva foto, logo o archivos PDF seleccionados, hay cambios
-    if (photoFile || logoFile || chamberOfCommerceFile || dianDocumentFile) return true;
+    if (photoFile || logoFile || chamberOfCommerceFile || taxIdentificationDocumentFile) return true;
 
     // Verificar si annualRevenueDisplay ha cambiado
     const originalAnnualRevenueDisplay = originalProfile.annualRevenue ? originalProfile.annualRevenue.toString() : "";
@@ -393,7 +393,7 @@ export default function ProfileView({
     return fieldsToCompare.some(
       (field) => profile[field] !== originalProfile[field]
     );
-  }, [profile, originalProfile, photoFile, logoFile, annualRevenueDisplay, chamberOfCommerceFile, dianDocumentFile]);
+  }, [profile, originalProfile, photoFile, logoFile, annualRevenueDisplay, chamberOfCommerceFile, taxIdentificationDocumentFile]);
 
   // Al seleccionar nueva foto
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -422,17 +422,17 @@ export default function ProfileView({
     }
   };
 
-  // Al seleccionar nuevo documento DIAN
-  const handleDianDocumentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Al seleccionar nuevo documento de identificación tributaria
+  const handleTaxIdentificationDocumentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.type !== 'application/pdf') {
         toast.error("Solo se aceptan archivos PDF");
         return;
       }
-      setDianDocumentFile(file);
+      setTaxIdentificationDocumentFile(file);
       if (profile) {
-        setProfile({ ...profile, dianDocument: "new" }); // Valor temporal para disparar el cambio
+        setProfile({ ...profile, taxIdentificationDocument: "new" }); // Valor temporal para disparar el cambio
       }
     }
   };
@@ -521,22 +521,22 @@ export default function ProfileView({
         chamberOfCommerceSanity = uploadData.asset;
         console.log("Cámara de Comercio subida exitosamente:", chamberOfCommerceSanity);
       }
-      // Subir Documento DIAN si hay nuevo
-      let dianDocumentSanity = profile.dianDocument;
-      if (dianDocumentFile) {
+      // Subir Documento de Identificación Tributaria si hay nuevo
+      let taxIdentificationDocumentSanity = profile.taxIdentificationDocument;
+      if (taxIdentificationDocumentFile) {
         const formData = new FormData();
-        formData.append("file", dianDocumentFile);
+        formData.append("file", taxIdentificationDocumentFile);
         const uploadRes = await fetch("/api/upload-file", {
           method: "POST",
           body: formData,
         });
         if (!uploadRes.ok) {
           const errorData = await uploadRes.json().catch(() => ({ message: "Error desconocido" }));
-          throw new Error(`Error al subir el documento DIAN: ${errorData.message || "Error desconocido"}`);
+          throw new Error(`Error al subir el documento de identificación tributaria: ${errorData.message || "Error desconocido"}`);
         }
         const uploadData = await uploadRes.json();
-        dianDocumentSanity = uploadData.asset;
-        console.log("Documento DIAN subido exitosamente:", dianDocumentSanity);
+        taxIdentificationDocumentSanity = uploadData.asset;
+        console.log("Documento de identificación tributaria subido exitosamente:", taxIdentificationDocumentSanity);
       }
 
       // Separar datos del usuario y la empresa
@@ -557,15 +557,15 @@ export default function ProfileView({
       
 
       
-      const companyData: Omit<Partial<CompanyData>, 'logo' | 'chamberOfCommerce' | 'dianDocument'> & {
+      const companyData: Omit<Partial<CompanyData>, 'logo' | 'chamberOfCommerce' | 'taxIdentificationDocument'> & {
         updatedAt: string;
         logo?: string | SanityImage;
         chamberOfCommerce?: string | SanityImage;
-        dianDocument?: string | SanityImage;
+        taxIdentificationDocument?: string | SanityImage;
         chamberOfCommerceValidated?: 'pendiente' | 'en-progreso' | 'valido' | 'invalido';
-        dianDocumentValidated?: 'pendiente' | 'en-progreso' | 'valido' | 'invalido';
+        taxIdentificationDocumentValidated?: 'pendiente' | 'en-progreso' | 'valido' | 'invalido';
         chamberOfCommerceComments?: string;
-        dianDocumentComments?: string;
+        taxIdentificationDocumentComments?: string;
       } = {
         nameCompany: profile.nameCompany,
         businessName: profile.businessName,
@@ -604,12 +604,12 @@ export default function ProfileView({
         }
       }
 
-      if (dianDocumentSanity) {
-        companyData.dianDocument = dianDocumentSanity;
+      if (taxIdentificationDocumentSanity) {
+        companyData.taxIdentificationDocument = taxIdentificationDocumentSanity;
         // Si se subió un nuevo documento, establecer el estado en pendiente y limpiar comentarios
-        if (dianDocumentFile) {
-          companyData.dianDocumentValidated = 'pendiente';
-          companyData.dianDocumentComments = '';
+        if (taxIdentificationDocumentFile) {
+          companyData.taxIdentificationDocumentValidated = 'pendiente';
+          companyData.taxIdentificationDocumentComments = '';
         }
       }
 
@@ -660,7 +660,7 @@ export default function ProfileView({
           country: updatedCompany?.country || "",
           companySize: updatedCompany?.companySize || "",
           peopleGroup: Array.isArray(updatedCompany?.peopleGroup)
-            ? updatedCompany.peopleGroup
+            ? [...updatedCompany.peopleGroup] // Crear una nueva referencia del array
             : updatedCompany?.peopleGroup
             ? [updatedCompany.peopleGroup]
             : [],
@@ -677,11 +677,11 @@ export default function ProfileView({
           linkedin: updatedCompany?.linkedin || "",
           xtwitter: updatedCompany?.xtwitter || "",
           chamberOfCommerce: updatedCompany?.chamberOfCommerce,
-          dianDocument: updatedCompany?.dianDocument,
+          taxIdentificationDocument: updatedCompany?.taxIdentificationDocument,
           chamberOfCommerceValidated: updatedCompany?.chamberOfCommerceValidated || 'pendiente',
-          dianDocumentValidated: updatedCompany?.dianDocumentValidated || 'pendiente',
+          taxIdentificationDocumentValidated: updatedCompany?.taxIdentificationDocumentValidated || 'pendiente',
           chamberOfCommerceComments: updatedCompany?.chamberOfCommerceComments || '',
-          dianDocumentComments: updatedCompany?.dianDocumentComments || '',
+          taxIdentificationDocumentComments: updatedCompany?.taxIdentificationDocumentComments || '',
         };
         const typedCombinedProfile: UserProfile = {
           ...combinedProfile,
@@ -694,7 +694,7 @@ export default function ProfileView({
         setPhotoFile(null);
         setLogoFile(null);
         setChamberOfCommerceFile(null);
-        setDianDocumentFile(null);
+        setTaxIdentificationDocumentFile(null);
         setPhotoPreview(null);
         setLogoPreview(null);
         
@@ -1445,7 +1445,7 @@ export default function ProfileView({
                               )
                             : []
                         }
-                        key={Array.isArray(profile?.peopleGroup) ? profile.peopleGroup.join(',') : profile?.peopleGroup || ''}
+                        key={`peopleGroup-${JSON.stringify(Array.isArray(profile?.peopleGroup) ? profile.peopleGroup.sort() : profile?.peopleGroup || [])}`}
                         onChange={(selected) => {
                           let values = Array.isArray(selected)
                             ? (selected as Array<{ value: string; label: string }>).map((s) => s.value)
@@ -1588,22 +1588,22 @@ export default function ProfileView({
 
                   <div className="w-full md:w-1/2 px-2 space-y-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <Label htmlFor="dianDocument">
-                        Documento Identificación DIAN (PDF)
+                      <Label htmlFor="taxIdentificationDocument">
+                        Documento Identificación Tributaria (PDF)
                       </Label>
-                      {!profile?.dianDocument ? (
+                      {!profile?.taxIdentificationDocument ? (
                         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                           No cargado
                         </span>
-                      ) : profile?.dianDocumentValidated === 'valido' ? (
+                      ) : profile?.taxIdentificationDocumentValidated === 'valido' ? (
                         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                           ✓ Válido
                         </span>
-                      ) : profile?.dianDocumentValidated === 'invalido' ? (
+                      ) : profile?.taxIdentificationDocumentValidated === 'invalido' ? (
                         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
                           ✗ Inválido
                         </span>
-                      ) : profile?.dianDocumentValidated === 'en-progreso' ? (
+                      ) : profile?.taxIdentificationDocumentValidated === 'en-progreso' ? (
                         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                           ⏳ En progreso
                         </span>
@@ -1615,20 +1615,20 @@ export default function ProfileView({
                     </div>
                     <div className="flex flex-col md:flex-row md:items-center space-y-3 md:space-y-0 md:space-x-4">
                       <Button
-                        onClick={() => dianDocumentInputRef.current?.click()}
+                        onClick={() => taxIdentificationDocumentInputRef.current?.click()}
                         className="font-bold"
                         color="light"
                         type="button"
                         disabled={isUserOnly}
                       >
-                        {dianDocumentFile ? "Cambiar archivo" : profile?.dianDocument ? "Reemplazar PDF" : "Subir PDF"}
+                        {taxIdentificationDocumentFile ? "Cambiar archivo" : profile?.taxIdentificationDocument ? "Reemplazar PDF" : "Subir PDF"}
                       </Button>
-                      {dianDocumentFile && (
+                      {taxIdentificationDocumentFile && (
                         <span className="text-sm text-gray-600">
-                          {dianDocumentFile.name}
+                          {taxIdentificationDocumentFile.name}
                         </span>
                       )}
-                      {!dianDocumentFile && profile?.dianDocument && (
+                      {!taxIdentificationDocumentFile && profile?.taxIdentificationDocument && (
                         <span className="text-sm text-gray-600">
                           Documento existente
                         </span>
@@ -1636,21 +1636,21 @@ export default function ProfileView({
                     </div>
                     <input
                       accept=".pdf"
-                      ref={dianDocumentInputRef}
+                      ref={taxIdentificationDocumentInputRef}
                       className="hidden"
                       type="file"
-                      name="dianDocument"
-                      id="dianDocument"
-                      onChange={handleDianDocumentChange}
+                      name="taxIdentificationDocument"
+                      id="taxIdentificationDocument"
+                      onChange={handleTaxIdentificationDocumentChange}
                       disabled={isUserOnly}
                     />
                     <p className="text-xs text-gray-500 mt-1">
                       Formato: PDF (máximo 10MB)
                     </p>
-                    {profile?.dianDocumentComments && (
+                    {profile?.taxIdentificationDocumentComments && (
                       <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                         <p className="text-xs font-medium text-blue-900 mb-1">Comentarios:</p>
-                        <p className="text-sm text-blue-800">{profile.dianDocumentComments}</p>
+                        <p className="text-sm text-blue-800">{profile.taxIdentificationDocumentComments}</p>
                       </div>
                     )}
                   </div>

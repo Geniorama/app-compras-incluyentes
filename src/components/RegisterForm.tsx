@@ -149,7 +149,7 @@ export default function RegisterForm() {
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [chamberOfCommerce, setChamberOfCommerce] = useState<File | null>(null);
-  const [dianDocument, setDianDocument] = useState<File | null>(null);
+  const [taxIdentificationDocument, setTaxIdentificationDocument] = useState<File | null>(null);
   const [optionsCIIU, setOptionsCIIU] = useState<
     { value: string; label: string }[]
   >([]);
@@ -166,7 +166,7 @@ export default function RegisterForm() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const chamberOfCommerceInputRef = useRef<HTMLInputElement>(null);
-  const dianDocumentInputRef = useRef<HTMLInputElement>(null);
+  const taxIdentificationDocumentInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
   const { register, handleSubmit, watch, setValue } = useForm<FormData>();
@@ -690,7 +690,7 @@ export default function RegisterForm() {
         let logoSanity = null;
         let photoSanity = null;
         let chamberOfCommerceSanity = null;
-        let dianDocumentSanity = null;
+        let taxIdentificationDocumentSanity = null;
 
         if (logo) {
           logoSanity = await uploadImageToSanity(logo);
@@ -707,13 +707,13 @@ export default function RegisterForm() {
             throw new Error(`Error al subir Cámara de Comercio: ${error instanceof Error ? error.message : "Error desconocido"}`);
           }
         }
-        if (dianDocument) {
+        if (taxIdentificationDocument) {
           try {
-            dianDocumentSanity = await uploadFileToSanity(dianDocument);
-            console.log("Documento DIAN subido exitosamente:", dianDocumentSanity);
+            taxIdentificationDocumentSanity = await uploadFileToSanity(taxIdentificationDocument);
+            console.log("Documento de identificación tributaria subido exitosamente:", taxIdentificationDocumentSanity);
           } catch (error) {
-            console.error("Error al subir Documento DIAN:", error);
-            throw new Error(`Error al subir Documento DIAN: ${error instanceof Error ? error.message : "Error desconocido"}`);
+            console.error("Error al subir documento de identificación tributaria:", error);
+            throw new Error(`Error al subir documento de identificación tributaria: ${error instanceof Error ? error.message : "Error desconocido"}`);
           }
         }
 
@@ -726,7 +726,7 @@ export default function RegisterForm() {
             logo: logoSanity,
             photo: photoSanity,
             chamberOfCommerce: chamberOfCommerceSanity,
-            dianDocument: dianDocumentSanity,
+            taxIdentificationDocument: taxIdentificationDocumentSanity,
             annualRevenue: parseInt(annualRevenue.replace(/[^\d]/g, ""), 10) || 0,
           }),
           headers: {
@@ -873,19 +873,19 @@ export default function RegisterForm() {
     }
   };
 
-  const handleDianDocumentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleTaxIdentificationDocumentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.type !== 'application/pdf') {
         setValidationErrors((prev) => ({
           ...prev,
-          dianDocument: "Solo se aceptan archivos PDF",
+          taxIdentificationDocument: "Solo se aceptan archivos PDF",
         }));
         return;
       }
-      setDianDocument(file);
+      setTaxIdentificationDocument(file);
       setValidationErrors((prev) => {
-        const { dianDocument, ...rest } = prev;
+        const { taxIdentificationDocument, ...rest } = prev;
         return rest;
       });
     }
@@ -1770,36 +1770,36 @@ export default function RegisterForm() {
                        </div>
 
                        <div className="w-full md:w-1/2 px-2 space-y-1 md:mt-6">
-                         <Label htmlFor="dianDocument">
-                           Documento Identificación DIAN (PDF)
+                         <Label htmlFor="taxIdentificationDocument">
+                           Documento Identificación Tributaria (PDF)
                          </Label>
                          <div className="flex flex-col md:flex-row md:items-center space-y-3 md:space-y-0 md:space-x-4">
                            <Button
-                             onClick={() => dianDocumentInputRef.current?.click()}
+                             onClick={() => taxIdentificationDocumentInputRef.current?.click()}
                              className="font-bold"
                              color="light"
                              type="button"
                            >
-                             {dianDocument ? "Cambiar archivo" : "Subir PDF"}
+                             {taxIdentificationDocument ? "Cambiar archivo" : "Subir PDF"}
                            </Button>
-                           {dianDocument && (
+                           {taxIdentificationDocument && (
                              <span className="text-sm text-gray-600">
-                               {dianDocument.name}
+                               {taxIdentificationDocument.name}
                              </span>
                            )}
                          </div>
                          <input
                            accept=".pdf"
-                           ref={dianDocumentInputRef}
+                           ref={taxIdentificationDocumentInputRef}
                            className="hidden"
                            type="file"
-                           name="dianDocument"
-                           id="dianDocument"
-                           onChange={handleDianDocumentChange}
+                           name="taxIdentificationDocument"
+                           id="taxIdentificationDocument"
+                           onChange={handleTaxIdentificationDocumentChange}
                          />
-                         {validationErrors.dianDocument && (
+                         {validationErrors.taxIdentificationDocument && (
                            <p className="text-red-500 text-sm mt-1">
-                             {validationErrors.dianDocument}
+                             {validationErrors.taxIdentificationDocument}
                            </p>
                          )}
                          <p className="text-xs text-gray-500 mt-1">

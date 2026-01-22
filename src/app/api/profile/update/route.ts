@@ -79,11 +79,11 @@ export async function POST(request: Request) {
           linkedin,
           xtwitter,
           chamberOfCommerce,
-          dianDocument,
+          taxIdentificationDocument,
           chamberOfCommerceValidated,
-          dianDocumentValidated,
+          taxIdentificationDocumentValidated,
           chamberOfCommerceComments,
-          dianDocumentComments
+          taxIdentificationDocumentComments
         }
       }`,
       { uid: userId }
@@ -166,11 +166,11 @@ export async function POST(request: Request) {
           linkedin,
           xtwitter,
           chamberOfCommerce,
-          dianDocument,
+          taxIdentificationDocument,
           chamberOfCommerceValidated,
-          dianDocumentValidated,
+          taxIdentificationDocumentValidated,
           chamberOfCommerceComments,
-          dianDocumentComments
+          taxIdentificationDocumentComments
         }
       }`,
       { uid: userId }
