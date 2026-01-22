@@ -30,6 +30,7 @@ interface Company {
   ciiu: string;
   department?: string;
   city?: string;
+  companySize?: string;
   active: boolean;
   facebook?: string;
   instagram?: string;

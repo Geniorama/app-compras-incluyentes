@@ -98,6 +98,7 @@ export default function EmpresasPage() {
         department,
         city,
         phone,
+        companySize,
         facebook,
         instagram,
         tiktok,

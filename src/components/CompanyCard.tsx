@@ -18,8 +18,22 @@ interface CompanyCardProps {
   businessName: string;
   logo: SanityImage;
   phone?: string;
+  companySize?: string;
   searchTerm?: string;
 }
+
+// Función para formatear el tamaño de empresa
+const formatCompanySize = (size?: string): string => {
+  if (!size) return '';
+  const sizeMap: { [key: string]: string } = {
+    'micro': 'Microempresa',
+    'pequena': 'Pequeña',
+    'mediana': 'Mediana',
+    'grande': 'Grande',
+    'indefinido': 'Tamaño no definido'
+  };
+  return sizeMap[size] || size;
+};
 
 // Función para resaltar el término de búsqueda
 const highlightText = (text: string, searchTerm: string) => {
@@ -39,7 +53,7 @@ const highlightText = (text: string, searchTerm: string) => {
   );
 };
 
-export default function CompanyCard({ _id, nameCompany, businessName, logo, searchTerm }: CompanyCardProps) {
+export default function CompanyCard({ _id, nameCompany, businessName, logo, companySize, searchTerm }: CompanyCardProps) {
   const router = useRouter();
 
   // Función para obtener la URL de la imagen de Sanity
@@ -101,6 +115,11 @@ export default function CompanyCard({ _id, nameCompany, businessName, logo, sear
           <p className="text-sm text-gray-500">
             {searchTerm ? highlightText(businessName, searchTerm) : businessName}
           </p>
+          {companySize && (
+            <p className="text-xs text-gray-400 mt-1">
+              Clasificación: {formatCompanySize(companySize)}
+            </p>
+          )}
         </div>
       </div>
       <hr className='mb-5 mt-2' />

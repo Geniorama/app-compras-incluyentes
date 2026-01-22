@@ -30,6 +30,19 @@ function getImageUrl(image: SanityImage): string {
   return `https://cdn.sanity.io/images/${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID}/${process.env.NEXT_PUBLIC_SANITY_DATASET}/${image.asset._ref.replace('image-', '').replace('-jpg', '.jpg').replace('-png', '.png').replace('-webp', '.webp')}`;
 }
 
+// Función para formatear el tamaño de empresa
+function formatCompanySize(size?: string): string {
+  if (!size) return '';
+  const sizeMap: { [key: string]: string } = {
+    'micro': 'Microempresa',
+    'pequena': 'Pequeña',
+    'mediana': 'Mediana',
+    'grande': 'Grande',
+    'indefinido': 'Tamaño no definido'
+  };
+  return sizeMap[size] || size;
+}
+
 export default function EmpresaView({ company }: EmpresaViewProps) {
   const router = useRouter();
   const {
@@ -42,6 +55,7 @@ export default function EmpresaView({ company }: EmpresaViewProps) {
     numDocumentCompany,
     ciiu,
     phone,
+    companySize,
     inclusionDEI,
     chamberOfCommerceValidated,
     dianDocumentValidated,
@@ -181,6 +195,9 @@ export default function EmpresaView({ company }: EmpresaViewProps) {
             <ul className='flex flex-col justify-center items-center gap-2'>
               <li className='text-sm text-gray-600'> <b>Razón social:</b> {businessName}</li>
               <li className='text-sm text-gray-600'> <b>Dirección:</b> {addressCompany}</li>
+              {companySize && (
+                <li className='text-sm text-gray-600'> <b>Clasificación:</b> {formatCompanySize(companySize)}</li>
+              )}
             </ul>
 
             <Button color='light' className='mt-4' onClick={handleContactCompany}>
