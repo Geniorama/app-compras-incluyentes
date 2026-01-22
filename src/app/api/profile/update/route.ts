@@ -48,6 +48,7 @@ export async function POST(request: Request) {
         typeDocument,
         numDocument,
         photo,
+        publicProfile,
         company->{
           _id,
           _type,
@@ -135,6 +136,7 @@ export async function POST(request: Request) {
         typeDocument,
         numDocument,
         photo,
+        publicProfile,
         company->{
           _id,
           _type,

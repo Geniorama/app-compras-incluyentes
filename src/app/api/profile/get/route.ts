@@ -34,6 +34,7 @@ export async function GET(request: Request) {
         numDocument,
         photo,
         role,
+        publicProfile,
         company->{
           _id,
           _type,

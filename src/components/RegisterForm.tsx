@@ -126,6 +126,7 @@ interface FormData {
   friendlyBizz: boolean;
   inclusionDEI?: string;
   annualRevenue: number;
+  publicProfile?: boolean;
 }
 
 // Agregar interfaces para validaciones
@@ -677,6 +678,19 @@ export default function RegisterForm() {
       setValue("otherPeopleGroup", "");
     }
   }, [companySize, setValue]);
+
+  // Establecer publicProfile según companySize
+  useEffect(() => {
+    if (companySize && companySize !== "grande") {
+      // Si no es grande, el perfil debe ser público obligatoriamente
+      setValue("publicProfile", true);
+    } else if (companySize === "grande") {
+      // Si es grande, establecer el valor por defecto a false (pueden cambiarlo)
+      if (watch("publicProfile") === undefined) {
+        setValue("publicProfile", false);
+      }
+    }
+  }, [companySize, setValue, watch]);
 
   const handleRegister = async (data: FormData) => {
     try {
@@ -2453,6 +2467,37 @@ export default function RegisterForm() {
                     )}
                   </div>
                 </div>
+                {/* Campo de perfil público - solo visible para empresas grandes */}
+                {companySize === "grande" && (
+                  <div className="flex items-start">
+                    <input
+                      type="checkbox"
+                      id="publicProfile"
+                      {...register("publicProfile")}
+                      className="mt-1 mr-2"
+                      defaultChecked={false}
+                    />
+                    <div>
+                      <Label
+                        htmlFor="publicProfile"
+                        className="font-medium"
+                      >
+                        Perfil público
+                      </Label>
+                      <p className="text-xs text-gray-600">
+                        Activa esta opción para que tu perfil sea visible públicamente en la plataforma.
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {/* Mensaje informativo para empresas no grandes */}
+                {companySize && companySize !== "grande" && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <p className="text-sm text-blue-800">
+                      <strong>Nota:</strong> Tu perfil será público automáticamente ya que tu empresa no es de tamaño grande.
+                    </p>
+                  </div>
+                )}
               </div>
             </fieldset>
           )}

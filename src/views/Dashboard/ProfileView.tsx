@@ -157,6 +157,7 @@ export default function ProfileView({
         taxIdentificationDocumentValidated: initialProfile.company?.taxIdentificationDocumentValidated || 'pendiente',
         chamberOfCommerceComments: initialProfile.company?.chamberOfCommerceComments || '',
         taxIdentificationDocumentComments: initialProfile.company?.taxIdentificationDocumentComments || '',
+        publicProfile: initialProfile.publicProfile !== undefined ? initialProfile.publicProfile : (initialProfile.company?.companySize !== "grande" ? true : false),
       };
       const typedCombinedProfile: UserProfile = {
         ...combinedProfile,
@@ -283,6 +284,15 @@ export default function ProfileView({
     setIsClient(true);
   }, []);
 
+  // Establecer publicProfile según companySize
+  useEffect(() => {
+    if (profile?.companySize && profile.companySize !== "grande") {
+      // Si no es grande, el perfil debe ser público obligatoriamente
+      if (profile.publicProfile !== true) {
+        setProfile((prev) => prev ? { ...prev, publicProfile: true } : prev);
+      }
+    }
+  }, [profile?.companySize, profile?.publicProfile]);
 
   // Actualizar sector cuando cambie el CIIU
   useEffect(() => {
@@ -324,21 +334,30 @@ export default function ProfileView({
     }
   }, [sector, annualRevenueDisplay]); // Remover profile de las dependencias
 
-  const handleChange = (field: keyof UserProfile, value: string | string[]) => {
+  const handleChange = (field: keyof UserProfile, value: string | string[] | boolean) => {
     if (profile) {
       // Si cambia el departamento, limpiar la ciudad
       // Si cambia el grupo poblacional y no incluye "otro", limpiar otherPeopleGroup
       if (field === 'peopleGroup') {
-        const hasOtro = Array.isArray(value) 
-          ? value.includes('otro')
-          : value === 'otro';
-        if (!hasOtro) {
-          setProfile({ ...profile, [field]: value, otherPeopleGroup: '' });
-        } else {
+        // Solo procesar si el valor es string o string[]
+        if (typeof value !== 'boolean') {
+          const hasOtro = Array.isArray(value) 
+            ? value.includes('otro')
+            : value === 'otro';
+          if (!hasOtro) {
+            setProfile({ ...profile, [field]: value, otherPeopleGroup: '' });
+          } else {
+            setProfile({ ...profile, [field]: value });
+          }
+        }
+      } else if (field === 'publicProfile') {
+        // Manejar el campo boolean específicamente
+        setProfile({ ...profile, [field]: value as boolean });
+      } else {
+        // Para otros campos string
+        if (typeof value !== 'boolean' && !Array.isArray(value)) {
           setProfile({ ...profile, [field]: value });
         }
-      } else {
-        setProfile({ ...profile, [field]: value });
       }
     }
   };
@@ -362,6 +381,7 @@ export default function ProfileView({
       "position",
       "typeDocument",
       "numDocument",
+      "publicProfile",
       "nameCompany",
       "businessName",
       "typeDocumentCompany",
@@ -540,6 +560,11 @@ export default function ProfileView({
       }
 
       // Separar datos del usuario y la empresa
+      // Si companySize no es "grande", publicProfile debe ser true obligatoriamente
+      const publicProfileValue = profile.companySize !== "grande" 
+        ? true 
+        : (profile.publicProfile !== undefined ? profile.publicProfile : false);
+      
       const userData = {
         firstName: profile.firstName,
         lastName: profile.lastName,
@@ -550,6 +575,7 @@ export default function ProfileView({
         typeDocument: profile.typeDocument,
         numDocument: profile.numDocument,
         photo: photoSanity,
+        publicProfile: publicProfileValue,
       };
 
       // Asegurar que annualRevenue tenga el valor más reciente
@@ -1112,6 +1138,40 @@ export default function ProfileView({
                       />
                     </div>
                   </div>
+
+                  {/* Campo de perfil público - solo visible para empresas grandes */}
+                  {profile?.companySize === "grande" && (
+                    <div className="w-full px-2 space-y-1 mt-4">
+                      <div className="flex items-start">
+                        <input
+                          type="checkbox"
+                          id="publicProfile"
+                          checked={profile?.publicProfile || false}
+                          onChange={(e) => handleChange("publicProfile", e.target.checked)}
+                          className="mt-1 mr-2"
+                          disabled={isUserOnly}
+                        />
+                        <div>
+                          <Label htmlFor="publicProfile" className="font-medium">
+                            Perfil público
+                          </Label>
+                          <p className="text-xs text-gray-600">
+                            Activa esta opción para que tu perfil sea visible públicamente en la plataforma.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {/* Mensaje informativo para empresas no grandes */}
+                  {profile?.companySize && profile.companySize !== "grande" && (
+                    <div className="w-full px-2 mt-4">
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                        <p className="text-sm text-blue-800">
+                          <strong>Nota:</strong> Tu perfil es público automáticamente ya que tu empresa no es de tamaño grande.
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="mt-8">{saveButton}</div>

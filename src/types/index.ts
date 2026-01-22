@@ -20,6 +20,7 @@ export interface UserData {
     position?: string;
     typeDocument?: string;
     numDocument?: string;
+    publicProfile?: boolean;
 }
 
 export interface SanityUserDocument extends SanityResponse, UserData {

@@ -44,6 +44,7 @@ export async function POST(request: Request) {
       annualRevenue,
       chamberOfCommerce,
       taxIdentificationDocument,
+      publicProfile,
     } = await request.json()
 
     if (!logo || !photo) {
@@ -115,6 +116,8 @@ export async function POST(request: Request) {
       updatedAt: new Date().toISOString(),
       infoVisibilityConsent: infoVisibilityConsent || false,
       dataTreatmentConsent,
+      // Si companySize no es "grande", publicProfile debe ser true obligatoriamente
+      publicProfile: companySize !== "grande" ? true : (publicProfile || false),
     })
 
     return NextResponse.json(
