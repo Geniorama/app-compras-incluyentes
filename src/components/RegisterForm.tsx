@@ -3,6 +3,7 @@
 import {
   Label,
   TextInput,
+  Textarea,
   Button,
   Spinner,
   Select,
@@ -93,6 +94,7 @@ const PEOPLE_GROUP_OPTIONS = [
 interface FormData {
   nameCompany: string;
   businessName: string;
+  description?: string;
   typeDocumentCompany: string;
   numDocumentCompany: string;
   ciiu: string;
@@ -1231,6 +1233,18 @@ export default function RegisterForm() {
                             {validationErrors.businessName}
                           </p>
                         )}
+                      </div>
+                      <div className="w-full px-2 space-y-1">
+                        <Label htmlFor="description">
+                          Descripción de la empresa
+                        </Label>
+                        <Textarea
+                          {...register("description")}
+                          id="description"
+                          placeholder="Descripción general de la empresa, sus servicios, productos y valores."
+                          rows={4}
+                          color="blue"
+                        />
                       </div>
                       <div className="w-full md:w-1/2 px-2 space-y-1">
                         <Label htmlFor="typeDocumentCompany">

@@ -27,6 +27,7 @@ async function getProfile(userId: string) {
           _id,
           nameCompany,
           businessName,
+          description,
           typeDocumentCompany,
           numDocumentCompany,
           ciiu,

@@ -8,6 +8,7 @@ export async function POST(request: Request) {
     const {
       nameCompany,
       businessName,
+      description,
       typeDocumentCompany,
       numDocumentCompany,
       ciiu,
@@ -64,6 +65,7 @@ export async function POST(request: Request) {
       _type: 'company',
       nameCompany,
       businessName,
+      description,
       typeDocumentCompany,
       numDocumentCompany,
       ciiu,

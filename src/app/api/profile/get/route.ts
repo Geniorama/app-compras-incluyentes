@@ -43,6 +43,7 @@ export async function GET(request: Request) {
           _updatedAt,
           nameCompany,
           businessName,
+          description,
           typeDocumentCompany,
           numDocumentCompany,
           ciiu,

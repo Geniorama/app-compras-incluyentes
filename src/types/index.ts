@@ -32,6 +32,7 @@ import type { Product, Service } from './product-service';
 export interface CompanyData {
     nameCompany?: string;
     businessName?: string;
+    description?: string;
     typeDocumentCompany?: string;
     numDocumentCompany?: string;
     ciiu?: string;
@@ -85,6 +86,7 @@ export interface UserProfile extends UserData {
     // Los campos de la empresa son opcionales en el perfil
     nameCompany?: string;
     businessName?: string;
+    description?: string;
     role?: string;
     typeDocumentCompany?: string;
     numDocumentCompany?: string;

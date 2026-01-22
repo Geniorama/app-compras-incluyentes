@@ -4,6 +4,7 @@ import { HiCheckCircle, HiExclamationCircle } from "react-icons/hi";
 import {
   Label,
   TextInput,
+  Textarea,
   Button,
   Select,
   Spinner,
@@ -125,6 +126,7 @@ export default function ProfileView({
         // Si existe company, usar sus valores, si no, usar valores vacíos
         nameCompany: initialProfile.company?.nameCompany || "",
         businessName: initialProfile.company?.businessName || "",
+        description: initialProfile.company?.description || "",
         typeDocumentCompany: initialProfile.company?.typeDocumentCompany || "",
         numDocumentCompany: initialProfile.company?.numDocumentCompany || "",
         ciiu: initialProfile.company?.ciiu || "",
@@ -199,6 +201,7 @@ export default function ProfileView({
               ...userFields,
               nameCompany: updatedCompany?.nameCompany || "",
               businessName: updatedCompany?.businessName || "",
+              description: updatedCompany?.description || "",
               typeDocumentCompany: updatedCompany?.typeDocumentCompany || "",
               numDocumentCompany: updatedCompany?.numDocumentCompany || "",
               ciiu: updatedCompany?.ciiu || "",
@@ -384,6 +387,7 @@ export default function ProfileView({
       "publicProfile",
       "nameCompany",
       "businessName",
+      "description",
       "typeDocumentCompany",
       "numDocumentCompany",
       "ciiu",
@@ -595,6 +599,7 @@ export default function ProfileView({
       } = {
         nameCompany: profile.nameCompany,
         businessName: profile.businessName,
+        description: profile.description,
         typeDocumentCompany: profile.typeDocumentCompany,
         numDocumentCompany: profile.numDocumentCompany,
         ciiu: profile.ciiu,
@@ -676,6 +681,7 @@ export default function ProfileView({
           // Si existe company, usar sus valores, si no, usar valores vacíos
           nameCompany: updatedCompany?.nameCompany || "",
           businessName: updatedCompany?.businessName || "",
+          description: updatedCompany?.description || "",
           typeDocumentCompany: updatedCompany?.typeDocumentCompany || "",
           numDocumentCompany: updatedCompany?.numDocumentCompany || "",
           ciiu: updatedCompany?.ciiu || "",
@@ -1267,6 +1273,22 @@ export default function ProfileView({
                           },
                         },
                       }}
+                    />
+                  </div>
+
+                  <div className="w-full px-2 space-y-1">
+                    <Label htmlFor="description">Descripción de la empresa</Label>
+                    <Textarea
+                      id="description"
+                      placeholder="Descripción general de la empresa, sus servicios, productos y valores."
+                      value={profile?.description || ""}
+                      onChange={(e) =>
+                        handleChange("description", e.target.value)
+                      }
+                      rows={4}
+                      color="blue"
+                      disabled={isUserOnly}
+                      className={`border-slate-200 focus:border-blue-600 w-full ${isUserOnly ? "bg-gray-100 text-gray-500" : ""}`}
                     />
                   </div>
 

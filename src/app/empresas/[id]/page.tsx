@@ -20,6 +20,7 @@ interface Company {
   _id: string;
   nameCompany: string;
   businessName: string;
+  description?: string;
   logo: SanityImage;
   addressCompany: string;
   webSite: string;
@@ -60,6 +61,7 @@ export default function EmpresaPage() {
             _id,
             nameCompany,
             businessName,
+            description,
             logo,
             addressCompany,
             webSite,

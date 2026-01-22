@@ -84,6 +84,7 @@ export default function EmpresaView({ company }: EmpresaViewProps) {
   const {
     nameCompany,
     businessName,
+    description,
     logo,
     addressCompany,
     webSite,
@@ -147,11 +148,12 @@ export default function EmpresaView({ company }: EmpresaViewProps) {
           </div>
         </div>
 
-        {/* Info principal en tarjeta */}
+        {/* Contenedor principal */}
         <div className="container mx-auto px-4 mt-20">
-          <div className="bg-white rounded-lg shadow p-6 mb-8 flex flex-col items-center">
-            <h1 className="text-3xl font-bold mb-2">{nameCompany}</h1>
-            <div className="flex flex-wrap gap-2 mb-4">
+          {/* Tarjeta principal con nombre y badges */}
+          <div className="bg-white rounded-lg shadow p-6 mb-6 flex flex-col items-center">
+            <h1 className="text-3xl font-bold mb-4">{nameCompany}</h1>
+            <div className="flex flex-wrap gap-2 mb-6 justify-center">
               {isCompanyValidated && (
                 <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 border border-green-300">
                   <span>✓</span>
@@ -167,19 +169,11 @@ export default function EmpresaView({ company }: EmpresaViewProps) {
               <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-semibold">{ciiu}</span>
               <span className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-xs font-semibold uppercase">{typeDocumentCompany}: {numDocumentCompany}</span>
             </div>
-            <div className="flex gap-2 mb-4">
+            <div className="flex gap-2 mb-6">
               {phone && (
                 <Button color="success" onClick={handleWhatsAppClick} className="rounded-full shadow">
                   <FaWhatsapp className="h-5 w-5" />
                 </Button>
-              )}
-              {webSite && (
-                <a href={webSite} target="_blank" rel="noopener noreferrer"
-                  className="w-10 h-10 flex items-center justify-center rounded-full bg-white/80 hover:bg-white transition text-blue-600 shadow"
-                  aria-label="Sitio Web"
-                >
-                  <HiOutlineGlobeAlt className="h-5 w-5" />
-                </a>
               )}
               {facebook && (
                 <a href={facebook} target="_blank" rel="noopener noreferrer"
@@ -230,55 +224,95 @@ export default function EmpresaView({ company }: EmpresaViewProps) {
                 </a>
               )}
             </div>
-          
-            <ul className='flex flex-col justify-center items-center gap-2'>
-              <li className='text-sm text-gray-600'> <b>Razón social:</b> {businessName}</li>
-              <li className='text-sm text-gray-600'> <b>Dirección:</b> {addressCompany}</li>
-              {companySize && (
-                <li className='text-sm text-gray-600'> <b>Clasificación:</b> {formatCompanySize(companySize)}</li>
+            <div className="flex gap-3 justify-center">
+              {webSite && (
+                <Button 
+                  color="light" 
+                  onClick={() => window.open(webSite, '_blank')}
+                  className="flex items-center gap-2"
+                >
+                  <HiOutlineGlobeAlt className="h-5 w-5 mr-1" />
+                  <span>Sitio Web</span>
+                </Button>
               )}
-            </ul>
-            
-            {/* Grupos poblacionales como nube de etiquetas */}
-            {peopleGroupLabels.length > 0 && (
-              <div className="mt-2 w-full">
-                <p className="text-sm font-semibold text-gray-700 mb-2 text-center">Grupos Poblacionales:</p>
-                <div className="flex flex-wrap gap-2 justify-center">
-                  {peopleGroupLabels.map((label, index) => {
-                    // Paleta de colores variada para las etiquetas
-                    const colorClasses = [
-                      'bg-indigo-100 text-indigo-800 border-indigo-200',
-                      'bg-purple-100 text-purple-800 border-purple-200',
-                      'bg-pink-100 text-pink-800 border-pink-200',
-                      'bg-blue-100 text-blue-800 border-blue-200',
-                      'bg-cyan-100 text-cyan-800 border-cyan-200',
-                      'bg-teal-100 text-teal-800 border-teal-200',
-                      'bg-green-100 text-green-800 border-green-200',
-                      'bg-yellow-100 text-yellow-800 border-yellow-200',
-                      'bg-orange-100 text-orange-800 border-orange-200',
-                      'bg-red-100 text-red-800 border-red-200',
-                      'bg-rose-100 text-rose-800 border-rose-200',
-                      'bg-amber-100 text-amber-800 border-amber-200',
-                    ];
-                    const colorClass = colorClasses[index % colorClasses.length];
-                    
-                    return (
-                      <span
-                        key={index}
-                        className={`${colorClass} px-3 py-1 rounded-full text-xs font-medium border`}
-                      >
-                        {label}
-                      </span>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            <Button color='light' className='mt-4' onClick={handleContactCompany}>
-              Enviar mensaje
-            </Button>
+              <Button color='blue' onClick={handleContactCompany}>
+                Enviar mensaje
+              </Button>
+            </div>
           </div>
+
+          {/* Información de contacto y datos básicos */}
+          <div className="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">Información de contacto</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-gray-500 mb-1">Razón social</p>
+                <p className="text-base text-gray-800 font-medium">{businessName}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500 mb-1">Dirección</p>
+                <p className="text-base text-gray-800 font-medium">{addressCompany}</p>
+              </div>
+              {companySize && (
+                <div>
+                  <p className="text-sm text-gray-500 mb-1">Clasificación</p>
+                  <p className="text-base text-gray-800 font-medium">{formatCompanySize(companySize)}</p>
+                </div>
+              )}
+              {phone && (
+                <div>
+                  <p className="text-sm text-gray-500 mb-1">Teléfono</p>
+                  <p className="text-base text-gray-800 font-medium">{phone}</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Descripción de la empresa */}
+          {description && (
+            <div className="bg-white rounded-lg shadow p-6 mb-6">
+              <h2 className="text-xl font-semibold text-gray-800 mb-4">Sobre la empresa</h2>
+              <p className="text-base text-gray-600 leading-relaxed">
+                {description}
+              </p>
+            </div>
+          )}
+
+          {/* Grupos poblacionales */}
+          {peopleGroupLabels.length > 0 && (
+            <div className="bg-white rounded-lg shadow p-6 mb-6">
+              <h2 className="text-xl font-semibold text-gray-800 mb-4">Grupos Poblacionales</h2>
+              <div className="flex flex-wrap gap-2">
+                {peopleGroupLabels.map((label, index) => {
+                  // Paleta de colores variada para las etiquetas
+                  const colorClasses = [
+                    'bg-indigo-100 text-indigo-800 border-indigo-200',
+                    'bg-purple-100 text-purple-800 border-purple-200',
+                    'bg-pink-100 text-pink-800 border-pink-200',
+                    'bg-blue-100 text-blue-800 border-blue-200',
+                    'bg-cyan-100 text-cyan-800 border-cyan-200',
+                    'bg-teal-100 text-teal-800 border-teal-200',
+                    'bg-green-100 text-green-800 border-green-200',
+                    'bg-yellow-100 text-yellow-800 border-yellow-200',
+                    'bg-orange-100 text-orange-800 border-orange-200',
+                    'bg-red-100 text-red-800 border-red-200',
+                    'bg-rose-100 text-rose-800 border-rose-200',
+                    'bg-amber-100 text-amber-800 border-amber-200',
+                  ];
+                  const colorClass = colorClasses[index % colorClasses.length];
+                  
+                  return (
+                    <span
+                      key={index}
+                      className={`${colorClass} px-3 py-1 rounded-full text-xs font-medium border`}
+                    >
+                      {label}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Productos */}
           <section className="mt-8">
