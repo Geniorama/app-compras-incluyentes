@@ -2,7 +2,7 @@
 
 import DashboardNavbar from '@/components/dashboard/Navbar';
 import { Button } from 'flowbite-react';
-import { HiOutlineGlobeAlt, HiTag } from 'react-icons/hi';
+import { HiOutlineGlobeAlt, HiTag, HiMail, HiPhone } from 'react-icons/hi';
 import { FaWhatsapp } from 'react-icons/fa';
 import {
   RiFacebookLine,
@@ -17,10 +17,21 @@ import type { SanityProductDocument, SanityServiceDocument, SanityImage, SanityC
 import BgCover from '@/assets/img/bg-portada-empresa.png';
 import { useRouter } from 'next/navigation';
 
+interface PublicUser {
+  _id: string;
+  firstName?: string;
+  lastName?: string;
+  position?: string;
+  email?: string;
+  phone?: string;
+  photo?: SanityImage | string;
+}
+
 interface EmpresaViewProps {
   company: CompanyData & {
     products?: SanityProductDocument[];
     services?: SanityServiceDocument[];
+    publicUsers?: PublicUser[];
     _id: string;
   };
 }
@@ -106,6 +117,7 @@ export default function EmpresaView({ company }: EmpresaViewProps) {
     xtwitter,
     products = [],
     services = [],
+    publicUsers = [],
     _id,
   } = company;
   
@@ -315,6 +327,61 @@ export default function EmpresaView({ company }: EmpresaViewProps) {
                     >
                       {label}
                     </span>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Usuarios públicos */}
+          {publicUsers && publicUsers.length > 0 && (
+            <div className="bg-white rounded-lg shadow p-6 mb-6">
+              <h2 className="text-xl font-semibold text-gray-800 mb-4">Equipo</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {publicUsers.map((user) => {
+                  const photoUrl = user.photo && typeof user.photo === 'object' 
+                    ? getImageUrl(user.photo) 
+                    : (user.photo as string | undefined) || '/images/placeholder-user.png';
+                  const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ') || 'Usuario';
+                  
+                  const userPhoneFormatted = user.phone ? formatPhoneForWhatsApp(user.phone) : '';
+                  
+                  return (
+                    <div key={user._id} className="flex flex-col items-center text-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                      <div className="w-20 h-20 rounded-full overflow-hidden mb-3 border-2 border-gray-200">
+                        <img
+                          src={photoUrl}
+                          alt={fullName}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <h3 className="font-semibold text-gray-800 mb-1">{fullName}</h3>
+                      {user.position && (
+                        <p className="text-sm text-gray-600 mb-3">{user.position}</p>
+                      )}
+                      <div className="flex flex-col gap-2 w-full mt-2">
+                        {user.email && (
+                          <a 
+                            href={`mailto:${user.email}`}
+                            className="flex items-center justify-center gap-2 text-sm text-blue-600 hover:text-blue-800 transition-colors"
+                          >
+                            <HiMail className="w-4 h-4" />
+                            <span className="truncate">{user.email}</span>
+                          </a>
+                        )}
+                        {user.phone && (
+                          <a 
+                            href={`https://wa.me/${userPhoneFormatted}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-center gap-2 text-sm text-green-600 hover:text-green-800 transition-colors"
+                          >
+                            <HiPhone className="w-4 h-4" />
+                            <span>{user.phone}</span>
+                          </a>
+                        )}
+                      </div>
+                    </div>
                   );
                 })}
               </div>

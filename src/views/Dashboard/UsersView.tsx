@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Table, Button, Spinner, Modal, TextInput, Label, Select, Alert } from "flowbite-react";
+import { Table, Button, Spinner, Modal, TextInput, Label, Select, Alert, Checkbox } from "flowbite-react";
 import DashboardSidebar from "@/components/DashboardSidebar";
 import { useAuth } from "@/context/AuthContext";
 import InternationalPhoneInput from "@/components/InternationalPhoneInput ";
@@ -16,6 +16,7 @@ interface User {
   position?: string;
   typeDocument?: string;
   numDocument?: string;
+  publicProfile?: boolean;
 }
 
 function generarPassword(longitud = 12) {
@@ -44,16 +45,32 @@ export default function UsersView() {
     typeDocument: '',
     numDocument: '',
     photo: '',
+    publicProfile: false,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [companySize, setCompanySize] = useState<string | null>(null);
   const { user } = useAuth();
 
   useEffect(() => {
     if (user?.uid) {
       fetchUsers();
+      fetchCompanySize();
     }
   }, [user?.uid]);
+
+  const fetchCompanySize = async () => {
+    if (!user?.uid) return;
+    try {
+      const response = await fetch(`/api/profile/get?userId=${user.uid}`);
+      const data = await response.json();
+      if (data.success && data.data.company?.companySize) {
+        setCompanySize(data.data.company.companySize);
+      }
+    } catch (error) {
+      console.error('Error al obtener el tamaño de la empresa:', error);
+    }
+  };
 
     const fetchUsers = async () => {
     if (!user?.uid) return;
@@ -101,7 +118,7 @@ export default function UsersView() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Error al invitar usuario');
       setShowModal(false);
-      setForm({ firstName: '', lastName: '', email: '', password: '', role: 'user', phone: '', pronoun: '', position: '', typeDocument: '', numDocument: '', photo: '' });
+        setForm({ firstName: '', lastName: '', email: '', password: '', role: 'user', phone: '', pronoun: '', position: '', typeDocument: '', numDocument: '', photo: '', publicProfile: false });
       await fetchUsers();
     } catch (err: unknown) {
       if (err instanceof Error) {
@@ -128,9 +145,23 @@ export default function UsersView() {
       typeDocument: user.typeDocument || '',
       numDocument: user.numDocument || '',
       photo: '',
+      publicProfile: user.publicProfile ?? false,
     });
     setShowModal(true);
   };
+
+  // Establecer publicProfile según companySize solo cuando se abre el modal para nuevo usuario
+  useEffect(() => {
+    if (showModal && !selectedUser && companySize) {
+      if (companySize !== "grande") {
+        // Si no es grande, el perfil debe ser público obligatoriamente
+        setForm(prev => ({ ...prev, publicProfile: true }));
+      } else {
+        // Si es grande, establecer el valor por defecto a false (pueden cambiarlo)
+        setForm(prev => ({ ...prev, publicProfile: false }));
+      }
+    }
+  }, [showModal, selectedUser, companySize]);
 
   const handleUpdateUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -139,7 +170,7 @@ export default function UsersView() {
     setIsSubmitting(true);
     setError('');
     try {
-      const res = await fetch(`/api/users/${selectedUser._id}`, {
+      const res = await fetch(`/api/users?id=${selectedUser._id}`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
@@ -169,10 +200,10 @@ export default function UsersView() {
   };
 
   useEffect(() => {
-    if (showModal && !selectedUser) {
+    if (showModal && !selectedUser && form.role !== 'member') {
       sugerirPassword();
     }
-  }, [showModal, selectedUser]);
+  }, [showModal, selectedUser, form.role]);
 
   if (!user?.uid) {
     return (
@@ -244,6 +275,7 @@ export default function UsersView() {
             typeDocument: '',
             numDocument: '',
             photo: '',
+            publicProfile: false,
           });
         }}>
           <Modal.Header>{selectedUser ? 'Editar usuario' : 'Agregar usuario'}</Modal.Header>
@@ -271,7 +303,15 @@ export default function UsersView() {
                   disabled={!!selectedUser}
                 />
               </div>
-              {!selectedUser && (
+              <div>
+                <Label htmlFor="role">Rol</Label>
+                <Select id="role" name="role" value={form.role} onChange={handleInputChange}>
+                  <option value="user">Usuario</option>
+                  <option value="admin">Administrador</option>
+                  <option value="member">Miembro</option>
+                </Select>
+              </div>
+              {!selectedUser && form.role !== 'member' && (
               <div>
                 <Label htmlFor="password">Contraseña sugerida</Label>
                 <div className="flex gap-2">
@@ -281,7 +321,7 @@ export default function UsersView() {
                     type="text"
                     value={form.password}
                     onChange={handleInputChange}
-                    required
+                    required={form.role !== 'member'}
                     className="flex-1"
                   />
                   <Button type="button" onClick={sugerirPassword} size="xs" className="flex-grow-0 inline-block">
@@ -290,13 +330,13 @@ export default function UsersView() {
                 </div>
               </div>
               )}
-              <div>
-                <Label htmlFor="role">Rol</Label>
-                <Select id="role" name="role" value={form.role} onChange={handleInputChange}>
-                  <option value="user">Usuario</option>
-                  <option value="admin">Administrador</option>
-                </Select>
-              </div>
+              {!selectedUser && form.role === 'member' && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <p className="text-sm text-blue-800">
+                    <strong>Nota:</strong> Los miembros no requieren contraseña ni acceso al sistema. Solo se almacena su información en la compañía.
+                  </p>
+                </div>
+              )}
               <div>
                 <Label htmlFor="phone">Teléfono</Label>
                 <InternationalPhoneInput
@@ -333,6 +373,33 @@ export default function UsersView() {
                 <Label htmlFor="numDocument">Número de documento</Label>
                 <TextInput id="numDocument" name="numDocument" value={form.numDocument} onChange={handleInputChange} />
               </div>
+              {/* Campo de perfil público - solo visible y habilitado para empresas grandes */}
+              {companySize === "grande" && (
+                <div className="flex items-start">
+                  <Checkbox
+                    id="publicProfile"
+                    checked={form.publicProfile}
+                    onChange={(e) => setForm({ ...form, publicProfile: e.target.checked })}
+                    className="mt-1 mr-2"
+                  />
+                  <div>
+                    <Label htmlFor="publicProfile" className="font-medium">
+                      Perfil público
+                    </Label>
+                    <p className="text-xs text-gray-600">
+                      Activa esta opción para que el perfil del usuario sea visible públicamente en la plataforma.
+                    </p>
+                  </div>
+                </div>
+              )}
+              {/* Mensaje informativo para empresas no grandes */}
+              {companySize && companySize !== "grande" && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <p className="text-sm text-blue-800">
+                    <strong>Nota:</strong> El perfil del usuario será público automáticamente ya que la empresa no es de tamaño grande.
+                  </p>
+                </div>
+              )}
               {error && <Alert color="failure">{error}</Alert>}
               <Button type="submit" color="blue" disabled={isSubmitting}>
                 {isSubmitting ? 'Procesando...' : (selectedUser ? 'Actualizar usuario' : 'Agregar usuario')}

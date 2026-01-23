@@ -16,6 +16,16 @@ interface SanityImage {
   };
 }
 
+interface PublicUser {
+  _id: string;
+  firstName?: string;
+  lastName?: string;
+  position?: string;
+  email?: string;
+  phone?: string;
+  photo?: SanityImage;
+}
+
 interface Company {
   _id: string;
   nameCompany: string;
@@ -43,6 +53,7 @@ interface Company {
   xtwitter?: string;
   products?: SanityProductDocument[];
   services?: SanityServiceDocument[];
+  publicUsers?: PublicUser[];
 }
 
 export default function EmpresaPage() {
@@ -106,6 +117,15 @@ export default function EmpresaPage() {
                 _id,
                 name
               }
+            },
+            "publicUsers": *[_type == "user" && company._ref == $id && publicProfile == true]{
+              _id,
+              firstName,
+              lastName,
+              position,
+              email,
+              phone,
+              photo
             }
           }
         `, { id });
@@ -157,7 +177,11 @@ export default function EmpresaPage() {
       ...company,
       logo: getSanityImageUrl(company.logo),
       products: company.products,
-      services: company.services
+      services: company.services,
+      publicUsers: company.publicUsers?.map(user => ({
+        ...user,
+        photo: user.photo ? getSanityImageUrl(user.photo) : undefined
+      }))
     };
     return <EmpresaView company={companyData} />;
   }

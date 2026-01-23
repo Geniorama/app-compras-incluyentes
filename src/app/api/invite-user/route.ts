@@ -8,7 +8,7 @@ interface InviteUserData {
   firstName: string;
   lastName: string;
   email: string;
-  password: string;
+  password?: string;
   role: string;
   inviterUid: string;
   phone?: string;
@@ -16,6 +16,7 @@ interface InviteUserData {
   position?: string;
   typeDocument?: string;
   numDocument?: string;
+  publicProfile?: boolean;
 }
 
 export async function POST(request: Request) {
@@ -33,34 +34,71 @@ export async function POST(request: Request) {
       pronoun,
       position,
       typeDocument,
-      numDocument
+      numDocument,
+      publicProfile
     } = body;
 
-    if (!firstName || !lastName || !email || !password || !inviterUid) {
+    if (!firstName || !lastName || !email || !inviterUid) {
       return NextResponse.json({ message: 'Faltan datos requeridos' }, { status: 400 });
     }
 
+    // Validar contraseña solo si el rol no es "member"
+    if (role !== 'member' && !password) {
+      return NextResponse.json({ message: 'La contraseña es requerida para este rol' }, { status: 400 });
+    }
+
     // 1. Buscar la compañía del usuario que invita
-    const inviter = await client.fetch(`*[_type == "user" && firebaseUid == $uid][0]{ company->{_id} }`, { uid: inviterUid });
+    const inviter = await client.fetch(`*[_type == "user" && firebaseUid == $uid][0]{ company->{_id, companySize} }`, { uid: inviterUid });
     if (!inviter?.company?._id) {
       return NextResponse.json({ message: 'No se encontró la compañía del usuario actual' }, { status: 400 });
     }
 
-    // 2. Crear usuario en Firebase Auth
-    let firebaseUser;
-    try {
-      firebaseUser = await createUserWithEmailAndPassword(auth, email, password);
-      await sendEmailVerification(firebaseUser.user);
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        return NextResponse.json({ message: err.message || 'Error en Firebase Auth' }, { status: 400 });
+    const companySize = inviter.company.companySize;
+    // Si companySize no es "grande", publicProfile debe ser true obligatoriamente
+    const finalPublicProfile = companySize !== "grande" ? true : (publicProfile || false);
+
+    // 2. Crear usuario en Firebase Auth solo si el rol NO es "member"
+    let firebaseUid: string | undefined = undefined;
+    if (role !== 'member') {
+      if (!password) {
+        return NextResponse.json({ message: 'La contraseña es requerida para este rol' }, { status: 400 });
       }
-      return NextResponse.json({ message: 'Error en Firebase Auth' }, { status: 400 });
+      try {
+        const firebaseUser = await createUserWithEmailAndPassword(auth, email, password);
+        await sendEmailVerification(firebaseUser.user);
+        firebaseUid = firebaseUser.user.uid;
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          return NextResponse.json({ message: err.message || 'Error en Firebase Auth' }, { status: 400 });
+        }
+        return NextResponse.json({ message: 'Error en Firebase Auth' }, { status: 400 });
+      }
     }
 
-    // 3. Crear usuario en Sanity como borrador
-    const userDraftId = `drafts.${uuidv4()}`;
-    const userDoc = await client.create({
+    // 3. Crear usuario en Sanity
+    // Los miembros se crean como documentos publicados (no drafts) ya que no necesitan autenticación
+    const userDraftId = role === 'member' ? uuidv4() : `drafts.${uuidv4()}`;
+    const userData: {
+      _id: string;
+      _type: string;
+      firstName: string;
+      lastName: string;
+      email: string;
+      phone?: string;
+      typeDocument?: string;
+      numDocument?: string;
+      pronoun?: string;
+      position?: string;
+      role: string;
+      publicProfile: boolean;
+      company: {
+        _type: string;
+        _ref: string;
+      };
+      createdAt: string;
+      updatedAt: string;
+      firebaseUid?: string;
+    } = {
       _id: userDraftId,
       _type: 'user',
       firstName,
@@ -71,15 +109,22 @@ export async function POST(request: Request) {
       numDocument,
       pronoun,
       position,
-      firebaseUid: firebaseUser.user.uid,
       role,
+      publicProfile: finalPublicProfile,
       company: {
         _type: 'reference',
         _ref: inviter.company._id
       },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-    });
+    };
+
+    // Solo agregar firebaseUid si existe (no es member)
+    if (firebaseUid) {
+      userData.firebaseUid = firebaseUid;
+    }
+
+    const userDoc = await client.create(userData);
 
     return NextResponse.json({ 
       message: 'Usuario invitado exitosamente',

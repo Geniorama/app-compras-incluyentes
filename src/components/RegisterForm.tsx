@@ -2481,7 +2481,7 @@ export default function RegisterForm() {
                     )}
                   </div>
                 </div>
-                {/* Campo de perfil público - solo visible para empresas grandes */}
+                {/* Campo de perfil público - solo visible y habilitado para empresas grandes */}
                 {companySize === "grande" && (
                   <div className="flex items-start">
                     <input
