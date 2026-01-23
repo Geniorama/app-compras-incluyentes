@@ -46,6 +46,7 @@ export interface CompanyData {
     otherPeopleGroup?: string;
     friendlyBizz?: boolean;
     inclusionDEI?: boolean;
+    diverseSupplier?: boolean;
     membership?: boolean;
     annualRevenue?: number;
     logo?: string;

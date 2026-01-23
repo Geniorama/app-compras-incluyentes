@@ -32,6 +32,7 @@ interface Company {
   companySize?: string;
   peopleGroup?: string | string[];
   inclusionDEI?: boolean;
+  diverseSupplier?: boolean;
   chamberOfCommerceValidated?: 'pendiente' | 'en-progreso' | 'valido' | 'invalido';
   taxIdentificationDocumentValidated?: 'pendiente' | 'en-progreso' | 'valido' | 'invalido';
   facebook?: string;
@@ -73,6 +74,7 @@ export default function EmpresaPage() {
             companySize,
             peopleGroup,
             inclusionDEI,
+            diverseSupplier,
             chamberOfCommerceValidated,
             taxIdentificationDocumentValidated,
             facebook,

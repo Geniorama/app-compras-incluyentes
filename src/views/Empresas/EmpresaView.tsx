@@ -95,6 +95,7 @@ export default function EmpresaView({ company }: EmpresaViewProps) {
     companySize,
     peopleGroup,
     inclusionDEI,
+    diverseSupplier,
     chamberOfCommerceValidated,
     taxIdentificationDocumentValidated,
     facebook,
@@ -164,6 +165,12 @@ export default function EmpresaView({ company }: EmpresaViewProps) {
                 <span className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
                   <span>🏆</span>
                   <span>Empresa Aliada DEI</span>
+                </span>
+              )}
+              {diverseSupplier && (
+                <span className="bg-rose-100 text-rose-800 px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 border border-rose-300">
+                  <span>✨</span>
+                  <span>Proveedora Diversa</span>
                 </span>
               )}
               <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-semibold">{ciiu}</span>
