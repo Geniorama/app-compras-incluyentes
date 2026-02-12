@@ -118,7 +118,10 @@ export default function EmpresaPage() {
                 name
               }
             },
-            "publicUsers": *[_type == "user" && company._ref == $id && publicProfile == true]{
+            "publicUsers": *[_type == "user" && company._ref == $id && (
+              (role == "member" && company->companySize != "grande") ||
+              publicProfile == true
+            )]{
               _id,
               firstName,
               lastName,

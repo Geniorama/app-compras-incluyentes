@@ -2,7 +2,7 @@
 
 import DashboardNavbar from '@/components/dashboard/Navbar';
 import { Button } from 'flowbite-react';
-import { HiOutlineGlobeAlt, HiTag, HiMail, HiPhone } from 'react-icons/hi';
+import { HiOutlineGlobeAlt, HiTag, HiMail, HiPhone, HiUser } from 'react-icons/hi';
 import { FaWhatsapp } from 'react-icons/fa';
 import {
   RiFacebookLine,
@@ -339,21 +339,30 @@ export default function EmpresaView({ company }: EmpresaViewProps) {
               <h2 className="text-xl font-semibold text-gray-800 mb-4">Equipo</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {publicUsers.map((user) => {
-                  const photoUrl = user.photo && typeof user.photo === 'object' 
-                    ? getImageUrl(user.photo) 
-                    : (user.photo as string | undefined) || '/images/placeholder-user.png';
+                  const hasPhoto = user.photo && (
+                    typeof user.photo === 'string' 
+                      ? (user.photo as string).length > 0 
+                      : !!(user.photo as { asset?: unknown })?.asset
+                  );
+                  const photoUrl = hasPhoto 
+                    ? (typeof user.photo === 'object' ? getImageUrl(user.photo) : (user.photo as string))
+                    : null;
                   const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ') || 'Usuario';
                   
                   const userPhoneFormatted = user.phone ? formatPhoneForWhatsApp(user.phone) : '';
                   
                   return (
                     <div key={user._id} className="flex flex-col items-center text-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                      <div className="w-20 h-20 rounded-full overflow-hidden mb-3 border-2 border-gray-200">
-                        <img
-                          src={photoUrl}
-                          alt={fullName}
-                          className="w-full h-full object-cover"
-                        />
+                      <div className="w-20 h-20 rounded-full overflow-hidden mb-3 border-2 border-gray-200 flex items-center justify-center bg-gray-100">
+                        {photoUrl ? (
+                          <img
+                            src={photoUrl}
+                            alt={fullName}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <HiUser className="w-10 h-10 text-gray-400" />
+                        )}
                       </div>
                       <h3 className="font-semibold text-gray-800 mb-1">{fullName}</h3>
                       {user.position && (

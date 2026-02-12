@@ -9,7 +9,8 @@ import {
   HiShoppingBag,
   HiOutlineLogout,
   HiOutlineUsers,
-  HiOutlineMailOpen
+  HiOutlineMailOpen,
+  HiOutlineOfficeBuilding
 } from 'react-icons/hi';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
@@ -127,12 +128,22 @@ export default function DashboardSidebar() {
           })}
         </Sidebar.ItemGroup>
         <Sidebar.ItemGroup>
+          {user?.company?._id && (
+            <Sidebar.Item
+              icon={HiOutlineOfficeBuilding}
+              onClick={() => router.push(`/empresas/${user.company._id}`)}
+              className="cursor-pointer"
+              as="div"
+            >
+              Ver mi empresa
+            </Sidebar.Item>
+          )}
           <Sidebar.Item
             icon={HiOutlineLogout}
             onClick={handleLogout}
             className="cursor-pointer"
             as="div"
-            >
+          >
             Cerrar sesión
           </Sidebar.Item>
         </Sidebar.ItemGroup>

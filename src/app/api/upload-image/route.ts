@@ -35,10 +35,10 @@ export async function POST(request: Request) {
         return NextResponse.json({ message: 'No se recibió archivo' }, { status: 400 });
       }
       
-      // Validar tamaño del archivo (máximo 5MB)
-      const maxSize = 5 * 1024 * 1024; // 5MB
+      // Validar tamaño del archivo (máximo 10MB)
+      const maxSize = 10 * 1024 * 1024; // 10MB
       if (file.size > maxSize) {
-        return NextResponse.json({ message: 'El archivo es demasiado grande. Máximo 5MB' }, { status: 413 });
+        return NextResponse.json({ message: 'El archivo es demasiado grande. Máximo 10MB. Te recomendamos redimensionar la imagen.' }, { status: 413 });
       }
       
       buffer = Buffer.from(await file.arrayBuffer());

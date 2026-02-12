@@ -7,7 +7,7 @@ import IconLogo from "@/assets/img/logo-icon.webp";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { HiOutlineMenu } from "react-icons/hi";
+import { HiOutlineMenu, HiUser } from "react-icons/hi";
 
 export default function DashboardNavbar() {
   const router = useRouter();
@@ -110,14 +110,19 @@ export default function DashboardNavbar() {
               setIsSecondaryMenuOpen(false)
             }
           }}>
-            <Avatar
-              alt="User settings"
-              img={avatarUrl}
-              rounded
-              bordered
-              // color="gray"
-              size="md"
-            />
+            {avatarUrl ? (
+              <Avatar
+                alt="User settings"
+                img={avatarUrl}
+                rounded
+                bordered
+                size="md"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-gray-100 border-2 border-gray-200">
+                <HiUser className="w-6 h-6 text-gray-500" />
+              </div>
+            )}
           </button>
 
           <div

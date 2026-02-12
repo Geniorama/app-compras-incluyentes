@@ -1,9 +1,10 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Table, Button, Spinner, Modal, TextInput, Label, Select, Alert, Checkbox } from "flowbite-react";
 import DashboardSidebar from "@/components/DashboardSidebar";
 import { useAuth } from "@/context/AuthContext";
 import InternationalPhoneInput from "@/components/InternationalPhoneInput ";
+import { HiUser } from "react-icons/hi";
 
 interface User {
   _id: string;
@@ -17,6 +18,13 @@ interface User {
   typeDocument?: string;
   numDocument?: string;
   publicProfile?: boolean;
+  photo?: { _type?: string; asset?: { _ref?: string } };
+}
+
+function getImageUrl(image: User["photo"]): string {
+  if (!image?.asset?._ref) return "";
+  const ref = image.asset._ref.replace("image-", "").replace("-jpg", ".jpg").replace("-png", ".png").replace("-webp", ".webp");
+  return `https://cdn.sanity.io/images/${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID}/${process.env.NEXT_PUBLIC_SANITY_DATASET}/${ref}`;
 }
 
 function generarPassword(longitud = 12) {
@@ -50,6 +58,9 @@ export default function UsersView() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [companySize, setCompanySize] = useState<string | null>(null);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -100,6 +111,21 @@ export default function UsersView() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const maxSize = 10 * 1024 * 1024; // 10MB
+      if (file.size > maxSize) {
+        setError('La imagen es demasiado grande. Máximo 10MB. Por favor, redimensiona la foto antes de subirla.');
+        return;
+      }
+      setError('');
+      setPhotoFile(file);
+      setPhotoPreview(URL.createObjectURL(file));
+    }
+    e.target.value = "";
+  };
+
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user?.uid) return;
@@ -107,18 +133,30 @@ export default function UsersView() {
     setIsSubmitting(true);
     setError('');
     try {
+      let photoAsset: { _type: string; asset: { _type: string; _ref: string } } | undefined;
+      if (photoFile) {
+        const formData = new FormData();
+        formData.append("image", photoFile);
+        const uploadRes = await fetch("/api/upload-image", { method: "POST", body: formData });
+        if (!uploadRes.ok) throw new Error("Error al subir la foto de perfil");
+        const uploadData = await uploadRes.json();
+        photoAsset = { _type: "image", asset: uploadData.asset };
+      }
+
       const res = await fetch('/api/invite-user', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           'x-user-id': user.uid
         },
-        body: JSON.stringify({ ...form, inviterUid: user.uid }),
+        body: JSON.stringify({ ...form, inviterUid: user.uid, photo: photoAsset }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Error al invitar usuario');
       setShowModal(false);
-        setForm({ firstName: '', lastName: '', email: '', password: '', role: 'user', phone: '', pronoun: '', position: '', typeDocument: '', numDocument: '', photo: '', publicProfile: false });
+      setPhotoFile(null);
+      setPhotoPreview(null);
+      setForm({ firstName: '', lastName: '', email: '', password: '', role: 'user', phone: '', pronoun: '', position: '', typeDocument: '', numDocument: '', photo: '', publicProfile: false });
       await fetchUsers();
     } catch (err: unknown) {
       if (err instanceof Error) {
@@ -131,21 +169,23 @@ export default function UsersView() {
     }
   };
 
-  const handleEditUser = (user: User) => {
-    setSelectedUser(user);
+  const handleEditUser = (userToEdit: User) => {
+    setSelectedUser(userToEdit);
+    setPhotoFile(null);
+    setPhotoPreview(userToEdit.photo ? getImageUrl(userToEdit.photo) : null);
     setForm({
-      firstName: user.firstName,
-      lastName: user.lastName,
-      email: user.email,
+      firstName: userToEdit.firstName,
+      lastName: userToEdit.lastName,
+      email: userToEdit.email,
       password: '',
-      role: user.role || 'user',
-      phone: user.phone || '',
-      pronoun: user.pronoun || '',
-      position: user.position || '',
-      typeDocument: user.typeDocument || '',
-      numDocument: user.numDocument || '',
+      role: userToEdit.role || 'user',
+      phone: userToEdit.phone || '',
+      pronoun: userToEdit.pronoun || '',
+      position: userToEdit.position || '',
+      typeDocument: userToEdit.typeDocument || '',
+      numDocument: userToEdit.numDocument || '',
       photo: '',
-      publicProfile: user.publicProfile ?? false,
+      publicProfile: userToEdit.publicProfile ?? false,
     });
     setShowModal(true);
   };
@@ -170,18 +210,30 @@ export default function UsersView() {
     setIsSubmitting(true);
     setError('');
     try {
+      let photoToSend: { _type: string; asset: { _type: string; _ref: string } } | undefined;
+      if (photoFile) {
+        const formData = new FormData();
+        formData.append("image", photoFile);
+        const uploadRes = await fetch("/api/upload-image", { method: "POST", body: formData });
+        if (!uploadRes.ok) throw new Error("Error al subir la foto de perfil");
+        const uploadData = await uploadRes.json();
+        photoToSend = { _type: "image", asset: uploadData.asset };
+      }
+
       const res = await fetch(`/api/users?id=${selectedUser._id}`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
           'x-user-id': user.uid
         },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, ...(photoToSend && { photo: photoToSend }) }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Error al actualizar usuario');
       setShowModal(false);
       setSelectedUser(null);
+      setPhotoFile(null);
+      setPhotoPreview(null);
       await fetchUsers();
     } catch (err: unknown) {
       if (err instanceof Error) {
@@ -226,6 +278,8 @@ export default function UsersView() {
           <h1 className="text-2xl font-bold">Usuarios y Permisos</h1>
           <Button color="blue" onClick={() => {
             setSelectedUser(null);
+            setPhotoFile(null);
+            setPhotoPreview(null);
             setShowModal(true);
           }}>Agregar usuario</Button>
         </div>
@@ -263,6 +317,8 @@ export default function UsersView() {
         <Modal show={showModal} onClose={() => {
           setShowModal(false);
           setSelectedUser(null);
+          setPhotoFile(null);
+          setPhotoPreview(null);
           setForm({
             firstName: '',
             lastName: '',
@@ -281,6 +337,30 @@ export default function UsersView() {
           <Modal.Header>{selectedUser ? 'Editar usuario' : 'Agregar usuario'}</Modal.Header>
           <Modal.Body>
             <form onSubmit={selectedUser ? handleUpdateUser : handleAddUser} className="flex flex-col gap-4">
+              <div>
+                <Label>Foto de perfil</Label>
+                <div className="flex items-center gap-4 mt-2">
+                  <div className="w-16 h-16 rounded-full flex items-center justify-center overflow-hidden bg-gray-100 border-2 border-gray-200 flex-shrink-0">
+                    {photoPreview ? (
+                      <img src={photoPreview} alt="Vista previa" className="w-full h-full object-cover" />
+                    ) : (
+                      <HiUser className="w-8 h-8 text-gray-400" />
+                    )}
+                  </div>
+                  <div>
+                    <Button type="button" color="light" size="sm" onClick={() => photoInputRef.current?.click()}>
+                      {photoPreview ? 'Cambiar foto' : 'Subir foto'}
+                    </Button>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      ref={photoInputRef}
+                      className="hidden"
+                      onChange={handlePhotoChange}
+                    />
+                  </div>
+                </div>
+              </div>
               <div className="flex gap-4">
                 <div className="w-1/2">
                   <Label htmlFor="firstName">Nombre</Label>

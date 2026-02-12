@@ -33,7 +33,8 @@ export async function GET(request: Request) {
         position,
         typeDocument,
         numDocument,
-        publicProfile
+        publicProfile,
+        photo
       }`,
       { companyId: currentUser.company._id }
     );
@@ -75,7 +76,8 @@ export async function PUT(request: Request) {
       position,
       typeDocument,
       numDocument,
-      publicProfile
+      publicProfile,
+      photo
     } = body;
 
     // Obtener el usuario actual y su empresa para verificar permisos
@@ -121,22 +123,28 @@ export async function PUT(request: Request) {
     // Si companySize no es "grande", publicProfile debe ser true obligatoriamente
     const finalPublicProfile = companySize !== "grande" ? true : (publicProfile ?? false);
 
+    // Construir el objeto de actualización
+    const updateData: Record<string, unknown> = {
+      firstName,
+      lastName,
+      email,
+      role,
+      phone,
+      pronoun,
+      position,
+      typeDocument,
+      numDocument,
+      publicProfile: finalPublicProfile,
+      updatedAt: new Date().toISOString()
+    };
+    if (photo !== undefined) {
+      updateData.photo = photo;
+    }
+
     // Actualizar el usuario
     const updatedUser = await client
       .patch(userId)
-      .set({
-        firstName,
-        lastName,
-        email,
-        role,
-        phone,
-        pronoun,
-        position,
-        typeDocument,
-        numDocument,
-        publicProfile: finalPublicProfile,
-        updatedAt: new Date().toISOString()
-      })
+      .set(updateData)
       .commit();
 
     return NextResponse.json({ 

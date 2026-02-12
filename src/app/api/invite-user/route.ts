@@ -17,6 +17,7 @@ interface InviteUserData {
   typeDocument?: string;
   numDocument?: string;
   publicProfile?: boolean;
+  photo?: { _type: string; asset: { _type: string; _ref: string } };
 }
 
 export async function POST(request: Request) {
@@ -35,7 +36,8 @@ export async function POST(request: Request) {
       position,
       typeDocument,
       numDocument,
-      publicProfile
+      publicProfile,
+      photo
     } = body;
 
     if (!firstName || !lastName || !email || !inviterUid) {
@@ -98,6 +100,7 @@ export async function POST(request: Request) {
       createdAt: string;
       updatedAt: string;
       firebaseUid?: string;
+      photo?: { _type: string; asset: { _type: string; _ref: string } };
     } = {
       _id: userDraftId,
       _type: 'user',
@@ -122,6 +125,11 @@ export async function POST(request: Request) {
     // Solo agregar firebaseUid si existe (no es member)
     if (firebaseUid) {
       userData.firebaseUid = firebaseUid;
+    }
+
+    // Agregar foto si fue subida
+    if (photo?.asset?._ref) {
+      userData.photo = { _type: 'image', asset: { _type: 'reference', _ref: photo.asset._ref } };
     }
 
     const userDoc = await client.create(userData);

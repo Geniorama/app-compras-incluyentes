@@ -1,6 +1,6 @@
 "use client";
 
-import { HiCheckCircle, HiExclamationCircle } from "react-icons/hi";
+import { HiCheckCircle, HiExclamationCircle, HiUser } from "react-icons/hi";
 import {
   Label,
   TextInput,
@@ -971,7 +971,7 @@ export default function ProfileView({
                 <div className="mb-8">
                   <Label htmlFor="foto-perfil">Foto de perfil</Label>
                   <div className="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-4 mt-2">
-                    <div className="w-[80px] h-[80px] bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
+                    <div className="w-[80px] h-[80px] bg-gray-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-gray-200">
                       {photoUrl ? (
                         <img
                           src={photoUrl}
@@ -979,9 +979,7 @@ export default function ProfileView({
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <span className="text-xl font-bold text-gray-500">
-                          Foto
-                        </span>
+                        <HiUser className="w-10 h-10 text-gray-400" />
                       )}
                     </div>
                     <div>
