@@ -1,9 +1,11 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import DashboardNavbar from '@/components/dashboard/Navbar';
 import { Button } from 'flowbite-react';
-import { HiOutlineGlobeAlt, HiTag, HiMail, HiPhone, HiUser } from 'react-icons/hi';
+import { HiOutlineGlobeAlt, HiTag, HiMail, HiPhone, HiUser, HiOutlineHeart, HiHeart } from 'react-icons/hi';
 import { FaWhatsapp } from 'react-icons/fa';
+import { useAuth } from '@/context/AuthContext';
 import {
   RiFacebookLine,
   RiInstagramLine,
@@ -92,6 +94,43 @@ function getPeopleGroupLabels(groups?: string | string[]): string[] {
 
 export default function EmpresaView({ company }: EmpresaViewProps) {
   const router = useRouter();
+  const { user } = useAuth();
+  const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (user?.uid) {
+      fetch('/api/favorites', { headers: { 'x-user-id': user.uid } })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.data?.favorites) {
+            setFavoriteIds((data.data.favorites as { _id: string }[]).map(f => f._id));
+          }
+        })
+        .catch(() => {});
+    }
+  }, [user?.uid]);
+
+  const handleToggleFavorite = async (userId: string) => {
+    if (!user?.uid) return;
+    setTogglingId(userId);
+    const isFavorite = favoriteIds.includes(userId);
+    try {
+      const res = await fetch('/api/favorites', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'x-user-id': user.uid },
+        body: JSON.stringify({ action: isFavorite ? 'remove' : 'add', userId })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+      setFavoriteIds(prev => isFavorite ? prev.filter(id => id !== userId) : [...prev, userId]);
+    } catch {
+      // Error silencioso
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
   const {
     nameCompany,
     businessName,
@@ -338,21 +377,40 @@ export default function EmpresaView({ company }: EmpresaViewProps) {
             <div className="bg-white rounded-lg shadow p-6 mb-6">
               <h2 className="text-xl font-semibold text-gray-800 mb-4">Equipo</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {publicUsers.map((user) => {
-                  const hasPhoto = user.photo && (
-                    typeof user.photo === 'string' 
-                      ? (user.photo as string).length > 0 
-                      : !!(user.photo as { asset?: unknown })?.asset
+                {publicUsers.map((teamMember) => {
+                  const hasPhoto = teamMember.photo && (
+                    typeof teamMember.photo === 'string' 
+                      ? (teamMember.photo as string).length > 0 
+                      : !!(teamMember.photo as { asset?: unknown })?.asset
                   );
                   const photoUrl = hasPhoto 
-                    ? (typeof user.photo === 'object' ? getImageUrl(user.photo) : (user.photo as string))
+                    ? (typeof teamMember.photo === 'object' ? getImageUrl(teamMember.photo) : (teamMember.photo as string))
                     : null;
-                  const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ') || 'Usuario';
+                  const fullName = [teamMember.firstName, teamMember.lastName].filter(Boolean).join(' ') || 'Usuario';
                   
-                  const userPhoneFormatted = user.phone ? formatPhoneForWhatsApp(user.phone) : '';
+                  const userPhoneFormatted = teamMember.phone ? formatPhoneForWhatsApp(teamMember.phone) : '';
                   
+                  const isFavorite = favoriteIds.includes(teamMember._id);
+                  const canAddFavorite = !!user?.uid;
+
                   return (
-                    <div key={user._id} className="flex flex-col items-center text-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                    <div key={teamMember._id} className="relative flex flex-col items-center text-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                      {canAddFavorite && (
+                        <button
+                          type="button"
+                          onClick={() => handleToggleFavorite(teamMember._id)}
+                          disabled={togglingId === teamMember._id}
+                          className="absolute top-3 right-3 p-2 rounded-full hover:bg-gray-200 transition-colors disabled:opacity-50"
+                          aria-label={isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}
+                          title={isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}
+                        >
+                          {isFavorite ? (
+                            <HiHeart className="w-5 h-5 text-red-500" />
+                          ) : (
+                            <HiOutlineHeart className="w-5 h-5 text-gray-400 hover:text-red-400" />
+                          )}
+                        </button>
+                      )}
                       <div className="w-20 h-20 rounded-full overflow-hidden mb-3 border-2 border-gray-200 flex items-center justify-center bg-gray-100">
                         {photoUrl ? (
                           <img
@@ -365,20 +423,20 @@ export default function EmpresaView({ company }: EmpresaViewProps) {
                         )}
                       </div>
                       <h3 className="font-semibold text-gray-800 mb-1">{fullName}</h3>
-                      {user.position && (
-                        <p className="text-sm text-gray-600 mb-3">{user.position}</p>
+                      {teamMember.position && (
+                        <p className="text-sm text-gray-600 mb-3">{teamMember.position}</p>
                       )}
                       <div className="flex flex-col gap-2 w-full mt-2">
-                        {user.email && (
+                        {teamMember.email && (
                           <a 
-                            href={`mailto:${user.email}`}
+                            href={`mailto:${teamMember.email}`}
                             className="flex items-center justify-center gap-2 text-sm text-blue-600 hover:text-blue-800 transition-colors"
                           >
                             <HiMail className="w-4 h-4" />
-                            <span className="truncate">{user.email}</span>
+                            <span className="truncate">{teamMember.email}</span>
                           </a>
                         )}
-                        {user.phone && (
+                        {teamMember.phone && (
                           <a 
                             href={`https://wa.me/${userPhoneFormatted}`}
                             target="_blank"
@@ -386,7 +444,7 @@ export default function EmpresaView({ company }: EmpresaViewProps) {
                             className="flex items-center justify-center gap-2 text-sm text-green-600 hover:text-green-800 transition-colors"
                           >
                             <HiPhone className="w-4 h-4" />
-                            <span>{user.phone}</span>
+                            <span>{teamMember.phone}</span>
                           </a>
                         )}
                       </div>

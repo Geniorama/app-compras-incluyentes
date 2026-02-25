@@ -146,6 +146,9 @@ export default function DashboardNavbar() {
                 <Link href="/dashboard/mensajes">Mensajes</Link>
               </li>
               <li className="hover:bg-gray-100 p-2 rounded-md">
+                <Link href="/dashboard/favoritos">Favoritos</Link>
+              </li>
+              <li className="hover:bg-gray-100 p-2 rounded-md">
                 <button onClick={handleSignOut}>Cerrar sesión</button>
               </li>
             </ul>

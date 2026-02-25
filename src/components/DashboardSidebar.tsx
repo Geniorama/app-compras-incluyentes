@@ -10,7 +10,8 @@ import {
   HiOutlineLogout,
   HiOutlineUsers,
   HiOutlineMailOpen,
-  HiOutlineOfficeBuilding
+  HiOutlineOfficeBuilding,
+  HiOutlineHeart
 } from 'react-icons/hi';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
@@ -68,6 +69,11 @@ export default function DashboardSidebar() {
       icon: HiOutlineMailOpen,
       label: 'Mensajes'
     },
+    {
+      href: '/dashboard/favoritos',
+      icon: HiOutlineHeart,
+      label: 'Favoritos'
+    },
     // {
     //   href: '/dashboard/notificaciones',
     //   icon: HiOutlineBell,
@@ -88,6 +94,8 @@ export default function DashboardSidebar() {
       label: 'Usuarios y Permisos'
     });
   }
+
+  const companyId = user?.company?._id;
 
   const sidebarContent = (
     <Sidebar className="w-full md:w-64">
@@ -128,10 +136,10 @@ export default function DashboardSidebar() {
           })}
         </Sidebar.ItemGroup>
         <Sidebar.ItemGroup>
-          {user?.company?._id && (
+          {companyId && (
             <Sidebar.Item
               icon={HiOutlineOfficeBuilding}
-              onClick={() => router.push(`/empresas/${user.company._id}`)}
+              onClick={() => router.push(`/empresas/${companyId}`)}
               className="cursor-pointer"
               as="div"
             >
