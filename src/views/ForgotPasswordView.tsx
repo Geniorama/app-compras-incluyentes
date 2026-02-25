@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { sendPasswordResetEmail, AuthError } from "firebase/auth";
-import { auth, actionCodeSettings } from "@/lib/firebaseConfig";
+import { auth, getActionCodeSettings } from "@/lib/firebaseConfig";
 import LogosFooter from "@/assets/img/logos-footer.webp";
 
 interface FormData {
@@ -28,8 +28,20 @@ export default function ForgotPasswordView() {
       setIsLoading(true);
       setError("");
       setSuccess(false);
-      
-      await sendPasswordResetEmail(auth, data.email, actionCodeSettings);
+
+      const checkRes = await fetch("/api/check-email-exists", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: data.email }),
+      });
+      const { exists } = await checkRes.json();
+
+      if (!exists) {
+        setError("No encontramos ninguna cuenta con ese correo electrónico.");
+        return;
+      }
+
+      await sendPasswordResetEmail(auth, data.email.trim(), getActionCodeSettings());
       setSuccess(true);
     } catch (error) {
       console.error("Error al enviar el correo de recuperación:", error);
@@ -84,7 +96,8 @@ export default function ForgotPasswordView() {
             </h3>
             <p className="text-gray-600 mb-6">
               Hemos enviado un enlace de recuperación a tu correo electrónico.
-              Por favor, revisa también tu carpeta de spam.
+              Revisa tu bandeja de entrada y la carpeta de spam. Si usas correo corporativo,
+              el mensaje puede tardar unos minutos o estar bloqueado por el filtro.
             </p>
             <Link href="/login" className="text-blue-600 hover:underline">
               Volver al inicio de sesión

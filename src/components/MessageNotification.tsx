@@ -14,9 +14,8 @@ export default function MessageNotification({ className = '' }: MessageNotificat
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-    if (user?.company?._id) {
+    if (user?.company?._id || user?.uid) {
       fetchUnreadCount();
-      // Actualizar cada 30 segundos
       const interval = setInterval(fetchUnreadCount, 30000);
       return () => clearInterval(interval);
     }
@@ -24,15 +23,20 @@ export default function MessageNotification({ className = '' }: MessageNotificat
 
   const fetchUnreadCount = async () => {
     try {
-      const response = await fetch(`/api/messages/unread-count?companyId=${user?.company?._id}`);
-      const data = await response.json();
-      setUnreadCount(data.count || 0);
+      const params = new URLSearchParams();
+      if (user?.company?._id) params.set('companyId', user.company._id);
+      if (user?.uid) params.set('userId', user.uid);
+      if (params.toString()) {
+        const response = await fetch(`/api/messages/unread-count?${params.toString()}`);
+        const data = await response.json();
+        setUnreadCount(data.count || 0);
+      }
     } catch (error) {
       console.error('Error al obtener conteo de mensajes:', error);
     }
   };
 
-  if (!user?.company?._id) return null;
+  if (!user?.company?._id && !user?.uid) return null;
 
   return (
     <div className={`relative ${className}`}>

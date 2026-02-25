@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import DashboardNavbar from '@/components/dashboard/Navbar';
 import { Button } from 'flowbite-react';
-import { HiOutlineGlobeAlt, HiTag, HiMail, HiPhone, HiUser, HiOutlineHeart, HiHeart } from 'react-icons/hi';
+import { HiOutlineGlobeAlt, HiTag, HiMail, HiPhone, HiUser, HiOutlineHeart, HiHeart, HiOutlineMailOpen } from 'react-icons/hi';
 import { FaWhatsapp } from 'react-icons/fa';
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -427,6 +427,17 @@ export default function EmpresaView({ company }: EmpresaViewProps) {
                         <p className="text-sm text-gray-600 mb-3">{teamMember.position}</p>
                       )}
                       <div className="flex flex-col gap-2 w-full mt-2">
+                        {canAddFavorite && (
+                          <Button
+                            size="xs"
+                            color="light"
+                            className="w-full"
+                            onClick={() => router.push(`/dashboard/mensajes?user=${teamMember._id}`)}
+                          >
+                            <HiOutlineMailOpen className="w-4 h-4 mr-1" />
+                            Enviar mensaje
+                          </Button>
+                        )}
                         {teamMember.email && (
                           <a 
                             href={`mailto:${teamMember.email}`}

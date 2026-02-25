@@ -1,8 +1,10 @@
 import nodemailer from 'nodemailer';
 
 export async function sendActivationEmail(email: string, name: string, companyName: string) {
+  let host = process.env.SMTP_HOST || 'smtp-relay.sendinblue.com';
+  if (host === 'smtp-relay.brevo.com') host = 'smtp-relay.sendinblue.com';
   const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp-relay.brevo.com',
+    host,
     port: Number(process.env.SMTP_PORT) || 587,
     secure: false,
     auth: {
@@ -11,12 +13,16 @@ export async function sendActivationEmail(email: string, name: string, companyNa
     },
   });
 
+  const from = process.env.SMTP_FROM;
+  if (!from) {
+    throw new Error('SMTP_FROM debe estar configurado con un remitente verificado en Brevo (ej: "No-Reply <tu-email@tudominio.com>")');
+  }
+
   try {
-    // Verificar la conexión
     await transporter.verify();
 
     const info = await transporter.sendMail({
-      from: process.env.SMTP_FROM || 'No-Reply <gerencia@camaradeladiversidad.com>',
+      from,
       to: email,
       subject: `¡${companyName} ha sido activada en la plataforma!`,
       html: `

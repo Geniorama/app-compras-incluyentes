@@ -14,8 +14,17 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 
-// Configuración de las URLs de acción
+// Configuración de las URLs de acción para restablecer contraseña.
+// Usar getActionCodeSettings() en el cliente para obtener la URL correcta dinámicamente.
+export const getActionCodeSettings = () => ({
+  url: typeof window !== 'undefined'
+    ? `${window.location.origin}/forgot-password`
+    : `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/forgot-password`,
+  handleCodeInApp: true,
+});
+
+// Deprecado: usar getActionCodeSettings() para URL dinámica
 export const actionCodeSettings = {
-  url: 'http://localhost:3000/reset-password',
-  handleCodeInApp: true
+  url: 'http://localhost:3000/forgot-password',
+  handleCodeInApp: true,
 };

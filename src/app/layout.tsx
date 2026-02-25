@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { Toaster } from "react-hot-toast";
+import SurveyModal from "@/components/SurveyModal";
 import Link from "next/link";
 import { FaFacebook, FaInstagram, FaLinkedinIn } from "react-icons/fa";
 import { BsTwitterX } from "react-icons/bs";
@@ -22,6 +23,7 @@ export default function RootLayout({
       <body className={'font-sans'}>
         <AuthProvider>
           {children}
+          <SurveyModal />
           <Toaster position="top-right" />
         <footer className="bg-[#4C66F7] text-white">
           <div className="container mx-auto px-4 py-10">
