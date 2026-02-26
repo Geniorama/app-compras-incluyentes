@@ -11,7 +11,8 @@ import {
   HiOutlineUsers,
   HiOutlineMailOpen,
   HiOutlineOfficeBuilding,
-  HiOutlineHeart
+  HiOutlineHeart,
+  HiOutlineBriefcase
 } from 'react-icons/hi';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
@@ -73,6 +74,11 @@ export default function DashboardSidebar() {
       href: '/dashboard/favoritos',
       icon: HiOutlineHeart,
       label: 'Favoritos'
+    },
+    {
+      href: '/dashboard/oportunidades',
+      icon: HiOutlineBriefcase,
+      label: 'Oportunidades'
     },
     // {
     //   href: '/dashboard/notificaciones',
