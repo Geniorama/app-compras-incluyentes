@@ -35,6 +35,7 @@ export async function GET(request: Request) {
         photo,
         role,
         publicProfile,
+        notifyEmailMessages,
         company->{
           _id,
           _type,

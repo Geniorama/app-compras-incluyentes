@@ -88,6 +88,14 @@ function formatCOP(value: string): string {
   });
 }
 
+// Normalizar valor booleano desde Sanity (puede venir como string u otro tipo)
+function toBoolean(value: unknown, defaultValue: boolean): boolean {
+  if (value === undefined || value === null) return defaultValue;
+  if (value === true || value === "true" || value === 1) return true;
+  if (value === false || value === "false" || value === 0) return false;
+  return defaultValue;
+}
+
 export default function ProfileView({
   initialProfile,
   error: initialError,
@@ -160,6 +168,7 @@ export default function ProfileView({
         chamberOfCommerceComments: initialProfile.company?.chamberOfCommerceComments || '',
         taxIdentificationDocumentComments: initialProfile.company?.taxIdentificationDocumentComments || '',
         publicProfile: initialProfile.publicProfile !== undefined ? initialProfile.publicProfile : (initialProfile.company?.companySize !== "grande" ? true : false),
+        notifyEmailMessages: toBoolean((initialProfile as { notifyEmailMessages?: unknown }).notifyEmailMessages, false),
       };
       const typedCombinedProfile: UserProfile = {
         ...combinedProfile,
@@ -353,8 +362,8 @@ export default function ProfileView({
             setProfile({ ...profile, [field]: value });
           }
         }
-      } else if (field === 'publicProfile') {
-        // Manejar el campo boolean específicamente
+      } else if (field === 'publicProfile' || field === 'notifyEmailMessages') {
+        // Manejar los campos boolean específicamente
         setProfile({ ...profile, [field]: value as boolean });
       } else {
         // Para otros campos string
@@ -385,6 +394,7 @@ export default function ProfileView({
       "typeDocument",
       "numDocument",
       "publicProfile",
+      "notifyEmailMessages",
       "nameCompany",
       "businessName",
       "description",
@@ -580,6 +590,7 @@ export default function ProfileView({
         numDocument: profile.numDocument,
         photo: photoSanity,
         publicProfile: publicProfileValue,
+        notifyEmailMessages: toBoolean(profile.notifyEmailMessages, false),
       };
 
       // Asegurar que annualRevenue tenga el valor más reciente
@@ -1143,6 +1154,26 @@ export default function ProfileView({
                     </div>
                   </div>
 
+                  {/* Notificaciones por email */}
+                  <div className="w-full px-2 space-y-1 mt-4">
+                    <div className="flex items-start">
+                      <input
+                        type="checkbox"
+                        id="notifyEmailMessages"
+                        checked={toBoolean(profile?.notifyEmailMessages, false)}
+                        onChange={(e) => handleChange("notifyEmailMessages", e.target.checked)}
+                        className="mt-1 mr-2"
+                      />
+                      <div>
+                        <Label htmlFor="notifyEmailMessages" className="font-medium">
+                          Notificar por email cuando reciba mensajes
+                        </Label>
+                        <p className="text-xs text-gray-600">
+                          Recibir un correo cuando alguien te envíe un mensaje en la plataforma.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                   {/* Campo de perfil público - solo visible para empresas grandes */}
                   {profile?.companySize === "grande" && (
                     <div className="w-full px-2 space-y-1 mt-4">

@@ -34,7 +34,8 @@ export async function GET(request: Request) {
         typeDocument,
         numDocument,
         publicProfile,
-        photo
+        photo,
+        notifyEmailMessages
       }`,
       { companyId: currentUser.company._id }
     );
@@ -77,7 +78,8 @@ export async function PUT(request: Request) {
       typeDocument,
       numDocument,
       publicProfile,
-      photo
+      photo,
+      notifyEmailMessages
     } = body;
 
     // Obtener el usuario actual y su empresa para verificar permisos
@@ -139,6 +141,9 @@ export async function PUT(request: Request) {
     };
     if (photo !== undefined) {
       updateData.photo = photo;
+    }
+    if (notifyEmailMessages !== undefined) {
+      updateData.notifyEmailMessages = Boolean(notifyEmailMessages);
     }
 
     // Actualizar el usuario

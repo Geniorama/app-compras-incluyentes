@@ -1,63 +1,17 @@
 'use client';
 
 import ProfileView from "@/views/Dashboard/ProfileView";
-import { sanityClient } from "@/lib/sanity.client";
 import { useAuth } from "@/context/AuthContext";
 import { useEffect, useState } from "react";
 import { Spinner } from "flowbite-react";
 import type { UserProfile } from "@/types";
 
-async function getProfile(userId: string) {
+async function getProfile(userId: string): Promise<UserProfile | null> {
   try {
-    const profile = await sanityClient.fetch(
-      `*[_type == "user" && firebaseUid == $userId][0]{
-        _id,
-        firstName,
-        lastName,
-        email,
-        phone,
-        pronoun,
-        position,
-        typeDocument,
-        numDocument,
-        photo,
-        role,
-        publicProfile,
-        company->{
-          _id,
-          nameCompany,
-          businessName,
-          description,
-          typeDocumentCompany,
-          numDocumentCompany,
-          ciiu,
-          webSite,
-          addressCompany,
-          department,
-          city,
-          country,
-          companySize,
-          peopleGroup,
-          otherPeopleGroup,
-          annualRevenue,
-          logo,
-          facebook,
-          instagram,
-          tiktok,
-          pinterest,
-          linkedin,
-          xtwitter,
-          chamberOfCommerce,
-          taxIdentificationDocument,
-          chamberOfCommerceValidated,
-          taxIdentificationDocumentValidated,
-          chamberOfCommerceComments,
-          taxIdentificationDocumentComments
-        }
-      }`,
-      { userId }
-    );
-    return profile;
+    const response = await fetch(`/api/profile/get?userId=${userId}`);
+    if (!response.ok) return null;
+    const data = await response.json();
+    return data.success ? data.data.user : null;
   } catch (error) {
     console.error("Error fetching profile:", error);
     return null;

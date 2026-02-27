@@ -102,10 +102,13 @@ export async function POST(req: NextRequest) {
 
     if (recipientUserRef) {
       const recipientUser = await client.fetch(
-        `*[_type == "user" && _id == $userId][0]{ firstName, lastName, email, role }`,
+        `*[_type == "user" && _id == $userId][0]{ firstName, lastName, email, role, notifyEmailMessages }`,
         { userId: recipientUserId }
       );
-      if (recipientUser?.role === 'member' && recipientUser?.email) {
+      const notifyValue = recipientUser?.notifyEmailMessages;
+      const shouldSendEmail = !!recipientUser?.email
+        && (notifyValue === true || notifyValue === 'true');
+      if (shouldSendEmail) {
         try {
           await sendMessageEmail(
             recipientUser.email,

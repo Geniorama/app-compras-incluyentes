@@ -17,6 +17,7 @@ interface InviteUserData {
   typeDocument?: string;
   numDocument?: string;
   publicProfile?: boolean;
+  notifyEmailMessages?: boolean;
   photo?: { _type: string; asset: { _type: string; _ref: string } };
 }
 
@@ -37,6 +38,7 @@ export async function POST(request: Request) {
       typeDocument,
       numDocument,
       publicProfile,
+      notifyEmailMessages,
       photo
     } = body;
 
@@ -93,6 +95,7 @@ export async function POST(request: Request) {
       position?: string;
       role: string;
       publicProfile: boolean;
+      notifyEmailMessages: boolean;
       company: {
         _type: string;
         _ref: string;
@@ -114,6 +117,7 @@ export async function POST(request: Request) {
       position,
       role,
       publicProfile: finalPublicProfile,
+      notifyEmailMessages: notifyEmailMessages === true,
       company: {
         _type: 'reference',
         _ref: inviter.company._id

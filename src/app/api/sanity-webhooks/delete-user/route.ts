@@ -63,37 +63,42 @@ const isSignatureValid = (payload: string, signature: string | null, secret: str
   }
 };
 
-const extractFirebaseUid = (payload: Record<string, unknown>): string | null => {
-  const possiblePaths = [
-    ['document', 'firebaseUid'],
-    ['previous', 'firebaseUid'],
-    ['payload', 'firebaseUid'],
-    ['body', 'firebaseUid'],
-    ['data', 'firebaseUid'],
-  ];
+const POSSIBLE_DOC_PATHS = ['document', 'previous', 'payload', 'body', 'data'];
 
-  for (const path of possiblePaths) {
-    let current: unknown = payload;
-
-    for (const key of path) {
-      if (typeof current !== 'object' || current === null || !(key in current)) {
-        current = undefined;
-        break;
-      }
-      current = (current as Record<string, unknown>)[key];
-    }
-
-    if (typeof current === 'string' && current.trim().length > 0) {
-      return current;
+function getFromPayload<T>(payload: Record<string, unknown>, key: string): T | null {
+  for (const base of POSSIBLE_DOC_PATHS) {
+    const obj = payload[base];
+    if (typeof obj === 'object' && obj !== null && key in obj) {
+      const val = (obj as Record<string, unknown>)[key];
+      if (val != null) return val as T;
     }
   }
-
-  if (typeof payload?.firebaseUid === 'string' && payload.firebaseUid.trim().length > 0) {
-    return payload.firebaseUid;
+  if (key in payload) {
+    const val = payload[key];
+    if (val != null) return val as T;
   }
-
   return null;
-};
+}
+
+/** Solo proceder si el documento eliminado es un usuario publicado (no un borrador). */
+function shouldDeleteFirebaseUser(payload: Record<string, unknown>): { firebaseUid: string } | null {
+  const docType = getFromPayload<string>(payload, '_type');
+  const docId = getFromPayload<string>(payload, '_id') ?? '';
+  const firebaseUid = getFromPayload<string>(payload, 'firebaseUid');
+
+  // Debe ser un documento de tipo user con firebaseUid
+  if (docType !== 'user' || !firebaseUid || typeof firebaseUid !== 'string' || firebaseUid.trim().length === 0) {
+    return null;
+  }
+
+  // NO borrar Firebase si se elimina un BORRADOR (drafts.user-xxx). Solo si es el documento publicado.
+  // Al eliminar/descartar borradores en Studio se dispara el webhook y se borraba el usuario por error.
+  if (docId.startsWith('drafts.') || docId.includes('.drafts.')) {
+    return null;
+  }
+
+  return { firebaseUid: firebaseUid.trim() };
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -124,17 +129,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true, message: 'Evento ignorado' });
     }
 
-    const firebaseUid = extractFirebaseUid(body);
+    const result = shouldDeleteFirebaseUser(body);
 
-    if (!firebaseUid) {
+    if (!result) {
       return NextResponse.json(
-        { ok: false, error: 'No se encontró el UID de Firebase' },
-        { status: 400 },
+        { ok: true, message: 'Evento ignorado (no es eliminación de usuario publicado o es borrador)' },
       );
     }
 
     try {
-      await adminAuth.deleteUser(firebaseUid);
+      await adminAuth.deleteUser(result.firebaseUid);
     } catch (error) {
       // Ignorar si el usuario ya no existe
       if (!(error instanceof Error) || !('code' in error) || (error as { code: string }).code !== 'auth/user-not-found') {

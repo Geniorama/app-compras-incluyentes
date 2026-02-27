@@ -18,6 +18,7 @@ interface User {
   typeDocument?: string;
   numDocument?: string;
   publicProfile?: boolean;
+  notifyEmailMessages?: boolean;
   photo?: { _type?: string; asset?: { _ref?: string } };
 }
 
@@ -54,6 +55,7 @@ export default function UsersView() {
     numDocument: '',
     photo: '',
     publicProfile: false,
+    notifyEmailMessages: false,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -156,7 +158,7 @@ export default function UsersView() {
       setShowModal(false);
       setPhotoFile(null);
       setPhotoPreview(null);
-      setForm({ firstName: '', lastName: '', email: '', password: '', role: 'user', phone: '', pronoun: '', position: '', typeDocument: '', numDocument: '', photo: '', publicProfile: false });
+      setForm({ firstName: '', lastName: '', email: '', password: '', role: 'user', phone: '', pronoun: '', position: '', typeDocument: '', numDocument: '', photo: '', publicProfile: false, notifyEmailMessages: false });
       await fetchUsers();
     } catch (err: unknown) {
       if (err instanceof Error) {
@@ -186,6 +188,7 @@ export default function UsersView() {
       numDocument: userToEdit.numDocument || '',
       photo: '',
       publicProfile: userToEdit.publicProfile ?? false,
+      notifyEmailMessages: userToEdit.notifyEmailMessages ?? false,
     });
     setShowModal(true);
   };
@@ -332,6 +335,7 @@ export default function UsersView() {
             numDocument: '',
             photo: '',
             publicProfile: false,
+            notifyEmailMessages: false,
           });
         }}>
           <Modal.Header>{selectedUser ? 'Editar usuario' : 'Agregar usuario'}</Modal.Header>
@@ -452,6 +456,23 @@ export default function UsersView() {
               <div>
                 <Label htmlFor="numDocument">Número de documento</Label>
                 <TextInput id="numDocument" name="numDocument" value={form.numDocument} onChange={handleInputChange} />
+              </div>
+              {/* Notificaciones por email */}
+              <div className="flex items-start">
+                <Checkbox
+                  id="notifyEmailMessages"
+                  checked={form.notifyEmailMessages}
+                  onChange={(e) => setForm({ ...form, notifyEmailMessages: e.target.checked })}
+                  className="mt-1 mr-2"
+                />
+                <div>
+                  <Label htmlFor="notifyEmailMessages" className="font-medium">
+                    Notificar por email cuando reciba mensajes
+                  </Label>
+                  <p className="text-xs text-gray-600">
+                    Si está activo, el usuario recibirá un correo cuando reciba mensajes en la plataforma.
+                  </p>
+                </div>
               </div>
               {/* Campo de perfil público - solo visible y habilitado para empresas grandes */}
               {companySize === "grande" && (

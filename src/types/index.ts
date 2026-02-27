@@ -21,6 +21,7 @@ export interface UserData {
     typeDocument?: string;
     numDocument?: string;
     publicProfile?: boolean;
+    notifyEmailMessages?: boolean;
 }
 
 export interface SanityUserDocument extends SanityResponse, UserData {
