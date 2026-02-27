@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import toast from 'react-hot-toast';
-import { Button, TextInput, Textarea, Avatar, Modal, Tabs, Spinner } from 'flowbite-react';
-import { HiOutlineMailOpen, HiPaperAirplane, HiSearch, HiReply, HiChevronDown } from 'react-icons/hi';
+import { Button, TextInput, Textarea, Avatar, Modal, Tabs, Spinner, Checkbox } from 'flowbite-react';
+import { HiOutlineMailOpen, HiPaperAirplane, HiSearch, HiReply, HiChevronDown, HiTrash } from 'react-icons/hi';
 import DashboardSidebar from '@/components/DashboardSidebar';
 
 interface Message {
@@ -88,6 +88,13 @@ export default function MensajesView() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [loadingEnvio, setLoadingEnvio] = useState(false);
+  const [showDeleteBandejaModal, setShowDeleteBandejaModal] = useState(false);
+  const [bandejaToDelete, setBandejaToDelete] = useState<'recibidos' | 'enviados' | null>(null);
+  const [loadingDelete, setLoadingDelete] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showDeleteSelectedModal, setShowDeleteSelectedModal] = useState(false);
+  const [idsToDelete, setIdsToDelete] = useState<string[]>([]);
   const [empresas, setEmpresas] = useState<Company[]>([]);
   const [usuariosVisibles, setUsuariosVisibles] = useState<VisibleUser[]>([]);
   const [loadingEmpresas, setLoadingEmpresas] = useState(false);
@@ -222,7 +229,7 @@ export default function MensajesView() {
     }
   };
 
-  const enviarMensaje = async () => {
+  const enviarMensaje = async (): Promise<boolean> => {
     const body: Record<string, string> = {
       subject: asunto,
       content: contenidoNuevo,
@@ -233,9 +240,9 @@ export default function MensajesView() {
     } else if (tipoDestinatario === 'persona' && destinatarioUserId.trim()) {
       body.recipientUserId = destinatarioUserId;
     } else {
-      return;
+      return false;
     }
-    if (!body.subject?.trim() || !body.content?.trim()) return;
+    if (!body.subject?.trim() || !body.content?.trim()) return false;
 
     try {
       const response = await fetch('/api/send-message', {
@@ -265,9 +272,11 @@ export default function MensajesView() {
       toast.success('Mensaje enviado correctamente');
       await new Promise(r => setTimeout(r, 600));
       await fetchMensajes();
+      return true;
     } catch (error) {
       console.error('Error al enviar mensaje:', error);
       toast.error(error instanceof Error ? error.message : 'Error al enviar el mensaje');
+      return false;
     }
   };
 
@@ -326,6 +335,93 @@ export default function MensajesView() {
     );
   };
 
+  const borrarBandeja = async (bandeja: 'recibidos' | 'enviados') => {
+    if (!user?.uid) return;
+    setLoadingDelete(true);
+    try {
+      const res = await fetch('/api/messages/bulk-delete', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bandeja, userId: user.uid }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || 'Error al borrar la bandeja');
+      setShowDeleteBandejaModal(false);
+      setBandejaToDelete(null);
+      toast.success(data.deletedCount > 0 
+        ? `Se eliminaron ${data.deletedCount} mensaje(s)` 
+        : 'Bandeja vacía');
+      await fetchMensajes();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Error al borrar la bandeja');
+    } finally {
+      setLoadingDelete(false);
+    }
+  };
+
+  const abrirConfirmacionBorrarBandeja = (bandeja: 'recibidos' | 'enviados') => {
+    setBandejaToDelete(bandeja);
+    setShowDeleteBandejaModal(true);
+  };
+
+  const toggleSeleccion = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const seleccionarTodos = (mensajes: Message[]) => {
+    const ids = mensajes.map(m => m._id);
+    setSelectedIds(prev => new Set([...prev, ...ids]));
+  };
+
+  const deseleccionarTodos = (mensajes: Message[]) => {
+    const ids = new Set(mensajes.map(m => m._id));
+    setSelectedIds(prev => new Set([...prev].filter(id => !ids.has(id))));
+  };
+
+  const todosSeleccionados = (mensajes: Message[]) =>
+    mensajes.length > 0 && mensajes.every(m => selectedIds.has(m._id));
+
+  const borrarMensajes = async (ids: string[]) => {
+    if (!user?.uid || ids.length === 0) return;
+    setLoadingDelete(true);
+    try {
+      const res = await fetch('/api/messages/bulk-delete', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messageIds: ids, userId: user.uid }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || 'Error al borrar mensajes');
+      setShowDeleteSelectedModal(false);
+      setIdsToDelete([]);
+      setSelectedIds(prev => new Set([...prev].filter(id => !ids.includes(id))));
+      if (mensajeSeleccionado && ids.includes(mensajeSeleccionado._id)) {
+        setMensajeSeleccionado(null);
+      }
+      toast.success(`Se eliminaron ${data.deletedCount} mensaje(s)`);
+      await fetchMensajes();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Error al borrar mensajes');
+    } finally {
+      setLoadingDelete(false);
+    }
+  };
+
+  const abrirConfirmacionBorrarMensaje = (mensaje: Message) => {
+    setIdsToDelete([mensaje._id]);
+    setShowDeleteSelectedModal(true);
+  };
+
+  const abrirConfirmacionBorrarSeleccionados = () => {
+    setIdsToDelete(Array.from(selectedIds));
+    setShowDeleteSelectedModal(true);
+  };
+
   const seleccionarEmpresa = (empresa: Company) => {
     setDestinatarioEmpresaId(empresa._id);
     setEmpresaSearchTerm(empresa.nameCompany);
@@ -363,7 +459,9 @@ export default function MensajesView() {
         key={mensaje._id}
         className={`p-4 border-b cursor-pointer transition-colors ${
           esMensajeSeleccionado ? 'bg-blue-50' : 'hover:bg-gray-50'
-        } ${!mensaje.read && tipo === 'recibido' ? 'bg-blue-50/30' : ''}`}
+        } ${!mensaje.read && tipo === 'recibido' ? 'bg-blue-50/30' : ''} ${
+          selectedIds.has(mensaje._id) ? 'bg-red-50/50' : ''
+        }`}
         onClick={() => {
           setMensajeSeleccionado(mensaje);
           if (!mensaje.read && tipo === 'recibido') {
@@ -371,7 +469,13 @@ export default function MensajesView() {
           }
         }}
       >
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
+          <div onClick={e => e.stopPropagation()}>
+            <Checkbox
+              checked={selectedIds.has(mensaje._id)}
+              onChange={() => toggleSeleccion(mensaje._id)}
+            />
+          </div>
           <Avatar img={logoMostrar} rounded />
           <div className="flex-1 min-w-0">
             <div className="flex justify-between items-start">
@@ -407,6 +511,18 @@ export default function MensajesView() {
               {mensaje.content}
             </p>
           </div>
+          <Button
+            color="failure"
+            size="xs"
+            className="flex-shrink-0 opacity-70 hover:opacity-100"
+            onClick={e => {
+              e.stopPropagation();
+              abrirConfirmacionBorrarMensaje(mensaje);
+            }}
+            title="Borrar mensaje"
+          >
+            <HiTrash className="h-4 w-4" />
+          </Button>
         </div>
       </div>
     );
@@ -445,13 +561,109 @@ export default function MensajesView() {
 
           <Tabs>
             <Tabs.Item active title="Recibidos" icon={HiOutlineMailOpen}>
-              <div className="divide-y">
-                {filtrarMensajes(mensajesRecibidos).map(mensaje => renderMensajeItem(mensaje, 'recibido'))}
+              <div className="p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      checked={todosSeleccionados(filtrarMensajes(mensajesRecibidos))}
+                      onChange={() => {
+                        const filtrados = filtrarMensajes(mensajesRecibidos);
+                        todosSeleccionados(filtrados)
+                          ? deseleccionarTodos(filtrados)
+                          : seleccionarTodos(filtrados);
+                      }}
+                    />
+                    <span className="text-sm text-gray-600">Seleccionar todos</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      color="failure"
+                      size="sm"
+                      onClick={abrirConfirmacionBorrarSeleccionados}
+                      disabled={selectedIds.size === 0}
+                      className="flex items-center gap-2"
+                    >
+                      <HiTrash className="h-4 w-4" />
+                      Borrar seleccionados{selectedIds.size > 0 ? ` (${selectedIds.size})` : ''}
+                    </Button>
+                    <Button
+                      color="failure"
+                      size="sm"
+                      onClick={() => abrirConfirmacionBorrarBandeja('recibidos')}
+                      disabled={mensajesRecibidos.length === 0}
+                      className="flex items-center gap-2"
+                    >
+                      <HiTrash className="h-4 w-4" />
+                      Borrar bandeja
+                    </Button>
+                  </div>
+                </div>
+                <div className="divide-y">
+                  {filtrarMensajes(mensajesRecibidos).length === 0 ? (
+                    <div className="py-12 text-center text-gray-500">
+                      {searchTerm ? (
+                        <p>No hay resultados para tu búsqueda.</p>
+                      ) : (
+                        <p>No tienes mensajes recibidos.</p>
+                      )}
+                    </div>
+                  ) : (
+                    filtrarMensajes(mensajesRecibidos).map(mensaje => renderMensajeItem(mensaje, 'recibido'))
+                  )}
+                </div>
               </div>
             </Tabs.Item>
             <Tabs.Item title="Enviados" icon={HiPaperAirplane}>
-              <div className="divide-y">
-                {filtrarMensajes(mensajesEnviados).map(mensaje => renderMensajeItem(mensaje, 'enviado'))}
+              <div className="p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      checked={todosSeleccionados(filtrarMensajes(mensajesEnviados))}
+                      onChange={() => {
+                        const filtrados = filtrarMensajes(mensajesEnviados);
+                        todosSeleccionados(filtrados)
+                          ? deseleccionarTodos(filtrados)
+                          : seleccionarTodos(filtrados);
+                      }}
+                    />
+                    <span className="text-sm text-gray-600">Seleccionar todos</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      color="failure"
+                      size="sm"
+                      onClick={abrirConfirmacionBorrarSeleccionados}
+                      disabled={selectedIds.size === 0}
+                      className="flex items-center gap-2"
+                    >
+                      <HiTrash className="h-4 w-4" />
+                      Borrar seleccionados{selectedIds.size > 0 ? ` (${selectedIds.size})` : ''}
+                    </Button>
+                    <Button
+                      color="failure"
+                      size="sm"
+                      onClick={() => abrirConfirmacionBorrarBandeja('enviados')}
+                      disabled={mensajesEnviados.length === 0}
+                      className="flex items-center gap-2"
+                    >
+                      <HiTrash className="h-4 w-4" />
+                      Borrar bandeja
+                    </Button>
+                  </div>
+                </div>
+                <div className="divide-y">
+                  {filtrarMensajes(mensajesEnviados).length === 0 ? (
+                    <div className="py-12 text-center text-gray-500">
+                      {searchTerm ? (
+                        <p>No hay resultados para tu búsqueda.</p>
+                      ) : (
+                        <p>No tienes mensajes enviados.</p>
+                      )}
+                    </div>
+                  ) : (
+                    filtrarMensajes(mensajesEnviados).map(mensaje => renderMensajeItem(mensaje, 'enviado'))
+                  )}
+                </div>
               </div>
             </Tabs.Item>
           </Tabs>
@@ -491,14 +703,28 @@ export default function MensajesView() {
                   </div>
                 </div>
                 {mensajeSeleccionado && (
-                  <Button
-                    color="blue"
-                    onClick={() => responderMensaje(mensajeSeleccionado)}
-                    className="flex items-center gap-2"
-                  >
-                    <HiReply className="h-4 w-4 mr-2" />
-                    Responder
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      color="blue"
+                      onClick={() => responderMensaje(mensajeSeleccionado)}
+                      className="flex items-center gap-2"
+                    >
+                      <HiReply className="h-4 w-4 mr-2" />
+                      Responder
+                    </Button>
+                    <Button
+                      color="failure"
+                      size="sm"
+                      onClick={() => {
+                        abrirConfirmacionBorrarMensaje(mensajeSeleccionado);
+                        setMensajeSeleccionado(null);
+                      }}
+                      className="flex items-center gap-1"
+                      title="Borrar mensaje"
+                    >
+                      <HiTrash className="h-4 w-4" />
+                    </Button>
+                  </div>
                 )}
               </div>
               <p className="text-gray-700 whitespace-pre-wrap">
@@ -511,7 +737,7 @@ export default function MensajesView() {
         {/* Modal para nuevo mensaje */}
         <Modal
           show={showNuevoMensaje}
-          onClose={() => setShowNuevoMensaje(false)}
+          onClose={() => !loadingEnvio && setShowNuevoMensaje(false)}
           size="xl"
         >
           <Modal.Header>
@@ -676,11 +902,11 @@ export default function MensajesView() {
             <Button 
               color="blue" 
               onClick={() => setShowConfirmModal(true)}
-              disabled={(tipoDestinatario === 'empresa' ? !destinatarioEmpresaId.trim() : !destinatarioUserId.trim()) || !contenidoNuevo.trim() || !asunto.trim()}
+              disabled={loadingEnvio || (tipoDestinatario === 'empresa' ? !destinatarioEmpresaId.trim() : !destinatarioUserId.trim()) || !contenidoNuevo.trim() || !asunto.trim()}
             >
               Enviar mensaje
             </Button>
-            <Button color="gray" onClick={() => setShowNuevoMensaje(false)}>
+            <Button color="gray" onClick={() => setShowNuevoMensaje(false)} disabled={loadingEnvio}>
               Cancelar
             </Button>
           </Modal.Footer>
@@ -689,7 +915,7 @@ export default function MensajesView() {
         {/* Modal de confirmación */}
         <Modal
           show={showConfirmModal}
-          onClose={() => setShowConfirmModal(false)}
+          onClose={() => !loadingEnvio && setShowConfirmModal(false)}
           size="md"
         >
           <Modal.Header>Confirmar envío</Modal.Header>
@@ -699,14 +925,120 @@ export default function MensajesView() {
           <Modal.Footer>
             <Button
               color="blue"
+              disabled={loadingEnvio}
               onClick={async () => {
-                setShowConfirmModal(false);
-                await enviarMensaje();
+                setLoadingEnvio(true);
+                try {
+                  const ok = await enviarMensaje();
+                  if (ok) setShowConfirmModal(false);
+                } finally {
+                  setLoadingEnvio(false);
+                }
               }}
             >
-              Sí, enviar
+              {loadingEnvio ? (
+                <>
+                  <Spinner size="sm" className="mr-2" />
+                  Enviando...
+                </>
+              ) : (
+                'Sí, enviar'
+              )}
             </Button>
-            <Button color="gray" onClick={() => setShowConfirmModal(false)}>
+            <Button
+              color="gray"
+              onClick={() => setShowConfirmModal(false)}
+              disabled={loadingEnvio}
+            >
+              Cancelar
+            </Button>
+          </Modal.Footer>
+        </Modal>
+
+        {/* Modal de confirmación para borrar bandeja */}
+        <Modal
+          show={showDeleteBandejaModal}
+          onClose={() => {
+            if (!loadingDelete) {
+              setShowDeleteBandejaModal(false);
+              setBandejaToDelete(null);
+            }
+          }}
+          size="md"
+        >
+          <Modal.Header>Confirmar eliminación</Modal.Header>
+          <Modal.Body>
+            <p className="text-gray-700">
+              ¿Estás seguro de que deseas borrar todos los mensajes de la bandeja de{' '}
+              <strong>{bandejaToDelete === 'recibidos' ? 'Recibidos' : 'Enviados'}</strong>?
+            </p>
+            <p className="text-sm text-amber-600 mt-2">
+              Esta acción no se puede deshacer. Los mensajes se eliminarán permanentemente.
+            </p>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button
+              color="failure"
+              onClick={() => bandejaToDelete && borrarBandeja(bandejaToDelete)}
+              disabled={loadingDelete}
+            >
+              {loadingDelete ? 'Eliminando...' : 'Sí, borrar bandeja'}
+            </Button>
+            <Button
+              color="gray"
+              onClick={() => {
+                setShowDeleteBandejaModal(false);
+                setBandejaToDelete(null);
+              }}
+              disabled={loadingDelete}
+            >
+              Cancelar
+            </Button>
+          </Modal.Footer>
+        </Modal>
+
+        {/* Modal de confirmación para borrar mensajes seleccionados o individual */}
+        <Modal
+          show={showDeleteSelectedModal}
+          onClose={() => {
+            if (!loadingDelete) {
+              setShowDeleteSelectedModal(false);
+              setIdsToDelete([]);
+            }
+          }}
+          size="md"
+        >
+          <Modal.Header>Confirmar eliminación</Modal.Header>
+          <Modal.Body>
+            <p className="text-gray-700">
+              ¿Estás seguro de que deseas borrar{' '}
+              <strong>
+                {idsToDelete.length === 1
+                  ? 'este mensaje'
+                  : `${idsToDelete.length} mensajes`}
+              </strong>
+              ?
+            </p>
+            <p className="text-sm text-amber-600 mt-2">
+              Esta acción no se puede deshacer.
+            </p>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button
+              color="failure"
+              onClick={() => borrarMensajes(idsToDelete)}
+              disabled={loadingDelete || idsToDelete.length === 0}
+            >
+              {loadingDelete ? 'Eliminando...' : 'Sí, borrar'}
+            </Button>
+            <Button
+              color="gray"
+              onClick={() => {
+                setShowDeleteSelectedModal(false);
+                setIdsToDelete([]);
+              }}
+              disabled={loadingDelete}
+            >
               Cancelar
             </Button>
           </Modal.Footer>
