@@ -127,6 +127,7 @@ export default function EmpresasPage() {
 
   useEffect(() => {
     fetchCompanies();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, sector, department, city, searchTerm, peopleGroup, companySize, inclusionDEI, sortField, sortDirection]);
 
   // Limpiar ciudad cuando cambie el departamento

@@ -70,6 +70,8 @@ export default function UsersView() {
       fetchUsers();
       fetchCompanySize();
     }
+    // fetchUsers, fetchCompanySize definidos en el componente; omitidos para evitar loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.uid]);
 
   const fetchCompanySize = async () => {

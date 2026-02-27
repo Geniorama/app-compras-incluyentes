@@ -129,6 +129,8 @@ export default function MensajesView() {
         window.history.replaceState({}, '', '/dashboard/mensajes');
       }
     }
+    // fetchMensajes, fetchEmpresas, fetchUsuariosVisibles omitidos para evitar loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   useEffect(() => {
@@ -568,9 +570,11 @@ export default function MensajesView() {
                       checked={todosSeleccionados(filtrarMensajes(mensajesRecibidos))}
                       onChange={() => {
                         const filtrados = filtrarMensajes(mensajesRecibidos);
-                        todosSeleccionados(filtrados)
-                          ? deseleccionarTodos(filtrados)
-                          : seleccionarTodos(filtrados);
+                        if (todosSeleccionados(filtrados)) {
+                          deseleccionarTodos(filtrados);
+                        } else {
+                          seleccionarTodos(filtrados);
+                        }
                       }}
                     />
                     <span className="text-sm text-gray-600">Seleccionar todos</span>
@@ -621,9 +625,11 @@ export default function MensajesView() {
                       checked={todosSeleccionados(filtrarMensajes(mensajesEnviados))}
                       onChange={() => {
                         const filtrados = filtrarMensajes(mensajesEnviados);
-                        todosSeleccionados(filtrados)
-                          ? deseleccionarTodos(filtrados)
-                          : seleccionarTodos(filtrados);
+                        if (todosSeleccionados(filtrados)) {
+                          deseleccionarTodos(filtrados);
+                        } else {
+                          seleccionarTodos(filtrados);
+                        }
                       }}
                     />
                     <span className="text-sm text-gray-600">Seleccionar todos</span>
@@ -737,7 +743,7 @@ export default function MensajesView() {
         {/* Modal para nuevo mensaje */}
         <Modal
           show={showNuevoMensaje}
-          onClose={() => !loadingEnvio && setShowNuevoMensaje(false)}
+          onClose={() => { if (!loadingEnvio) setShowNuevoMensaje(false); }}
           size="xl"
         >
           <Modal.Header>
@@ -915,7 +921,7 @@ export default function MensajesView() {
         {/* Modal de confirmación */}
         <Modal
           show={showConfirmModal}
-          onClose={() => !loadingEnvio && setShowConfirmModal(false)}
+          onClose={() => { if (!loadingEnvio) setShowConfirmModal(false); }}
           size="md"
         >
           <Modal.Header>Confirmar envío</Modal.Header>
@@ -979,7 +985,7 @@ export default function MensajesView() {
           <Modal.Footer>
             <Button
               color="failure"
-              onClick={() => bandejaToDelete && borrarBandeja(bandejaToDelete)}
+              onClick={() => { if (bandejaToDelete) borrarBandeja(bandejaToDelete); }}
               disabled={loadingDelete}
             >
               {loadingDelete ? 'Eliminando...' : 'Sí, borrar bandeja'}

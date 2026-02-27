@@ -19,6 +19,7 @@ import {
 import { RiTwitterXFill, RiTiktokLine } from "react-icons/ri";
 import { RiArrowLeftLine } from "react-icons/ri";
 import Link from "next/link";
+import Image from "next/image";
 import InternationalPhoneInput from "./InternationalPhoneInput ";
 import {
   Accordion,
@@ -187,7 +188,6 @@ export default function RegisterForm() {
   const peopleGroup = watch("peopleGroup");
   const otherPeopleGroup = watch("otherPeopleGroup");
   const friendlyBizz = watch("friendlyBizz");
-  const inclusionDEI = watch("inclusionDEI");
 
   // Fields Step 2
   const firstName = watch("firstName");
@@ -883,7 +883,8 @@ export default function RegisterForm() {
       }
       setChamberOfCommerce(file);
       setValidationErrors((prev) => {
-        const { chamberOfCommerce, ...rest } = prev;
+        const rest = { ...prev };
+        delete rest.chamberOfCommerce;
         return rest;
       });
     }
@@ -901,7 +902,8 @@ export default function RegisterForm() {
       }
       setTaxIdentificationDocument(file);
       setValidationErrors((prev) => {
-        const { taxIdentificationDocument, ...rest } = prev;
+        const rest = { ...prev };
+        delete rest.taxIdentificationDocument;
         return rest;
       });
     }
@@ -1085,10 +1087,10 @@ export default function RegisterForm() {
         </div>
         <div className="hidden lg:block mt-60"></div>
         <div className="hidden lg:block text-center lg:absolute left-0 right-0 bottom-0">
-          <img
+          <Image
             className="w-full max-w-max mx-auto"
-            src={LogoColor.src}
-            alt=""
+            src={LogoColor}
+            alt="Logo"
           />
         </div>
       </div>
@@ -1115,10 +1117,13 @@ export default function RegisterForm() {
                           className={`${logoPreview ? "bg-white border-slate-200" : "bg-red-500 border-red-500"} border  w-[100px] h-[100px] flex items-center justify-center rounded-full min-w-[100px] cursor-pointer`}
                         >
                           {logoPreview ? (
-                            <img
+                            <Image
                               src={logoPreview}
                               alt="Vista previa del logo"
+                              width={100}
+                              height={100}
                               className="w-full h-full object-cover rounded-full"
+                              unoptimized
                             />
                           ) : (
                             <span className="text-xl font-bold text-white">
@@ -1993,10 +1998,13 @@ export default function RegisterForm() {
                     className={`${photoPreview ? "bg-white" : "bg-red-500"} w-[80px] h-[80px] flex items-center justify-center rounded-full min-w-[80px] cursor-pointer`}
                   >
                     {photoPreview ? (
-                      <img
+                      <Image
                         src={photoPreview}
                         alt="Foto de perfil"
+                        width={80}
+                        height={80}
                         className="w-full h-full object-cover rounded-full"
+                        unoptimized
                       />
                     ) : (
                       <span className="text-xl font-bold text-white">Foto</span>

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { Button, Card, Spinner, Alert, Badge } from 'flowbite-react';
 import DashboardNavbar from '@/components/dashboard/Navbar';
 import { useAuth } from '@/context/AuthContext';
@@ -56,7 +55,6 @@ interface OportunidadDetailViewProps {
 }
 
 export default function OportunidadDetailView({ id }: OportunidadDetailViewProps) {
-  const router = useRouter();
   const { user } = useAuth();
   const [opportunity, setOpportunity] = useState<Opportunity | null>(null);
   const [loading, setLoading] = useState(true);
@@ -79,8 +77,6 @@ export default function OportunidadDetailView({ id }: OportunidadDetailViewProps
     if (id) fetchData();
   }, [id]);
 
-  const canApply = opportunity?.status === 'open' && user?.company?._id && opportunity.company?._id !== user.company._id;
-
   const checkIfApplied = () => {
     if (!opportunity?.applications || !user?.company?._id) return false;
     return opportunity.applications.some((a) => a._id === user.company?._id);
@@ -90,6 +86,8 @@ export default function OportunidadDetailView({ id }: OportunidadDetailViewProps
     if (opportunity && user) {
       setAlreadyApplied(checkIfApplied());
     }
+    // checkIfApplied es estable; omitido para evitar re-ejecuciones innecesarias
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [opportunity, user]);
 
   const handleApply = async () => {

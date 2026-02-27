@@ -46,6 +46,8 @@ export default function FavoritosView() {
     } else {
       setLoading(false);
     }
+    // fetchFavorites definido en el componente; omitido para evitar loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.uid]);
 
   const fetchFavorites = async () => {

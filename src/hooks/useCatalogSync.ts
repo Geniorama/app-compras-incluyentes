@@ -46,6 +46,7 @@ export const useCatalogSync = (options: UseCatalogSyncOptions = {}) => {
         clearInterval(intervalRef.current);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [syncInterval]);
 
   return {

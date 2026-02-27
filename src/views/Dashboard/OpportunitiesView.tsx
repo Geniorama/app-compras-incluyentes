@@ -8,7 +8,6 @@ import {
   Button,
   Card,
   Spinner,
-  Alert,
   Badge,
   Modal,
   TextInput,
@@ -98,6 +97,8 @@ export default function OpportunitiesView() {
 
   useEffect(() => {
     if (user) fetchOpportunities();
+    // fetchOpportunities definido en el componente; omitido para evitar loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const fetchOpportunities = async () => {

@@ -1,6 +1,7 @@
 "use client";
 
 import { HiCheckCircle, HiExclamationCircle, HiUser } from "react-icons/hi";
+import Image from "next/image";
 import {
   Label,
   TextInput,
@@ -201,10 +202,9 @@ export default function ProfileView({
             const updatedUser = result.data.user;
             const updatedCompany = result.data.company;
             
-            const {
-              company: _company,
-              ...userFields
-            } = updatedUser;
+            const userFields = Object.fromEntries(
+              Object.entries(updatedUser).filter(([key]) => key !== 'company')
+            ) as Omit<typeof updatedUser, 'company'>;
             
             const combinedProfile = {
               ...userFields,
@@ -341,10 +341,16 @@ export default function ProfileView({
     }
     
     // Solo actualizar si el tamaño o revenue han cambiado
-    if (profile.companySize !== size || profile.annualRevenue !== revenueNum) {
-      setProfile({ ...profile, companySize: size, annualRevenue: revenueNum });
-    }
-  }, [sector, annualRevenueDisplay]); // Remover profile de las dependencias
+    setProfile((p) => {
+      if (!p) return p;
+      if (p.companySize !== size || p.annualRevenue !== revenueNum) {
+        return { ...p, companySize: size, annualRevenue: revenueNum };
+      }
+      return p;
+    });
+  // profile omitido intencionalmente para evitar loop de actualización
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sector, annualRevenueDisplay]);
 
   const handleChange = (field: keyof UserProfile, value: string | string[] | boolean) => {
     if (profile) {
@@ -682,10 +688,9 @@ export default function ProfileView({
         const updatedCompany = result.data.company;
         
         // Extraer solo los campos del usuario, excluyendo el objeto company anidado
-        const {
-          company: _company,
-          ...userFields
-        } = updatedUser;
+        const userFields = Object.fromEntries(
+          Object.entries(updatedUser).filter(([key]) => key !== 'company')
+        ) as Omit<typeof updatedUser, 'company'>;
         
         const combinedProfile = {
           ...userFields,
@@ -984,10 +989,13 @@ export default function ProfileView({
                   <div className="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-4 mt-2">
                     <div className="w-[80px] h-[80px] bg-gray-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-gray-200">
                       {photoUrl ? (
-                        <img
+                        <Image
                           src={photoUrl}
                           alt="Foto de perfil"
+                          width={80}
+                          height={80}
                           className="w-full h-full object-cover"
+                          unoptimized
                         />
                       ) : (
                         <HiUser className="w-10 h-10 text-gray-400" />

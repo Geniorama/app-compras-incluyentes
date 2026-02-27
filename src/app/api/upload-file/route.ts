@@ -6,7 +6,6 @@ export async function POST(request: Request) {
     const contentType = request.headers.get("content-type") || "";
 
     let buffer: Buffer | null = null;
-    let fileType: string | undefined;
     let fileName: string | undefined;
 
     if (contentType.includes("application/json")) {
@@ -26,7 +25,6 @@ export async function POST(request: Request) {
       }
       const base64Data = base64Match[1];
       buffer = Buffer.from(base64Data, 'base64');
-      fileType = ft;
       fileName = fn || `document-${Date.now()}.pdf`;
     } else if (contentType.includes("multipart/form-data")) {
       // Modo FormData (dashboard)
@@ -48,7 +46,6 @@ export async function POST(request: Request) {
       }
       
       buffer = Buffer.from(await file.arrayBuffer());
-      fileType = 'pdf';
       fileName = file.name || `document-${Date.now()}.pdf`;
     } else {
       return NextResponse.json({ message: "Formato no soportado" }, { status: 400 });

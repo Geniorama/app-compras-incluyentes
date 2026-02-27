@@ -37,6 +37,7 @@ export default function MessageSummary({ className = '' }: MessageSummaryProps) 
     if (user?.company?._id) {
       fetchRecentMessages();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const fetchRecentMessages = async () => {
