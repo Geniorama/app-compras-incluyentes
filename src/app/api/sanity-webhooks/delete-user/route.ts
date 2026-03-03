@@ -80,14 +80,20 @@ function getFromPayload<T>(payload: Record<string, unknown>, key: string): T | n
   return null;
 }
 
-/** Solo proceder si el documento eliminado es un usuario publicado (no un borrador). */
+/** Solo proceder si el documento eliminado es un usuario publicado (no un borrador) y no es superadmin. */
 function shouldDeleteFirebaseUser(payload: Record<string, unknown>): { firebaseUid: string } | null {
   const docType = getFromPayload<string>(payload, '_type');
   const docId = getFromPayload<string>(payload, '_id') ?? '';
   const firebaseUid = getFromPayload<string>(payload, 'firebaseUid');
+  const role = getFromPayload<string>(payload, 'role');
 
   // Debe ser un documento de tipo user con firebaseUid
   if (docType !== 'user' || !firebaseUid || typeof firebaseUid !== 'string' || firebaseUid.trim().length === 0) {
+    return null;
+  }
+
+  // NUNCA borrar superadmin de Firebase (evita bloqueo total del panel)
+  if (role === 'superadmin') {
     return null;
   }
 

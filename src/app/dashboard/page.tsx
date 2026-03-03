@@ -13,7 +13,7 @@ export default function Dashboard() {
     if (!user) {
       router.push("/login");
     } else {
-      router.push("/empresas");
+      router.push(user.role === 'superadmin' ? '/superadmin' : '/empresas');
     }
   }, [user, router]);
   

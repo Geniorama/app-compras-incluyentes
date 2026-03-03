@@ -17,13 +17,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         try {
-          // Obtener la información de la empresa del usuario
+          // Obtener la información del usuario (empresa y rol)
           const userData = await sanityClient.fetch(
             `*[_type == "user" && firebaseUid == $firebaseUid][0]{
               firstName,
               lastName,
               email,
               photo,
+              role,
               company->{
                 _id,
                 nameCompany,
@@ -33,14 +34,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             { firebaseUid: firebaseUser.uid }
           );
 
-          // Extender el usuario de Firebase con la información de la empresa, nombre y foto
+          // Extender el usuario de Firebase con la información de la empresa, nombre, foto y rol
           const extendedUser = {
             ...firebaseUser,
             firstName: userData?.firstName,
             lastName: userData?.lastName,
             email: userData?.email || firebaseUser.email,
             photo: userData?.photo,
-            company: userData?.company
+            company: userData?.company,
+            role: userData?.role
           } as User;
 
           setUser(extendedUser);

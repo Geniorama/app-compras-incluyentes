@@ -12,6 +12,7 @@ export interface User extends FirebaseUser {
   lastName?: string;
   photo?: SanityImage;
   company?: Company;
+  role?: string;
 }
 
 export interface AuthContextType {

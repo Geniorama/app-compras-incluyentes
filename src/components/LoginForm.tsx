@@ -49,7 +49,7 @@ export default function LoginForm() {
         setError("Tu usuario aún no ha sido activado por el administrador.");
         return;
       }
-      if (!sanityStatus.companyActive) {
+      if (!sanityStatus.isSuperadmin && !sanityStatus.companyActive) {
         setError("Tu empresa aún no ha sido activada por el administrador.");
         return;
       }
@@ -69,7 +69,8 @@ export default function LoginForm() {
         sessionStorage.setItem('authToken', token);
       }
      
-      router.push('/empresas');
+      // Superadmin va a su dashboard, resto a empresas
+      router.push(sanityStatus.isSuperadmin ? '/superadmin' : '/empresas');
     } catch (error: unknown) {
       if (error instanceof Error) {
         setError(error.message);

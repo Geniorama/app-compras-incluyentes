@@ -59,13 +59,16 @@ export default function DashboardNavbar() {
     }
   };
 
+  const isSuperadmin = user?.role === 'superadmin';
+  const homeHref = isSuperadmin ? '/superadmin' : '/dashboard';
+
   const MenuSecondary = () => {
     return (
       <div className={`flex justify-between items-center w-full sm:w-auto`}>
         <nav className="flex justify-center items-center w-full sm:w-auto">
           <ul className={`flex items-center gap-4 flex-col sm:flex-row ${isMobile && "w-full mt-5"}`}>
             <li className="hidden sm:block">
-              <Link href="/dashboard">
+              <Link href={homeHref}>
                 <img alt="Logo" src={IconLogo.src} className="h-6 sm:h-8" />
               </Link>
             </li>
@@ -91,7 +94,7 @@ export default function DashboardNavbar() {
       <div className="flex sm:items-center gap-4 w-full sm:w-auto">
         {/* Logo mobile */}
         <div className="flex justify-start items-center w-full sm:hidden">
-          <Link href="/dashboard">
+          <Link href={homeHref}>
             <img alt="Logo" src={IconLogo.src} className="h-12" />
           </Link>
         </div>
@@ -137,20 +140,28 @@ export default function DashboardNavbar() {
             </div>
             <hr className="my-2" />
             <ul className="flex flex-col gap-2">
-              <li className="hover:bg-gray-100 p-2 rounded-md">
-                <Link href="/dashboard/perfil">Perfil</Link>
-              </li>
-              <li className="hover:bg-gray-100 p-2 rounded-md">
-                <Link href="/dashboard/productos">
-                  Mis productos y servicios
-                </Link>
-              </li>
-              <li className="hover:bg-gray-100 p-2 rounded-md">
-                <Link href="/dashboard/mensajes">Mensajes</Link>
-              </li>
-              <li className="hover:bg-gray-100 p-2 rounded-md">
-                <Link href="/dashboard/favoritos">Favoritos</Link>
-              </li>
+              {isSuperadmin ? (
+                <li className="hover:bg-gray-100 p-2 rounded-md">
+                  <Link href="/superadmin">Panel Admin</Link>
+                </li>
+              ) : (
+                <>
+                  <li className="hover:bg-gray-100 p-2 rounded-md">
+                    <Link href="/dashboard/perfil">Perfil</Link>
+                  </li>
+                  <li className="hover:bg-gray-100 p-2 rounded-md">
+                    <Link href="/dashboard/productos">
+                      Mis productos y servicios
+                    </Link>
+                  </li>
+                  <li className="hover:bg-gray-100 p-2 rounded-md">
+                    <Link href="/dashboard/mensajes">Mensajes</Link>
+                  </li>
+                  <li className="hover:bg-gray-100 p-2 rounded-md">
+                    <Link href="/dashboard/favoritos">Favoritos</Link>
+                  </li>
+                </>
+              )}
               <li className="hover:bg-gray-100 p-2 rounded-md">
                 <button onClick={handleSignOut}>Cerrar sesión</button>
               </li>

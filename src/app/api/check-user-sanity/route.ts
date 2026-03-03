@@ -5,10 +5,11 @@ export async function POST(request: Request) {
   const { email } = await request.json();
   const client = getAuthenticatedClient();
 
-  // Buscar usuario publicado y traer el campo active de la empresa
+  // Buscar usuario publicado: traer role y active de la empresa
   const user = await client.fetch(
     `*[_type == "user" && email == $email && !(_id in path("drafts.**"))][0]{
       _id,
+      role,
       company->{
         _id,
         _type,
@@ -19,7 +20,17 @@ export async function POST(request: Request) {
   );
 
   if (!user) {
-    return NextResponse.json({ exists: false, published: false, companyActive: false });
+    return NextResponse.json({ exists: false, published: false, companyActive: false, isSuperadmin: false });
+  }
+
+  // Superadmin: no requiere empresa activa
+  if (user.role === 'superadmin') {
+    return NextResponse.json({ 
+      exists: true, 
+      published: true,
+      companyActive: true, 
+      isSuperadmin: true 
+    });
   }
 
   // Verificar si la empresa está activa (publicada y active: true)
@@ -28,6 +39,7 @@ export async function POST(request: Request) {
   return NextResponse.json({ 
     exists: true, 
     published: true,
-    companyActive: isCompanyActive 
+    companyActive: isCompanyActive,
+    isSuperadmin: false
   });
 } 

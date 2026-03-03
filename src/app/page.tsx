@@ -10,7 +10,7 @@ export default function Home() {
 
   useEffect(() => {
     if (user) {
-      router.push('/empresas');
+      router.push(user.role === 'superadmin' ? '/superadmin' : '/empresas');
     } else {
       router.push('/login');
     }
