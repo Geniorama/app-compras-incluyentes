@@ -22,30 +22,11 @@ import DashboardSidebar from "@/components/DashboardSidebar";
 import type { UserProfile, SanityImage, CompanyData } from "@/types";
 import { getCIIUOptions, getSectorFromCIIU } from "@/utils/ciiuOptions";
 import ReactSelect from "react-select";
+import { getDepartamentosOptions, getCiudadesOptionsByDepartamento } from "@/utils/departamentosCiudades";
+import { getMexicoEstadosOptions, getMexicoMunicipiosByEstado } from "@/data/mexicoStates";
+import { LATIN_AMERICA_COUNTRIES } from "@/data/latinAmericaCountries";
 
-const COUNTRIES_OPTIONS = [
-  { title: 'Argentina', value: 'AR' },
-  { title: 'Bolivia', value: 'BO' },
-  { title: 'Brasil', value: 'BR' },
-  { title: 'Chile', value: 'CL' },
-  { title: 'Colombia', value: 'CO' },
-  { title: 'Costa Rica', value: 'CR' },
-  { title: 'Cuba', value: 'CU' },
-  { title: 'República Dominicana', value: 'DO' },
-  { title: 'Ecuador', value: 'EC' },
-  { title: 'El Salvador', value: 'SV' },
-  { title: 'Guatemala', value: 'GT' },
-  { title: 'Haití', value: 'HT' },
-  { title: 'Honduras', value: 'HN' },
-  { title: 'México', value: 'MX' },
-  { title: 'Nicaragua', value: 'NI' },
-  { title: 'Panamá', value: 'PA' },
-  { title: 'Paraguay', value: 'PY' },
-  { title: 'Perú', value: 'PE' },
-  { title: 'Puerto Rico', value: 'PR' },
-  { title: 'Uruguay', value: 'UY' },
-  { title: 'Venezuela', value: 'VE' },
-];
+const LATAM_OPTIONS = LATIN_AMERICA_COUNTRIES.map((c) => ({ value: c.value, label: c.title }));
 
 const PEOPLE_GROUP_OPTIONS = [
   { value: 'lgbtiq', label: 'LGBTIQ+' },
@@ -122,10 +103,38 @@ export default function ProfileView({
   
   // Estados para CIIU
   const [ciiuOptions] = useState(() => getCIIUOptions());
+  const [companyCityOptions, setCompanyCityOptions] = useState<{ value: string; label: string }[]>([]);
+  const [userCityOptions, setUserCityOptions] = useState<{ value: string; label: string }[]>([]);
+  const departamentosOptions = getDepartamentosOptions();
+  const mexEstadosOptions = getMexicoEstadosOptions();
   
   // Estados para annualRevenue y sector
   const [annualRevenueDisplay, setAnnualRevenueDisplay] = useState<string>("");
   const [sector, setSector] = useState<string>("");
+
+  useEffect(() => {
+    if (!profile?.department || !profile?.country) {
+      setCompanyCityOptions([]);
+      return;
+    }
+    if (profile.country === "MX") {
+      setCompanyCityOptions(getMexicoMunicipiosByEstado(profile.department));
+    } else {
+      setCompanyCityOptions(getCiudadesOptionsByDepartamento(profile.department));
+    }
+  }, [profile?.department, profile?.country]);
+
+  useEffect(() => {
+    if (!profile?.userDepartment || !profile?.userCountry) {
+      setUserCityOptions([]);
+      return;
+    }
+    if (profile.userCountry === "MX") {
+      setUserCityOptions(getMexicoMunicipiosByEstado(profile.userDepartment));
+    } else {
+      setUserCityOptions(getCiudadesOptionsByDepartamento(profile.userDepartment));
+    }
+  }, [profile?.userDepartment, profile?.userCountry]);
 
   useEffect(() => {
     if (initialProfile) {
@@ -144,6 +153,10 @@ export default function ProfileView({
         department: initialProfile.company?.department || "",
         city: initialProfile.company?.city || "",
         country: initialProfile.company?.country || "",
+        countries: Array.isArray(initialProfile.company?.countries) ? [...initialProfile.company.countries] : (initialProfile.company?.country ? [initialProfile.company.country] : []),
+        userCountry: (initialProfile as { country?: string }).country || "",
+        userDepartment: (initialProfile as { department?: string }).department || "",
+        userCity: (initialProfile as { city?: string }).city || "",
         companySize: initialProfile.company?.companySize || "",
         peopleGroup: Array.isArray(initialProfile.company?.peopleGroup)
           ? [...initialProfile.company.peopleGroup] // Crear una nueva referencia del array
@@ -155,6 +168,7 @@ export default function ProfileView({
         inclusionDEI: initialProfile.company?.inclusionDEI ? "yes" : "no",
         membership: initialProfile.company?.membership || false,
         annualRevenue: initialProfile.company?.annualRevenue ?? 0,
+        collaboratorsCount: initialProfile.company?.collaboratorsCount ?? 0,
         logo: initialProfile.company?.logo,
         facebook: initialProfile.company?.facebook || "",
         instagram: initialProfile.company?.instagram || "",
@@ -219,6 +233,10 @@ export default function ProfileView({
               department: updatedCompany?.department || "",
               city: updatedCompany?.city || "",
               country: updatedCompany?.country || "",
+              countries: Array.isArray(updatedCompany?.countries) ? [...updatedCompany.countries] : (updatedCompany?.country ? [updatedCompany.country] : []),
+              userCountry: updatedUser?.country || "",
+              userDepartment: updatedUser?.department || "",
+              userCity: updatedUser?.city || "",
               companySize: updatedCompany?.companySize || "",
               peopleGroup: Array.isArray(updatedCompany?.peopleGroup)
                 ? [...updatedCompany.peopleGroup] // Crear una nueva referencia del array
@@ -230,6 +248,7 @@ export default function ProfileView({
               inclusionDEI: updatedCompany?.inclusionDEI ? "yes" : "no",
               membership: updatedCompany?.membership || false,
               annualRevenue: updatedCompany?.annualRevenue ?? 0,
+              collaboratorsCount: updatedCompany?.collaboratorsCount ?? 0,
               logo: updatedCompany?.logo,
               facebook: updatedCompany?.facebook || "",
               instagram: updatedCompany?.instagram || "",
@@ -353,29 +372,27 @@ export default function ProfileView({
   }, [sector, annualRevenueDisplay]);
 
   const handleChange = (field: keyof UserProfile, value: string | string[] | boolean) => {
-    if (profile) {
-      // Si cambia el departamento, limpiar la ciudad
-      // Si cambia el grupo poblacional y no incluye "otro", limpiar otherPeopleGroup
-      if (field === 'peopleGroup') {
-        // Solo procesar si el valor es string o string[]
-        if (typeof value !== 'boolean') {
-          const hasOtro = Array.isArray(value) 
-            ? value.includes('otro')
-            : value === 'otro';
-          if (!hasOtro) {
-            setProfile({ ...profile, [field]: value, otherPeopleGroup: '' });
-          } else {
-            setProfile({ ...profile, [field]: value });
-          }
+    if (field === 'peopleGroup') {
+      if (typeof value !== 'boolean') {
+        const hasOtro = Array.isArray(value)
+          ? value.includes('otro')
+          : value === 'otro';
+        if (!hasOtro) {
+          setProfile((prev) => prev ? { ...prev, [field]: value, otherPeopleGroup: '' } : prev);
+        } else {
+          setProfile((prev) => prev ? { ...prev, [field]: value } : prev);
         }
-      } else if (field === 'publicProfile' || field === 'notifyEmailMessages') {
-        // Manejar los campos boolean específicamente
-        setProfile({ ...profile, [field]: value as boolean });
-      } else {
-        // Para otros campos string
-        if (typeof value !== 'boolean' && !Array.isArray(value)) {
-          setProfile({ ...profile, [field]: value });
-        }
+      }
+    } else if (field === 'collaboratorsCount') {
+      const num = typeof value === 'string' ? parseInt(value, 10) : Number(value as unknown);
+      setProfile((prev) => prev ? { ...prev, collaboratorsCount: isNaN(num) ? 0 : num } : prev);
+    } else if (field === 'publicProfile' || field === 'notifyEmailMessages') {
+      setProfile((prev) => prev ? { ...prev, [field]: value as boolean } : prev);
+    } else if (field === 'countries' && Array.isArray(value)) {
+      setProfile((prev) => prev ? { ...prev, [field]: value } : prev);
+    } else {
+      if (typeof value !== 'boolean' && !Array.isArray(value)) {
+        setProfile((prev) => prev ? { ...prev, [field]: value } : prev);
       }
     }
   };
@@ -412,6 +429,10 @@ export default function ProfileView({
       "department",
       "city",
       "country",
+      "countries",
+      "userCountry",
+      "userDepartment",
+      "userCity",
       "companySize",
       "peopleGroup",
       "otherPeopleGroup",
@@ -419,6 +440,7 @@ export default function ProfileView({
       "inclusionDEI",
       "membership",
       "annualRevenue",
+      "collaboratorsCount",
       "photo",
       "logo",
     ];
@@ -594,6 +616,9 @@ export default function ProfileView({
         position: profile.position,
         typeDocument: profile.typeDocument,
         numDocument: profile.numDocument,
+        country: profile.userCountry || "",
+        department: profile.userDepartment || "",
+        city: profile.userCity || "",
         photo: photoSanity,
         publicProfile: publicProfileValue,
         notifyEmailMessages: toBoolean(profile.notifyEmailMessages, false),
@@ -622,9 +647,10 @@ export default function ProfileView({
         ciiu: profile.ciiu,
         webSite: profile.webSite,
         addressCompany: profile.addressCompany,
-        department: profile.department,
+          department: profile.department,
         city: profile.city,
         country: profile.country,
+        countries: Array.isArray(profile.countries) ? profile.countries : [],
         companySize: profile.companySize,
         peopleGroup: profile.peopleGroup,
         otherPeopleGroup: profile.otherPeopleGroup,
@@ -632,6 +658,7 @@ export default function ProfileView({
         inclusionDEI: profile.inclusionDEI === "yes" ? true : false,
         membership: profile.membership,
         annualRevenue: currentAnnualRevenue,
+        collaboratorsCount: profile.collaboratorsCount ?? 0,
         facebook: profile.facebook,
         instagram: profile.instagram,
         tiktok: profile.tiktok,
@@ -706,6 +733,10 @@ export default function ProfileView({
           department: updatedCompany?.department || "",
           city: updatedCompany?.city || "",
           country: updatedCompany?.country || "",
+          countries: Array.isArray(updatedCompany?.countries) ? [...updatedCompany.countries] : (updatedCompany?.country ? [updatedCompany.country] : []),
+          userCountry: updatedUser?.country || "",
+          userDepartment: updatedUser?.department || "",
+          userCity: updatedUser?.city || "",
           companySize: updatedCompany?.companySize || "",
           peopleGroup: Array.isArray(updatedCompany?.peopleGroup)
             ? [...updatedCompany.peopleGroup] // Crear una nueva referencia del array
@@ -1162,6 +1193,84 @@ export default function ProfileView({
                     </div>
                   </div>
 
+                  <div className="w-full md:w-1/2 px-2 space-y-1">
+                    <Label htmlFor="userCountry">País</Label>
+                    <Select
+                      id="userCountry"
+                      value={profile?.userCountry || ""}
+                      onChange={(e) => {
+                        handleChange("userCountry", e.target.value);
+                        if (e.target.value !== "CO" && e.target.value !== "MX") {
+                          handleChange("userDepartment", "");
+                          handleChange("userCity", "");
+                        }
+                      }}
+                      color="blue"
+                      theme={{
+                        field: {
+                          select: {
+                            base: "border-slate-200 focus:border-blue-600 w-full",
+                          },
+                        },
+                      }}
+                    >
+                      <option value="">Selecciona tu país</option>
+                      {LATAM_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </Select>
+                  </div>
+                  {(profile?.userCountry === "CO" || profile?.userCountry === "MX") && (
+                    <>
+                      <div className="w-full md:w-1/2 px-2 space-y-1">
+                        <Label htmlFor="userDepartment">{profile?.userCountry === "MX" ? "Estado" : "Departamento"}</Label>
+                        <Select
+                          id="userDepartment"
+                          value={profile?.userDepartment || ""}
+                          onChange={(e) => {
+                            handleChange("userDepartment", e.target.value);
+                            handleChange("userCity", "");
+                          }}
+                          color="blue"
+                          theme={{
+                            field: {
+                              select: {
+                                base: "border-slate-200 focus:border-blue-600 w-full",
+                              },
+                            },
+                          }}
+                        >
+                          <option value="">Selecciona</option>
+                          {(profile?.userCountry === "MX" ? mexEstadosOptions : departamentosOptions).map((opt) => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          ))}
+                        </Select>
+                      </div>
+                      <div className="w-full md:w-1/2 px-2 space-y-1">
+                        <Label htmlFor="userCity">{profile?.userCountry === "MX" ? "Municipio" : "Ciudad"}</Label>
+                        <Select
+                          id="userCity"
+                          value={profile?.userCity || ""}
+                          onChange={(e) => handleChange("userCity", e.target.value)}
+                          color="blue"
+                          disabled={!profile?.userDepartment}
+                          theme={{
+                            field: {
+                              select: {
+                                base: "border-slate-200 focus:border-blue-600 w-full",
+                              },
+                            },
+                          }}
+                        >
+                          <option value="">Selecciona</option>
+                          {userCityOptions.map((opt) => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          ))}
+                        </Select>
+                      </div>
+                    </>
+                  )}
+
                   {/* Notificaciones por email */}
                   <div className="w-full px-2 space-y-1 mt-4">
                     <div className="flex items-start">
@@ -1418,6 +1527,22 @@ export default function ProfileView({
                   </div>
 
                   <div className="w-full md:w-1/2 px-2 space-y-1">
+                    <Label htmlFor="collaboratorsCount">Cantidad de colaboradores</Label>
+                    <TextInput
+                      type="number"
+                      inputMode="numeric"
+                      id="collaboratorsCount"
+                      min={0}
+                      value={profile?.collaboratorsCount ?? ""}
+                      onChange={(e) => handleChange("collaboratorsCount" as keyof UserProfile, e.target.value === "" ? "0" : e.target.value)}
+                      disabled={isUserOnly}
+                      color="blue"
+                      placeholder="Ej: 10"
+                      theme={{ field: { input: { base: "border-slate-200 focus:border-blue-600 w-full" } } }}
+                    />
+                  </div>
+
+                  <div className="w-full md:w-1/2 px-2 space-y-1">
                     <Label htmlFor="ciiu">Código CIIU</Label>
                     <Select
                       id="ciiu"
@@ -1464,71 +1589,112 @@ export default function ProfileView({
                   </div>
 
                   <div className="w-full md:w-1/2 px-2 space-y-1">
-                    <Label htmlFor="department">Región / Departamento</Label>
-                    <TextInput
-                      id="department"
-                      placeholder="Ej: Cundinamarca"
-                      value={profile?.department || ""}
-                      onChange={(e) =>
-                        handleChange("department", e.target.value)
-                      }
-                      color="blue"
-                      disabled={isUserOnly}
-                      theme={{
-                        field: {
-                          input: {
-                            base: `border-slate-200 focus:border-blue-600 w-full ${isUserOnly ? "bg-gray-100 text-gray-500" : ""}`,
-                          },
-                        },
-                      }}
-                    />
+                    <Label htmlFor="countries">Países donde opera la empresa</Label>
+                    {isClient ? (
+                      <ReactSelect
+                        id="countries"
+                        instanceId="profile-countries-select"
+                        isMulti
+                        options={LATAM_OPTIONS}
+                        value={Array.isArray(profile?.countries) ? LATAM_OPTIONS.filter((o) => profile.countries!.includes(o.value)) : []}
+                        onChange={(selected) => {
+                          const values = Array.isArray(selected) ? selected.map((s) => s.value) : [];
+                          handleChange("countries", values);
+                          if (!values.includes("CO") && !values.includes("MX")) {
+                            handleChange("country", "");
+                            handleChange("department", "");
+                            handleChange("city", "");
+                          } else if (profile?.country && !values.includes(profile.country)) {
+                            handleChange("country", values.includes("CO") ? "CO" : "MX");
+                            handleChange("department", "");
+                            handleChange("city", "");
+                          }
+                        }}
+                        placeholder="Selecciona uno o más países"
+                        noOptionsMessage={() => "No hay opciones"}
+                        isDisabled={isUserOnly}
+                        className="text-sm"
+                      />
+                    ) : (
+                      <div className="h-10 border border-gray-300 rounded bg-gray-100" />
+                    )}
                   </div>
-
-                  <div className="w-full md:w-1/2 px-2 space-y-1">
-                    <Label htmlFor="city">Ciudad / Municipio</Label>
-                    <TextInput
-                      id="city"
-                      placeholder="Ej: Bogotá"
-                      value={profile?.city || ""}
-                      onChange={(e) =>
-                        handleChange("city", e.target.value)
-                      }
-                      color="blue"
-                      disabled={isUserOnly}
-                      theme={{
-                        field: {
-                          input: {
-                            base: `border-slate-200 focus:border-blue-600 w-full ${isUserOnly ? "bg-gray-100 text-gray-500" : ""}`,
-                          },
-                        },
-                      }}
-                    />
-                  </div>
-
-                  <div className="w-full md:w-1/2 px-2 space-y-1">
-                    <Label htmlFor="country">País</Label>
-                    <Select
-                      id="country"
-                      value={profile?.country || ""}
-                      onChange={(e) => handleChange("country", e.target.value)}
-                      color="blue"
-                      disabled={isUserOnly}
-                      theme={{
-                        field: {
-                          select: {
-                            base: `border-slate-200 focus:border-blue-600 w-full ${isUserOnly ? "bg-gray-100 text-gray-500" : ""}`,
-                          },
-                        },
-                      }}
-                    >
-                      <option value="">Seleccionar país</option>
-                      {COUNTRIES_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.title}
-                        </option>
-                      ))}
-                    </Select>
-                  </div>
+                  {((Array.isArray(profile?.countries) && (profile.countries.includes("CO") || profile.countries.includes("MX"))) || (profile?.country === "CO" || profile?.country === "MX")) && (
+                    <>
+                      <div className="w-full md:w-1/2 px-2 space-y-1">
+                        <Label htmlFor="country">País de la sede principal</Label>
+                        <Select
+                          id="country"
+                          value={profile?.country || ""}
+                          onChange={(e) => {
+                            handleChange("country", e.target.value);
+                            handleChange("department", "");
+                            handleChange("city", "");
+                          }}
+                          color="blue"
+                          disabled={isUserOnly}
+                          theme={{
+                            field: {
+                              select: {
+                                base: `border-slate-200 focus:border-blue-600 w-full ${isUserOnly ? "bg-gray-100 text-gray-500" : ""}`,
+                              },
+                            },
+                          }}
+                        >
+                          <option value="">Selecciona el país de la sede</option>
+                          {((Array.isArray(profile?.countries) && profile.countries.includes("CO")) || profile?.country === "CO") && <option value="CO">Colombia</option>}
+                          {((Array.isArray(profile?.countries) && profile.countries.includes("MX")) || profile?.country === "MX") && <option value="MX">México</option>}
+                        </Select>
+                      </div>
+                      <div className="w-full md:w-1/2 px-2 space-y-1">
+                        <Label htmlFor="department">{profile?.country === "MX" ? "Estado" : "Departamento"}</Label>
+                        <Select
+                          id="department"
+                          value={profile?.department || ""}
+                          onChange={(e) => {
+                            handleChange("department", e.target.value);
+                            handleChange("city", "");
+                          }}
+                          color="blue"
+                          disabled={isUserOnly || !profile?.country}
+                          theme={{
+                            field: {
+                              select: {
+                                base: `border-slate-200 focus:border-blue-600 w-full ${isUserOnly ? "bg-gray-100 text-gray-500" : ""}`,
+                              },
+                            },
+                          }}
+                        >
+                          <option value="">Selecciona</option>
+                          {(profile?.country === "MX" ? mexEstadosOptions : departamentosOptions).map((opt) => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          ))}
+                        </Select>
+                      </div>
+                      <div className="w-full md:w-1/2 px-2 space-y-1">
+                        <Label htmlFor="city">{profile?.country === "MX" ? "Municipio" : "Ciudad"}</Label>
+                        <Select
+                          id="city"
+                          value={profile?.city || ""}
+                          onChange={(e) => handleChange("city", e.target.value)}
+                          color="blue"
+                          disabled={isUserOnly || !profile?.department}
+                          theme={{
+                            field: {
+                              select: {
+                                base: `border-slate-200 focus:border-blue-600 w-full ${isUserOnly ? "bg-gray-100 text-gray-500" : ""}`,
+                              },
+                            },
+                          }}
+                        >
+                          <option value="">Selecciona</option>
+                          {companyCityOptions.map((opt) => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          ))}
+                        </Select>
+                      </div>
+                    </>
+                  )}
 
                   <div className="w-full md:w-1/2 px-2 space-y-1">
                     <Label htmlFor="companySize">Tamaño de la empresa</Label>

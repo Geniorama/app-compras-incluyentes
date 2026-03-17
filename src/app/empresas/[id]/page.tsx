@@ -24,6 +24,7 @@ interface PublicUser {
   email?: string;
   phone?: string;
   photo?: SanityImage;
+  publicProfile?: boolean;
 }
 
 interface Company {
@@ -128,7 +129,8 @@ export default function EmpresaPage() {
               position,
               email,
               phone,
-              photo
+              photo,
+              publicProfile
             }
           }
         `, { id });

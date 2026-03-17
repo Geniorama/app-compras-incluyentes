@@ -51,6 +51,9 @@ export async function GET(request: Request) {
           publicProfile,
           notifyEmailMessages,
           photo,
+          country,
+          department,
+          city,
           _createdAt,
           company->{
             _id,
@@ -93,6 +96,9 @@ export async function POST(request: Request) {
       phone,
       pronoun,
       position,
+      country,
+      department,
+      city,
       typeDocument,
       numDocument,
       publicProfile,
@@ -162,6 +168,9 @@ export async function POST(request: Request) {
     if (firebaseUid) userData.firebaseUid = firebaseUid;
     if (companyId) userData.company = { _type: 'reference', _ref: companyId };
     if (photo?.asset?._ref) userData.photo = { _type: 'image', asset: { _type: 'reference', _ref: photo.asset._ref } };
+    if (country) userData.country = country;
+    if (department) userData.department = department;
+    if (city) userData.city = city;
     if (superadminDoc?._id) userData.createdBy = { _type: 'reference', _ref: superadminDoc._id };
 
     const userDoc = await client.create(userData as { _type: string; [key: string]: unknown });

@@ -16,6 +16,9 @@ interface InviteUserData {
   position?: string;
   typeDocument?: string;
   numDocument?: string;
+  country?: string;
+  department?: string;
+  city?: string;
   publicProfile?: boolean;
   notifyEmailMessages?: boolean;
   photo?: { _type: string; asset: { _type: string; _ref: string } };
@@ -37,6 +40,9 @@ export async function POST(request: Request) {
       position,
       typeDocument,
       numDocument,
+      country,
+      department,
+      city,
       publicProfile,
       notifyEmailMessages,
       photo
@@ -104,6 +110,9 @@ export async function POST(request: Request) {
       updatedAt: string;
       firebaseUid?: string;
       photo?: { _type: string; asset: { _type: string; _ref: string } };
+      country?: string;
+      department?: string;
+      city?: string;
     } = {
       _id: userDraftId,
       _type: 'user',
@@ -135,6 +144,10 @@ export async function POST(request: Request) {
     if (photo?.asset?._ref) {
       userData.photo = { _type: 'image', asset: { _type: 'reference', _ref: photo.asset._ref } };
     }
+
+    if (country) userData.country = country;
+    if (department) userData.department = department;
+    if (city) userData.city = city;
 
     const userDoc = await client.create(userData);
 

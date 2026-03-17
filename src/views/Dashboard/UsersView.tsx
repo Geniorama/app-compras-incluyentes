@@ -5,6 +5,9 @@ import DashboardSidebar from "@/components/DashboardSidebar";
 import { useAuth } from "@/context/AuthContext";
 import InternationalPhoneInput from "@/components/InternationalPhoneInput ";
 import { HiUser } from "react-icons/hi";
+import { getDepartamentosOptions, getCiudadesOptionsByDepartamento } from "@/utils/departamentosCiudades";
+import { getMexicoEstadosOptions, getMexicoMunicipiosByEstado } from "@/data/mexicoStates";
+import { LATIN_AMERICA_COUNTRIES } from "@/data/latinAmericaCountries";
 
 interface User {
   _id: string;
@@ -20,6 +23,9 @@ interface User {
   publicProfile?: boolean;
   notifyEmailMessages?: boolean;
   photo?: { _type?: string; asset?: { _ref?: string } };
+  country?: string;
+  department?: string;
+  city?: string;
 }
 
 function getImageUrl(image: User["photo"]): string {
@@ -53,10 +59,29 @@ export default function UsersView() {
     position: '',
     typeDocument: '',
     numDocument: '',
+    country: '',
+    department: '',
+    city: '',
     photo: '',
     publicProfile: false,
     notifyEmailMessages: false,
   });
+  const [userCityOptions, setUserCityOptions] = useState<{ value: string; label: string }[]>([]);
+  const departamentosOpts = getDepartamentosOptions();
+  const mexEstadosOpts = getMexicoEstadosOptions();
+  const LATAM_OPTIONS = LATIN_AMERICA_COUNTRIES.map((c) => ({ value: c.value, label: c.title }));
+
+  useEffect(() => {
+    if (!form.department || !form.country) {
+      setUserCityOptions([]);
+      return;
+    }
+    if (form.country === "MX") {
+      setUserCityOptions(getMexicoMunicipiosByEstado(form.department));
+    } else {
+      setUserCityOptions(getCiudadesOptionsByDepartamento(form.department));
+    }
+  }, [form.department, form.country]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [companySize, setCompanySize] = useState<string | null>(null);
@@ -160,7 +185,7 @@ export default function UsersView() {
       setShowModal(false);
       setPhotoFile(null);
       setPhotoPreview(null);
-      setForm({ firstName: '', lastName: '', email: '', password: '', role: 'user', phone: '', pronoun: '', position: '', typeDocument: '', numDocument: '', photo: '', publicProfile: false, notifyEmailMessages: false });
+      setForm({ firstName: '', lastName: '', email: '', password: '', role: 'user', phone: '', pronoun: '', position: '', typeDocument: '', numDocument: '', country: '', department: '', city: '', photo: '', publicProfile: false, notifyEmailMessages: false });
       await fetchUsers();
     } catch (err: unknown) {
       if (err instanceof Error) {
@@ -188,6 +213,9 @@ export default function UsersView() {
       position: userToEdit.position || '',
       typeDocument: userToEdit.typeDocument || '',
       numDocument: userToEdit.numDocument || '',
+      country: userToEdit.country || '',
+      department: userToEdit.department || '',
+      city: userToEdit.city || '',
       photo: '',
       publicProfile: userToEdit.publicProfile ?? false,
       notifyEmailMessages: userToEdit.notifyEmailMessages ?? false,
@@ -335,6 +363,9 @@ export default function UsersView() {
             position: '',
             typeDocument: '',
             numDocument: '',
+            country: '',
+            department: '',
+            city: '',
             photo: '',
             publicProfile: false,
             notifyEmailMessages: false,
@@ -459,6 +490,59 @@ export default function UsersView() {
                 <Label htmlFor="numDocument">Número de documento</Label>
                 <TextInput id="numDocument" name="numDocument" value={form.numDocument} onChange={handleInputChange} />
               </div>
+              <div>
+                <Label htmlFor="country">País</Label>
+                <Select
+                  id="country"
+                  name="country"
+                  value={form.country}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setForm((f) => ({ ...f, country: v, department: "", city: "" }));
+                  }}
+                >
+                  <option value="">Selecciona tu país</option>
+                  {LATAM_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </Select>
+              </div>
+              {(form.country === "CO" || form.country === "MX") && (
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <Label htmlFor="department">{form.country === "MX" ? "Estado" : "Departamento"}</Label>
+                    <Select
+                      id="department"
+                      name="department"
+                      value={form.department}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setForm((f) => ({ ...f, department: v, city: "" }));
+                      }}
+                    >
+                      <option value="">Selecciona</option>
+                      {(form.country === "MX" ? mexEstadosOpts : departamentosOpts).map((o) => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                      ))}
+                    </Select>
+                  </div>
+                  <div className="flex-1">
+                    <Label htmlFor="city">{form.country === "MX" ? "Municipio" : "Ciudad"}</Label>
+                    <Select
+                      id="city"
+                      name="city"
+                      value={form.city}
+                      onChange={handleInputChange}
+                      disabled={!form.department}
+                    >
+                      <option value="">Selecciona</option>
+                      {userCityOptions.map((o) => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                      ))}
+                    </Select>
+                  </div>
+                </div>
+              )}
               {/* Notificaciones por email */}
               <div className="flex items-start">
                 <Checkbox

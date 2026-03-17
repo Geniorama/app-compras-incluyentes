@@ -88,7 +88,7 @@ export default function DashboardNavbar() {
   }
 
   return (
-    <div className="flex max-w-[100vw] justify-between items-center px-4 py-3 bg-white border-b border-gray-200 fixed w-full z-30 sm:flex-row flex-col-reverse">
+    <div className="flex max-w-[100vw] justify-between items-center px-4 py-3 bg-white border-b border-gray-200 fixed top-8 w-full z-30 sm:flex-row flex-col-reverse">
       {isSecondaryMenuOpen && <MenuSecondary />}
       
       <div className="flex sm:items-center gap-4 w-full sm:w-auto">

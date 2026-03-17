@@ -15,3 +15,30 @@ body{
 .custom-dropdown-width ul {
     width: 300px;
 }
+
+/* ── Accesibilidad MinTIC (Resolución 1519 / WCAG 2.1 AA) ── */
+
+/* Tamaño de fuente */
+html.a11y-font-lg body,
+html.a11y-font-lg {
+  font-size: 118% !important;
+}
+html.a11y-font-xl body,
+html.a11y-font-xl {
+  font-size: 136% !important;
+}
+
+/* Alto contraste */
+html.a11y-high-contrast {
+  filter: contrast(150%);
+}
+
+/* Escala de grises */
+html.a11y-grayscale {
+  filter: grayscale(100%);
+}
+
+/* Ambos activos: combinar filtros */
+html.a11y-high-contrast.a11y-grayscale {
+  filter: contrast(150%) grayscale(100%);
+}

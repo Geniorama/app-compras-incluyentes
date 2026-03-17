@@ -20,6 +20,9 @@ export interface UserData {
     position?: string;
     typeDocument?: string;
     numDocument?: string;
+    country?: string;
+    department?: string;
+    city?: string;
     publicProfile?: boolean;
     notifyEmailMessages?: boolean;
 }
@@ -42,6 +45,7 @@ export interface CompanyData {
     department?: string;
     city?: string;
     country?: string;
+    countries?: string[];
     companySize?: string;
     peopleGroup?: string | string[];
     otherPeopleGroup?: string;
@@ -50,6 +54,7 @@ export interface CompanyData {
     diverseSupplier?: boolean;
     membership?: boolean;
     annualRevenue?: number;
+    collaboratorsCount?: number;
     logo?: string;
     facebook?: string;
     instagram?: string;
@@ -85,6 +90,10 @@ export interface ApiResponse {
 // Tipo combinado para el perfil completo (usado en el frontend)
 export interface UserProfile extends UserData {
     company?: SanityCompanyDocument;
+    // Campos del usuario (ubicación personal)
+    userCountry?: string;
+    userDepartment?: string;
+    userCity?: string;
     // Los campos de la empresa son opcionales en el perfil
     nameCompany?: string;
     businessName?: string;
@@ -98,6 +107,7 @@ export interface UserProfile extends UserData {
     department?: string;
     city?: string;
     country?: string;
+    countries?: string[];
     companySize?: string;
     peopleGroup?: string | string[];
     otherPeopleGroup?: string;
@@ -105,6 +115,7 @@ export interface UserProfile extends UserData {
     inclusionDEI?: boolean | string;
     membership?: boolean;
     annualRevenue?: number;
+    collaboratorsCount?: number;
     logo?: string | import('./sanity').SanityImage;
     facebook?: string;
     instagram?: string;

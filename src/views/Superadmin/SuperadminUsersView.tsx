@@ -6,6 +6,9 @@ import { useAuth } from '@/context/AuthContext';
 import SuperadminSidebar from '@/components/superadmin/SuperadminSidebar';
 import { HiUser, HiOutlinePencil, HiOutlineTrash, HiOutlineSearch } from 'react-icons/hi';
 import toast from 'react-hot-toast';
+import { getDepartamentosOptions, getCiudadesOptionsByDepartamento } from '@/utils/departamentosCiudades';
+import { getMexicoEstadosOptions, getMexicoMunicipiosByEstado } from '@/data/mexicoStates';
+import { LATIN_AMERICA_COUNTRIES } from '@/data/latinAmericaCountries';
 
 interface User {
   _id: string;
@@ -24,6 +27,9 @@ interface User {
   photo?: { _type?: string; asset?: { _ref?: string } };
   _createdAt?: string;
   company?: { _id: string; nameCompany: string };
+  country?: string;
+  department?: string;
+  city?: string;
 }
 
 interface Company {
@@ -51,6 +57,7 @@ function generarPassword(longitud = 12) {
 }
 
 const PAGE_SIZES = [20, 50, 100] as const;
+const LATAM_OPTIONS = LATIN_AMERICA_COUNTRIES.map((c) => ({ value: c.value, label: c.title }));
 
 export default function SuperadminUsersView() {
   const { user } = useAuth();
@@ -78,9 +85,27 @@ export default function SuperadminUsersView() {
     position: '',
     typeDocument: '',
     numDocument: '',
+    country: '',
+    department: '',
+    city: '',
     publicProfile: false,
     notifyEmailMessages: false,
   });
+  const [userCityOptions, setUserCityOptions] = useState<{ value: string; label: string }[]>([]);
+  const departamentosOpts = getDepartamentosOptions();
+  const mexEstadosOpts = getMexicoEstadosOptions();
+
+  useEffect(() => {
+    if (!form.department || !form.country) {
+      setUserCityOptions([]);
+      return;
+    }
+    if (form.country === 'MX') {
+      setUserCityOptions(getMexicoMunicipiosByEstado(form.department));
+    } else {
+      setUserCityOptions(getCiudadesOptionsByDepartamento(form.department));
+    }
+  }, [form.department, form.country]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -152,6 +177,9 @@ export default function SuperadminUsersView() {
       position: '',
       typeDocument: '',
       numDocument: '',
+      country: '',
+      department: '',
+      city: '',
       publicProfile: false,
       notifyEmailMessages: false,
     });
@@ -311,6 +339,9 @@ export default function SuperadminUsersView() {
       position: u.position || '',
       typeDocument: u.typeDocument || '',
       numDocument: u.numDocument || '',
+      country: u.country || '',
+      department: u.department || '',
+      city: u.city || '',
       publicProfile: u.publicProfile ?? false,
       notifyEmailMessages: u.notifyEmailMessages ?? false,
     });
@@ -574,6 +605,59 @@ export default function SuperadminUsersView() {
                 <Label htmlFor="numDocument">Número de documento</Label>
                 <TextInput id="numDocument" name="numDocument" value={form.numDocument} onChange={handleInputChange} />
               </div>
+              <div>
+                <Label htmlFor="country">País</Label>
+                <Select
+                  id="country"
+                  name="country"
+                  value={form.country}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setForm((f) => ({ ...f, country: v, department: '', city: '' }));
+                  }}
+                >
+                  <option value="">Selecciona tu país</option>
+                  {LATAM_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </Select>
+              </div>
+              {(form.country === 'CO' || form.country === 'MX') && (
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <Label htmlFor="department">{form.country === 'MX' ? 'Estado' : 'Departamento'}</Label>
+                    <Select
+                      id="department"
+                      name="department"
+                      value={form.department}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setForm((f) => ({ ...f, department: v, city: '' }));
+                      }}
+                    >
+                      <option value="">Selecciona</option>
+                      {(form.country === 'MX' ? mexEstadosOpts : departamentosOpts).map((o) => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                      ))}
+                    </Select>
+                  </div>
+                  <div className="flex-1">
+                    <Label htmlFor="city">{form.country === 'MX' ? 'Municipio' : 'Ciudad'}</Label>
+                    <Select
+                      id="city"
+                      name="city"
+                      value={form.city}
+                      onChange={handleInputChange}
+                      disabled={!form.department}
+                    >
+                      <option value="">Selecciona</option>
+                      {userCityOptions.map((o) => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                      ))}
+                    </Select>
+                  </div>
+                </div>
+              )}
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"

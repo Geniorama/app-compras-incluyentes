@@ -34,6 +34,7 @@ export async function POST(request: Request) {
       department,
       city,
       country,
+      countries,
       membership,
       companySize,
       peopleGroup,
@@ -43,9 +44,13 @@ export async function POST(request: Request) {
       friendlyBizz,
       inclusionDEI,
       annualRevenue,
+      collaboratorsCount,
       chamberOfCommerce,
       taxIdentificationDocument,
       publicProfile,
+      userCountry,
+      userDepartment,
+      userCity,
     } = await request.json()
 
     if (!logo || !photo) {
@@ -58,6 +63,8 @@ export async function POST(request: Request) {
     // Generar ID normal para la empresa y el usuario (ambos publicados)
     const companyId = uuidv4();
     const userId = uuidv4();
+
+    const companyCountries = Array.isArray(countries) ? countries : (country ? [country] : []);
 
     // Crear empresa como publicada y con active: false
     const companyDoc = await client.create({
@@ -78,9 +85,10 @@ export async function POST(request: Request) {
       pinterest,
       linkedin,
       xtwitter,
-      department,
-      city,
-      country,
+      department: department || '',
+      city: city || '',
+      country: country || (companyCountries[0] || ''),
+      countries: companyCountries,
       companySize,
       peopleGroup,
       otherPeopleGroup,
@@ -88,6 +96,7 @@ export async function POST(request: Request) {
       inclusionDEI: inclusionDEI === 'yes' ? true : false,
       membership: membership === 'yes' ? true : false,
       annualRevenue: annualRevenue || 0,
+      collaboratorsCount: collaboratorsCount || 0,
       chamberOfCommerce,
       taxIdentificationDocument,
       active: false,
@@ -114,6 +123,9 @@ export async function POST(request: Request) {
         _type: 'reference',
         _ref: companyId
       },
+      country: userCountry || '',
+      department: userDepartment || '',
+      city: userCity || '',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       infoVisibilityConsent: infoVisibilityConsent || false,

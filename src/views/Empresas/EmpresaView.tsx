@@ -27,6 +27,7 @@ interface PublicUser {
   email?: string;
   phone?: string;
   photo?: SanityImage | string;
+  publicProfile?: boolean;
 }
 
 interface EmpresaViewProps {
@@ -438,25 +439,29 @@ export default function EmpresaView({ company }: EmpresaViewProps) {
                             Enviar mensaje
                           </Button>
                         )}
-                        {teamMember.email && (
-                          <a 
-                            href={`mailto:${teamMember.email}`}
-                            className="flex items-center justify-center gap-2 text-sm text-blue-600 hover:text-blue-800 transition-colors"
-                          >
-                            <HiMail className="w-4 h-4" />
-                            <span className="truncate">{teamMember.email}</span>
-                          </a>
-                        )}
-                        {teamMember.phone && (
-                          <a 
-                            href={`https://wa.me/${userPhoneFormatted}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center justify-center gap-2 text-sm text-green-600 hover:text-green-800 transition-colors"
-                          >
-                            <HiPhone className="w-4 h-4" />
-                            <span>{teamMember.phone}</span>
-                          </a>
+                        {!teamMember.publicProfile && (
+                          <>
+                            {teamMember.email && (
+                              <a
+                                href={`mailto:${teamMember.email}`}
+                                className="flex items-center justify-center gap-2 text-sm text-blue-600 hover:text-blue-800 transition-colors"
+                              >
+                                <HiMail className="w-4 h-4" />
+                                <span className="truncate">{teamMember.email}</span>
+                              </a>
+                            )}
+                            {teamMember.phone && (
+                              <a
+                                href={`https://wa.me/${userPhoneFormatted}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center justify-center gap-2 text-sm text-green-600 hover:text-green-800 transition-colors"
+                              >
+                                <HiPhone className="w-4 h-4" />
+                                <span>{teamMember.phone}</span>
+                              </a>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>

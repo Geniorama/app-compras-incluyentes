@@ -7,6 +7,7 @@ import DashboardNavbar from '@/components/dashboard/Navbar';
 import BannerEmpresas from '@/assets/img/banner-empresas.webp';
 import { useEffect, useState, useRef } from 'react';
 import { getDepartamentosOptions, getCiudadesOptionsByDepartamento } from '@/utils/departamentosCiudades';
+import { getMexicoEstadosOptions, getMexicoMunicipiosByEstado } from '@/data/mexicoStates';
 import ReactSelect, { StylesConfig, CSSObjectWithLabel } from 'react-select';
 
 interface SanityImage {
@@ -47,6 +48,7 @@ interface EmpresasViewProps {
   currentPage: number;
   searchTerm: string;
   searchQuery: string;
+  country: string;
   sector: string[];
   department: string;
   city: string;
@@ -56,6 +58,7 @@ interface EmpresasViewProps {
   selectedFilters: string[];
   onSearchTermChange: (value: string) => void;
   onSearchSubmit: () => void;
+  onCountryChange: (value: string) => void;
   onSectorChange: (values: string[]) => void;
   onDepartmentChange: (value: string) => void;
   onCityChange: (value: string) => void;
@@ -76,6 +79,7 @@ export default function EmpresasView({
   currentPage,
   searchTerm,
   searchQuery,
+  country,
   sector,
   department,
   city,
@@ -85,6 +89,7 @@ export default function EmpresasView({
   selectedFilters,
   onSearchTermChange,
   onSearchSubmit,
+  onCountryChange,
   onSectorChange,
   onDepartmentChange,
   onCityChange,
@@ -101,10 +106,11 @@ export default function EmpresasView({
   const [isClient, setIsClient] = useState(false);
   const resultsRef = useRef<HTMLDivElement>(null);
   
-  // Estados para departamentos y ciudades
+  // Estados para departamentos/estados y ciudades/municipios según país
   const [departamentosOptions] = useState(() => getDepartamentosOptions());
-  const [ciudadesOptions, setCiudadesOptions] = useState<{ value: string; label: string; }[]>([]);
-  
+  const [ciudadesOptions, setCiudadesOptions] = useState<{ value: string; label: string }[]>([]);
+  const mexEstadosOptions = getMexicoEstadosOptions();
+
   useEffect(() => {
     setIsClient(true);
   }, []);
@@ -128,15 +134,18 @@ export default function EmpresasView({
     }
   }, []);
 
-  // Actualizar opciones de ciudades cuando cambie el departamento
+  // Actualizar opciones de ciudades/municipios cuando cambie el departamento/estado
   useEffect(() => {
-    if (department) {
-      const ciudades = getCiudadesOptionsByDepartamento(department);
-      setCiudadesOptions(ciudades);
-    } else {
+    if (!department) {
       setCiudadesOptions([]);
+      return;
     }
-  }, [department]);
+    if (country === 'MX') {
+      setCiudadesOptions(getMexicoMunicipiosByEstado(department));
+    } else {
+      setCiudadesOptions(getCiudadesOptionsByDepartamento(department));
+    }
+  }, [department, country]);
 
   // Obtener los CIIU únicos de las empresas
   const ciiuOptions = Array.from(new Set(companies.map((c) => c.ciiu).filter(Boolean))).map(ciiu => ({
@@ -258,6 +267,79 @@ export default function EmpresasView({
             <h2 className="text-xl font-semibold text-gray-800">Empresas</h2>
             <div className="flex flex-wrap gap-4 md:gap-x-4">
               <div className="min-w-[150px]">
+                <Label htmlFor="country-filter" className="text-sm font-medium text-gray-700 mb-1 block">
+                  País
+                </Label>
+                <Select
+                  id="country-filter"
+                  value={country}
+                  onChange={(e) => onCountryChange(e.target.value)}
+                  className="min-w-[150px]"
+                  theme={{
+                    field: {
+                      select: {
+                        base: "bg-blue-50 border-blue-300 text-sm focus:border-blue-500 focus:ring-blue-500"
+                      }
+                    }
+                  }}
+                >
+                  <option value="">Todos los países</option>
+                  <option value="CO">Colombia</option>
+                  <option value="MX">México</option>
+                </Select>
+              </div>
+              {((country === 'CO') || (country === 'MX')) && (
+                <>
+              <div className="min-w-[150px]">
+                <Label htmlFor="department-filter" className="text-sm font-medium text-gray-700 mb-1 block">
+                  {country === 'MX' ? 'Estado' : 'Departamento'}
+                </Label>
+                <Select
+                  id="department-filter"
+                  value={department}
+                  onChange={(e) => onDepartmentChange(e.target.value)}
+                  className="min-w-[150px]"
+                  theme={{
+                    field: {
+                      select: {
+                        base: "bg-blue-50 border-blue-300 text-sm focus:border-blue-500 focus:ring-blue-500"
+                      }
+                    }
+                  }}
+                >
+                  <option value="">Todos</option>
+                  {(country === 'MX' ? mexEstadosOptions : departamentosOptions).map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </Select>
+              </div>
+              <div className="min-w-[150px]">
+                <Label htmlFor="city-filter" className="text-sm font-medium text-gray-700 mb-1 block">
+                  {country === 'MX' ? 'Municipio' : 'Ciudad'}
+                </Label>
+                <Select
+                  id="city-filter"
+                  value={city}
+                  onChange={(e) => onCityChange(e.target.value)}
+                  className="min-w-[150px]"
+                  disabled={!department}
+                  theme={{
+                    field: {
+                      select: {
+                        base: `bg-blue-50 border-blue-300 text-sm focus:border-blue-500 focus:ring-blue-500 ${!department ? "bg-gray-100 text-gray-500 border-gray-200" : ""}`
+                      }
+                    }
+                  }}
+                >
+                  <option value="">Todos</option>
+                  {ciudadesOptions.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </Select>
+              </div>
+                </>
+              )}
+              <div className="min-w-[150px]">
                 <Label htmlFor="sector-filter" className="text-sm font-medium text-gray-700 mb-1 block">
                   Sector (CIIU)
                 </Label>
@@ -285,53 +367,6 @@ export default function EmpresasView({
                     Cargando...
                   </div>
                 )}
-              </div>
-              <div className="min-w-[150px]">
-                <Label htmlFor="department-filter" className="text-sm font-medium text-gray-700 mb-1 block">
-                  Departamento
-                </Label>
-                <Select 
-                  id="department-filter"
-                  value={department} 
-                  onChange={(e) => onDepartmentChange(e.target.value)}
-                  className="min-w-[150px]"
-                  theme={{
-                    field: {
-                      select: {
-                        base: "bg-blue-50 border-blue-300 text-sm focus:border-blue-500 focus:ring-blue-500"
-                      }
-                    }
-                  }}
-                >
-                  <option value="">Todos los departamentos</option>
-                  {departamentosOptions.map((option) => (
-                    <option key={option.value} value={option.value}>{option.label}</option>
-                  ))}
-                </Select>
-              </div>
-              <div className="min-w-[150px]">
-                <Label htmlFor="city-filter" className="text-sm font-medium text-gray-700 mb-1 block">
-                  Ciudad
-                </Label>
-                <Select 
-                  id="city-filter"
-                  value={city} 
-                  onChange={(e) => onCityChange(e.target.value)}
-                  className="min-w-[150px]"
-                  disabled={!department}
-                  theme={{
-                    field: {
-                      select: {
-                        base: `bg-blue-50 border-blue-300 text-sm focus:border-blue-500 focus:ring-blue-500 ${!department ? "bg-gray-100 text-gray-500 border-gray-200" : ""}`
-                      }
-                    }
-                  }}
-                >
-                  <option value="">Todas las ciudades</option>
-                  {ciudadesOptions.map((option) => (
-                    <option key={option.value} value={option.value}>{option.label}</option>
-                  ))}
-                </Select>
               </div>
               <div className="min-w-[150px]">
                 <Label htmlFor="company-size-filter" className="text-sm font-medium text-gray-700 mb-1 block">

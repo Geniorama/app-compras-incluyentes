@@ -3,6 +3,7 @@ import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { Toaster } from "react-hot-toast";
 import SurveyModal from "@/components/SurveyModal";
+import AccessibilityBar from "@/components/AccessibilityBar";
 import Link from "next/link";
 import { FaFacebook, FaInstagram, FaLinkedinIn } from "react-icons/fa";
 import { BsTwitterX } from "react-icons/bs";
@@ -22,7 +23,10 @@ export default function RootLayout({
     <html lang="es" suppressHydrationWarning>
       <body className={'font-sans'}>
         <AuthProvider>
-          {children}
+          <AccessibilityBar />
+          <main id="main-content" className="pt-8">
+            {children}
+          </main>
           <SurveyModal />
           <Toaster position="top-right" />
         <footer className="bg-[#4C66F7] text-white">

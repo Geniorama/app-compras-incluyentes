@@ -42,6 +42,7 @@ export default function EmpresasPage() {
   const { user } = useAuth();
   const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [country, setCountry] = useState('');
   const [sector, setSector] = useState<string[]>([]);
   const [department, setDepartment] = useState('');
   const [city, setCity] = useState('');
@@ -76,11 +77,21 @@ export default function EmpresasPage() {
         const sectorFilter = sector.map(s => `"${s}"`).join(', ');
         filters.push(`ciiu in [${sectorFilter}]`);
       }
-      if (department) filters.push(`department == "${department}"`);
-      if (city) filters.push(`city == "${city}"`);
+      if (country) {
+        const countryFilter = country === 'CO'
+          ? `(country == "CO" || country == "Colombia")`
+          : country === 'MX'
+          ? `(country == "MX" || country == "México")`
+          : `country == "${country}"`;
+        filters.push(countryFilter);
+      }
+      if (department) filters.push(`department == "${department.replace(/"/g, '\\"')}"`);
+      if (city) filters.push(`city == "${city.replace(/"/g, '\\"')}"`);
       if (peopleGroup.length > 0) {
-        const pgFilter = peopleGroup.map(pg => `"${pg}"`).join(', ');
-        filters.push(`peopleGroup in [${pgFilter}]`);
+        const pgConditions = peopleGroup
+          .map(pg => `"${pg.replace(/"/g, '\\"')}" in peopleGroup`)
+          .join(' || ');
+        filters.push(`(${pgConditions})`);
       }
       if (companySize.length > 0) {
         const sizeFilter = companySize.map(size => `"${size}"`).join(', ');
@@ -134,12 +145,20 @@ export default function EmpresasPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, sector, department, city, searchTerm, peopleGroup, companySize, inclusionDEI, sortField, sortDirection]);
+  }, [currentPage, sector, department, city, searchTerm, peopleGroup, companySize, inclusionDEI, sortField, sortDirection, country]);
 
   useEffect(() => {
     fetchCompanies();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage, sector, department, city, searchTerm, peopleGroup, companySize, inclusionDEI, sortField, sortDirection]);
+  }, [currentPage, sector, department, city, searchTerm, peopleGroup, companySize, inclusionDEI, sortField, sortDirection, country]);
+
+  // Limpiar departamento y ciudad cuando cambie el país, o cuando no sea CO/MX
+  useEffect(() => {
+    if (country !== 'CO' && country !== 'MX') {
+      setDepartment('');
+      setCity('');
+    }
+  }, [country]);
 
   // Limpiar ciudad cuando cambie el departamento
   useEffect(() => {
@@ -156,6 +175,10 @@ export default function EmpresasPage() {
       newFilters.push(searchInput);
     }
     sector.forEach(s => newFilters.push(s));
+    if (country) {
+      const countryLabels: Record<string, string> = { CO: 'Colombia', MX: 'México' };
+      newFilters.push(countryLabels[country] || country);
+    }
     if (department) newFilters.push(department);
     if (city) newFilters.push(city);
     
@@ -236,6 +259,8 @@ export default function EmpresasPage() {
     
     // Remover de arrays
     if (sector.includes(filter)) setSector(sector.filter(s => s !== filter));
+    if (filter === 'Colombia') setCountry((c) => (c === 'CO' ? '' : c));
+    if (filter === 'México') setCountry((c) => (c === 'MX' ? '' : c));
     if (filter === department) setDepartment('');
     if (filter === city) setCity('');
     
@@ -273,6 +298,7 @@ export default function EmpresasPage() {
       currentPage={currentPage}
       searchTerm={searchInput}
       searchQuery={searchTerm}
+      country={country}
       sector={sector}
       department={department}
       city={city}
@@ -280,6 +306,13 @@ export default function EmpresasPage() {
       selectedFilters={selectedFilters}
       onSearchTermChange={setSearchInput}
       onSearchSubmit={handleSearch}
+      onCountryChange={(value: string) => {
+        setCountry(value);
+        if (value !== 'CO' && value !== 'MX') {
+          setDepartment('');
+          setCity('');
+        }
+      }}
       onSectorChange={(values: string[]) => setSector(values)}
       onDepartmentChange={(value: string) => {
         setDepartment(value);

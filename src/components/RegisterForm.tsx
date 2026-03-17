@@ -38,34 +38,18 @@ import { RiEyeLine } from "react-icons/ri";
 import { RiEyeOffLine } from "react-icons/ri";
 import ReactSelect from "react-select";
 import { getSectorFromCIIU } from "@/utils/ciiuOptions";
+import { getDepartamentosOptions, getCiudadesOptionsByDepartamento } from "@/utils/departamentosCiudades";
+import { getMexicoEstadosOptions, getMexicoMunicipiosByEstado } from "@/data/mexicoStates";
+import { LATIN_AMERICA_COUNTRIES } from "@/data/latinAmericaCountries";
 
 const SPECIAL_CHAR_REGEX = /[!@#$%^&*()_.,?":{}|<>-]/;
 const PASSWORD_REGEX =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_.,?":{}|<>-])[A-Za-z\d!@#$%^&*()_.,?":{}|<>-]{10,}$/;
 
-const COUNTRIES_OPTIONS = [
-  { title: 'Argentina', value: 'AR' },
-  { title: 'Bolivia', value: 'BO' },
-  { title: 'Brasil', value: 'BR' },
-  { title: 'Chile', value: 'CL' },
-  { title: 'Colombia', value: 'CO' },
-  { title: 'Costa Rica', value: 'CR' },
-  { title: 'Cuba', value: 'CU' },
-  { title: 'República Dominicana', value: 'DO' },
-  { title: 'Ecuador', value: 'EC' },
-  { title: 'El Salvador', value: 'SV' },
-  { title: 'Guatemala', value: 'GT' },
-  { title: 'Haití', value: 'HT' },
-  { title: 'Honduras', value: 'HN' },
-  { title: 'México', value: 'MX' },
-  { title: 'Nicaragua', value: 'NI' },
-  { title: 'Panamá', value: 'PA' },
-  { title: 'Paraguay', value: 'PY' },
-  { title: 'Perú', value: 'PE' },
-  { title: 'Puerto Rico', value: 'PR' },
-  { title: 'Uruguay', value: 'UY' },
-  { title: 'Venezuela', value: 'VE' },
-];
+const LATAM_OPTIONS = LATIN_AMERICA_COUNTRIES.map((c) => ({
+  value: c.value,
+  label: c.title,
+}));
 
 const PEOPLE_GROUP_OPTIONS = [
   { value: 'lgbtiq', label: 'LGBTIQ+' },
@@ -103,7 +87,8 @@ interface FormData {
   addressCompany: string;
   department: string;
   city: string;
-  country: string;
+  countries: string[];
+  addressCountry: string;
   firstName: string;
   lastName: string;
   email: string;
@@ -112,6 +97,9 @@ interface FormData {
   numDocument: string;
   pronoun: string;
   position: string;
+  userCountry: string;
+  userDepartment: string;
+  userCity: string;
   password: string;
   confirmPassword: string;
   facebook?: string;
@@ -129,6 +117,7 @@ interface FormData {
   friendlyBizz: boolean;
   inclusionDEI?: string;
   annualRevenue: number;
+  collaboratorsCount?: number;
   publicProfile?: boolean;
 }
 
@@ -166,6 +155,11 @@ export default function RegisterForm() {
   );
   const [annualRevenue, setAnnualRevenue] = useState<string>("");
   const [sector, setSector] = useState<string>("");
+  const [companyCityOptions, setCompanyCityOptions] = useState<{ value: string; label: string }[]>([]);
+  const [userCityOptions, setUserCityOptions] = useState<{ value: string; label: string }[]>([]);
+
+  const departamentosOptions = getDepartamentosOptions();
+  const mexEstadosOptions = getMexicoEstadosOptions();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -173,7 +167,15 @@ export default function RegisterForm() {
   const taxIdentificationDocumentInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
-  const { register, handleSubmit, watch, setValue } = useForm<FormData>();
+  const { register, handleSubmit, watch, setValue } = useForm<FormData>({
+    defaultValues: {
+      countries: [],
+      addressCountry: "",
+      userCountry: "",
+      userDepartment: "",
+      userCity: "",
+    },
+  });
 
   // Fields Step 1
   const nameCompany = watch("nameCompany");
@@ -183,7 +185,8 @@ export default function RegisterForm() {
   const addressCompany = watch("addressCompany");
   const department = watch("department");
   const city = watch("city");
-  const country = watch("country");
+  const countries = watch("countries");
+  const addressCountry = watch("addressCountry");
   const companySize = watch("companySize");
   const peopleGroup = watch("peopleGroup");
   const otherPeopleGroup = watch("otherPeopleGroup");
@@ -199,6 +202,9 @@ export default function RegisterForm() {
   const pronoun = watch("pronoun");
   const position = watch("position");
   const membership = watch("membership");
+  const userCountry = watch("userCountry");
+  const userDepartment = watch("userDepartment");
+  const userCity = watch("userCity");
   // Fields Step 3
   const password = watch("password");
   const confirmPassword = watch("confirmPassword");
@@ -272,27 +278,41 @@ export default function RegisterForm() {
         return null;
 
       case "department":
-        if (!value) return "La región / departamento es obligatorio";
-        if (typeof value === "string") {
-          if (value.length < 2)
-            return "La región / departamento debe tener al menos 2 caracteres";
-          if (value.length > 100)
-            return "La región / departamento no puede exceder 100 caracteres";
+        if (addressCountry === "CO" || addressCountry === "MX") {
+          if (!value) return addressCountry === "MX" ? "El estado es obligatorio" : "El departamento es obligatorio";
         }
         return null;
 
       case "city":
-        if (!value) return "La ciudad / municipio es obligatorio";
-        if (typeof value === "string") {
-          if (value.length < 2)
-            return "La ciudad / municipio debe tener al menos 2 caracteres";
-          if (value.length > 100)
-            return "La ciudad / municipio no puede exceder 100 caracteres";
+        if (addressCountry === "CO" || addressCountry === "MX") {
+          if (!value) return addressCountry === "MX" ? "El municipio es obligatorio" : "La ciudad es obligatoria";
         }
         return null;
 
-      case "country":
+      case "countries":
+        if (!Array.isArray(value) || value.length === 0) return "Debe seleccionar al menos un país";
+        return null;
+
+      case "addressCountry":
+        const countriesList = watch("countries") as string[] | undefined;
+        const hasCoOrMx = Array.isArray(countriesList) && (countriesList.includes("CO") || countriesList.includes("MX"));
+        if (hasCoOrMx && !value) return "El país de la sede principal es obligatorio";
+        return null;
+
+      case "userCountry":
         if (!value) return "El país es obligatorio";
+        return null;
+
+      case "userDepartment":
+        if (userCountry === "CO" || userCountry === "MX") {
+          if (!value) return userCountry === "MX" ? "El estado es obligatorio" : "El departamento es obligatorio";
+        }
+        return null;
+
+      case "userCity":
+        if (userCountry === "CO" || userCountry === "MX") {
+          if (!value) return userCountry === "MX" ? "El municipio es obligatorio" : "La ciudad es obligatoria";
+        }
         return null;
 
       case "companySize":
@@ -405,7 +425,7 @@ export default function RegisterForm() {
           return null;
       }
     },
-    [companySize, peopleGroup, password, watch]
+    [companySize, peopleGroup, password, watch, addressCountry, userCountry]
   );
 
   // Función para validar todos los campos del paso actual
@@ -428,11 +448,14 @@ export default function RegisterForm() {
         "ciiu",
         "webSite",
         "addressCompany",
-        "department",
-        "city",
-        "country",
+        "countries",
         "companySize",
       ];
+      const countriesList = watch("countries") as string[] | undefined;
+      const hasCoOrMx = Array.isArray(countriesList) && (countriesList.includes("CO") || countriesList.includes("MX"));
+      if (hasCoOrMx) {
+        fieldsToValidate.push("addressCountry", "department", "city");
+      }
 
       // Validar otherPeopleGroup solo si peopleGroup incluye "otro"
       const hasOtro = Array.isArray(peopleGroup) 
@@ -478,7 +501,12 @@ export default function RegisterForm() {
         "numDocument",
         "pronoun",
         "position",
+        "userCountry",
       ];
+      const uc = watch("userCountry");
+      if (uc === "CO" || uc === "MX") {
+        fieldsToValidate.push("userDepartment", "userCity");
+      }
 
       fieldsToValidate.forEach((field: keyof FormData) => {
         const value = watch(field);
@@ -566,7 +594,8 @@ export default function RegisterForm() {
     addressCompany,
     department,
     city,
-    country,
+    countries,
+    addressCountry,
     firstName,
     lastName,
     email,
@@ -578,6 +607,9 @@ export default function RegisterForm() {
     numDocument,
     pronoun,
     position,
+    userCountry,
+    userDepartment,
+    userCity,
     logo,
     photo,
     emailError,
@@ -595,6 +627,30 @@ export default function RegisterForm() {
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  useEffect(() => {
+    if (!department || !addressCountry) {
+      setCompanyCityOptions([]);
+      return;
+    }
+    if (addressCountry === "MX") {
+      setCompanyCityOptions(getMexicoMunicipiosByEstado(department));
+    } else {
+      setCompanyCityOptions(getCiudadesOptionsByDepartamento(department));
+    }
+  }, [department, addressCountry]);
+
+  useEffect(() => {
+    if (!userDepartment || !userCountry) {
+      setUserCityOptions([]);
+      return;
+    }
+    if (userCountry === "MX") {
+      setUserCityOptions(getMexicoMunicipiosByEstado(userDepartment));
+    } else {
+      setUserCityOptions(getCiudadesOptionsByDepartamento(userDepartment));
+    }
+  }, [userDepartment, userCountry]);
 
   interface CIIUData {
     clasificacion_ciiu: string;
@@ -734,16 +790,28 @@ export default function RegisterForm() {
         }
 
         // 3. Crear usuario en Sanity con las referencias de las imágenes y archivos
+        const countriesList = Array.isArray(data.countries) ? data.countries : [];
+        const addrCountry = data.addressCountry || (countriesList.includes("CO") ? "CO" : countriesList.includes("MX") ? "MX" : countriesList[0] || "");
+        const companyCountry = addrCountry || countriesList[0] || "";
+
         const response = await fetch("/api/create-sanity-user", {
           method: "POST",
           body: JSON.stringify({
             ...data,
+            countries: countriesList,
+            country: companyCountry,
+            department: addrCountry ? data.department : "",
+            city: addrCountry ? data.city : "",
             firebaseUid: firebaseUser.uid,
             logo: logoSanity,
             photo: photoSanity,
             chamberOfCommerce: chamberOfCommerceSanity,
             taxIdentificationDocument: taxIdentificationDocumentSanity,
             annualRevenue: parseInt(annualRevenue.replace(/[^\d]/g, ""), 10) || 0,
+            collaboratorsCount: data.collaboratorsCount ? parseInt(String(data.collaboratorsCount), 10) : 0,
+            userCountry: data.userCountry,
+            userDepartment: data.userDepartment,
+            userCity: data.userCity,
           }),
           headers: {
             "Content-Type": "application/json",
@@ -1467,121 +1535,142 @@ export default function RegisterForm() {
                         )}
                       </div>
                       <div className="w-full md:w-1/2 lg:w-1/2 px-2 space-y-1">
-                        <Label htmlFor="department">
-                          Región / Departamento <span className="text-red-500">*</span>
+                        <Label htmlFor="countries">
+                          Países donde opera la empresa <span className="text-red-500">*</span>
                         </Label>
-                        <TextInput
-                          {...register("department", {
-                            required: "La región / departamento es obligatorio",
-                            onChange: (e) => {
-                              const error = validateField(
-                                "department",
-                                e.target.value
-                              );
-                              if (error) {
-                                setValidationErrors((prev) => ({
-                                  ...prev,
-                                  department: error,
-                                }));
-                              } else {
-                                setValidationErrors((prev) => {
-                                  const { ...rest } = prev;
-                                  return rest;
-                                });
+                        {isClient ? (
+                          <ReactSelect
+                            id="countries"
+                            instanceId="countries-select"
+                            isMulti
+                            options={LATAM_OPTIONS}
+                            value={Array.isArray(countries) ? LATAM_OPTIONS.filter((o) => countries.includes(o.value)) : []}
+                            onChange={(selected) => {
+                              const values = Array.isArray(selected) ? selected.map((s) => s.value) : [];
+                              setValue("countries", values);
+                              if (!values.includes("CO") && !values.includes("MX")) {
+                                setValue("addressCountry", "");
+                                setValue("department", "");
+                                setValue("city", "");
+                              } else if (addressCountry && !values.includes(addressCountry)) {
+                                setValue("addressCountry", values.includes("CO") ? "CO" : "MX");
+                                setValue("department", "");
+                                setValue("city", "");
                               }
-                            },
-                          })}
-                          color={
-                            validationErrors.department ? "failure" : "blue"
-                          }
-                          id="department"
-                          placeholder="Ej: Cundinamarca"
-                        />
-                        {validationErrors.department && (
-                          <p className="text-red-500 text-sm mt-1">
-                            {validationErrors.department}
-                          </p>
+                              const error = validateField("countries", values);
+                              setValidationErrors((prev) => {
+                                if (error) return { ...prev, countries: error };
+                                const { countries: _, ...rest } = prev;
+                                return rest;
+                              });
+                            }}
+                            placeholder="Selecciona uno o más países"
+                            noOptionsMessage={() => "No hay opciones"}
+                            className="text-sm"
+                          />
+                        ) : (
+                          <div className="h-10 border border-gray-300 rounded bg-gray-100" />
+                        )}
+                        {validationErrors.countries && (
+                          <p className="text-red-500 text-sm mt-1">{validationErrors.countries}</p>
                         )}
                       </div>
-                      <div className="w-full md:w-1/2 lg:w-1/2 px-2 space-y-1">
-                        <Label htmlFor="city">
-                          Ciudad / Municipio <span className="text-red-500">*</span>
-                        </Label>
-                        <TextInput
-                          {...register("city", {
-                            required: "La ciudad / municipio es obligatorio",
-                            onChange: (e) => {
-                              const error = validateField(
-                                "city",
-                                e.target.value
-                              );
-                              if (error) {
-                                setValidationErrors((prev) => ({
-                                  ...prev,
-                                  city: error,
-                                }));
-                              } else {
-                                setValidationErrors((prev) => {
-                                  const { ...rest } = prev;
-                                  return rest;
-                                });
-                              }
-                            },
-                          })}
-                          color={
-                            validationErrors.city ? "failure" : "blue"
-                          }
-                          id="city"
-                          placeholder="Ej: Bogotá"
-                        />
-                        {validationErrors.city && (
-                          <p className="text-red-500 text-sm mt-1">
-                            {validationErrors.city}
-                          </p>
-                        )}
-                      </div>
-                      <div className="w-full md:w-1/2 lg:w-1/2 px-2 space-y-1">
-                        <Label htmlFor="country">
-                          País <span className="text-red-500">*</span>
-                        </Label>
-                        <Select
-                          {...register("country", {
-                            required: "El país es obligatorio",
-                            onChange: (e) => {
-                              const error = validateField(
-                                "country",
-                                e.target.value
-                              );
-                              if (error) {
-                                setValidationErrors((prev) => ({
-                                  ...prev,
-                                  country: error,
-                                }));
-                              } else {
-                                setValidationErrors((prev) => {
-                                  const { ...rest } = prev;
-                                  return rest;
-                                });
-                              }
-                            },
-                          })}
-                          id="country"
-                          className="w-full"
-                          color="blue"
-                        >
-                          <option value="">Selecciona un país</option>
-                          {COUNTRIES_OPTIONS.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.title}
-                            </option>
-                          ))}
-                        </Select>
-                        {validationErrors.country && (
-                          <p className="text-red-500 text-sm mt-1">
-                            {validationErrors.country}
-                          </p>
-                        )}
-                      </div>
+                      {Array.isArray(countries) && (countries.includes("CO") || countries.includes("MX")) && (
+                        <>
+                          <div className="w-full md:w-1/2 lg:w-1/2 px-2 space-y-1">
+                            <Label htmlFor="addressCountry">
+                              País de la sede principal <span className="text-red-500">*</span>
+                            </Label>
+                            <Select
+                              {...register("addressCountry", {
+                                onChange: (e) => {
+                                  const val = e.target.value;
+                                  setValue("addressCountry", val);
+                                  setValue("department", "");
+                                  setValue("city", "");
+                                  const error = validateField("addressCountry", val);
+                                  setValidationErrors((prev) => {
+                                    if (error) return { ...prev, addressCountry: error };
+                                    const { addressCountry: _, ...rest } = prev;
+                                    return rest;
+                                  });
+                                },
+                              })}
+                              id="addressCountry"
+                              className="w-full"
+                              value={addressCountry || ""}
+                            >
+                              <option value="">Selecciona el país de la sede</option>
+                              {countries.includes("CO") && <option value="CO">Colombia</option>}
+                              {countries.includes("MX") && <option value="MX">México</option>}
+                            </Select>
+                            {validationErrors.addressCountry && (
+                              <p className="text-red-500 text-sm mt-1">{validationErrors.addressCountry}</p>
+                            )}
+                          </div>
+                          <div className="w-full md:w-1/2 lg:w-1/2 px-2 space-y-1">
+                            <Label htmlFor="department">
+                              {addressCountry === "MX" ? "Estado" : "Departamento"} <span className="text-red-500">*</span>
+                            </Label>
+                            <Select
+                              {...register("department", {
+                                onChange: (e) => {
+                                  setValue("department", e.target.value);
+                                  setValue("city", "");
+                                  const error = validateField("department", e.target.value);
+                                  setValidationErrors((prev) => {
+                                    if (error) return { ...prev, department: error };
+                                    const { department: _, ...rest } = prev;
+                                    return rest;
+                                  });
+                                },
+                              })}
+                              id="department"
+                              className="w-full"
+                              value={department || ""}
+                              disabled={!addressCountry}
+                            >
+                              <option value="">Selecciona</option>
+                              {(addressCountry === "MX" ? mexEstadosOptions : departamentosOptions).map((opt) => (
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                              ))}
+                            </Select>
+                            {validationErrors.department && (
+                              <p className="text-red-500 text-sm mt-1">{validationErrors.department}</p>
+                            )}
+                          </div>
+                          <div className="w-full md:w-1/2 lg:w-1/2 px-2 space-y-1">
+                            <Label htmlFor="city">
+                              {addressCountry === "MX" ? "Municipio" : "Ciudad"} <span className="text-red-500">*</span>
+                            </Label>
+                            <Select
+                              {...register("city", {
+                                onChange: (e) => {
+                                  setValue("city", e.target.value);
+                                  const error = validateField("city", e.target.value);
+                                  setValidationErrors((prev) => {
+                                    if (error) return { ...prev, city: error };
+                                    const { city: _, ...rest } = prev;
+                                    return rest;
+                                  });
+                                },
+                              })}
+                              id="city"
+                              className="w-full"
+                              value={city || ""}
+                              disabled={!department}
+                            >
+                              <option value="">Selecciona</option>
+                              {companyCityOptions.map((opt) => (
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                              ))}
+                            </Select>
+                            {validationErrors.city && (
+                              <p className="text-red-500 text-sm mt-1">{validationErrors.city}</p>
+                            )}
+                          </div>
+                        </>
+                      )}
 
                       <div className="w-full md:w-1/2 lg:w-1/2 px-2 space-y-1 md:mt-6">
                         <Label htmlFor="annualRevenue">
@@ -1605,6 +1694,21 @@ export default function RegisterForm() {
                             Sector detectado: <b>{sector}</b>
                           </p>
                         )}
+                      </div>
+
+                      <div className="w-full md:w-1/2 lg:w-1/2 px-2 space-y-1 md:mt-6">
+                        <Label htmlFor="collaboratorsCount">
+                          Cantidad de colaboradores
+                        </Label>
+                        <input
+                          type="number"
+                          inputMode="numeric"
+                          id="collaboratorsCount"
+                          className="w-full border rounded px-3 py-2"
+                          placeholder="Ej: 10"
+                          min={0}
+                          {...register("collaboratorsCount", { valueAsNumber: true })}
+                        />
                       </div>
 
                       {companySize !== "grande" && (
@@ -2152,6 +2256,105 @@ export default function RegisterForm() {
                     </p>
                   )}
                 </div>
+
+                <div className="w-full md:w-1/2 px-2 space-y-1">
+                  <Label htmlFor="userCountry">
+                    País <span className="text-red-500">*</span>
+                  </Label>
+                  <Select
+                    {...register("userCountry", {
+                      onChange: (e) => {
+                        const val = e.target.value;
+                        setValue("userCountry", val);
+                        if (val !== "CO" && val !== "MX") {
+                          setValue("userDepartment", "");
+                          setValue("userCity", "");
+                        }
+                        const error = validateField("userCountry", val);
+                        setValidationErrors((prev) => {
+                          if (error) return { ...prev, userCountry: error };
+                          const { userCountry: _, ...rest } = prev;
+                          return rest;
+                        });
+                      },
+                    })}
+                    id="userCountry"
+                    className="w-full"
+                    value={userCountry || ""}
+                  >
+                    <option value="">Selecciona tu país</option>
+                    {LATAM_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </Select>
+                  {validationErrors.userCountry && (
+                    <p className="text-red-500 text-sm mt-1">{validationErrors.userCountry}</p>
+                  )}
+                </div>
+                {(userCountry === "CO" || userCountry === "MX") && (
+                  <>
+                    <div className="w-full md:w-1/2 px-2 space-y-1">
+                      <Label htmlFor="userDepartment">
+                        {userCountry === "MX" ? "Estado" : "Departamento"} <span className="text-red-500">*</span>
+                      </Label>
+                      <Select
+                        {...register("userDepartment", {
+                          onChange: (e) => {
+                            setValue("userDepartment", e.target.value);
+                            setValue("userCity", "");
+                            const error = validateField("userDepartment", e.target.value);
+                            setValidationErrors((prev) => {
+                              if (error) return { ...prev, userDepartment: error };
+                              const { userDepartment: _, ...rest } = prev;
+                              return rest;
+                            });
+                          },
+                        })}
+                        id="userDepartment"
+                        className="w-full"
+                        value={userDepartment || ""}
+                      >
+                        <option value="">Selecciona</option>
+                        {(userCountry === "MX" ? mexEstadosOptions : departamentosOptions).map((opt) => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </Select>
+                      {validationErrors.userDepartment && (
+                        <p className="text-red-500 text-sm mt-1">{validationErrors.userDepartment}</p>
+                      )}
+                    </div>
+                    <div className="w-full md:w-1/2 px-2 space-y-1">
+                      <Label htmlFor="userCity">
+                        {userCountry === "MX" ? "Municipio" : "Ciudad"} <span className="text-red-500">*</span>
+                      </Label>
+                      <Select
+                        {...register("userCity", {
+                          onChange: (e) => {
+                            setValue("userCity", e.target.value);
+                            const error = validateField("userCity", e.target.value);
+                            setValidationErrors((prev) => {
+                              if (error) return { ...prev, userCity: error };
+                              const { userCity: _, ...rest } = prev;
+                              return rest;
+                            });
+                          },
+                        })}
+                        id="userCity"
+                        className="w-full"
+                        value={userCity || ""}
+                        disabled={!userDepartment}
+                      >
+                        <option value="">Selecciona</option>
+                        {userCityOptions.map((opt) => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </Select>
+                      {validationErrors.userCity && (
+                        <p className="text-red-500 text-sm mt-1">{validationErrors.userCity}</p>
+                      )}
+                    </div>
+                  </>
+                )}
 
                 <div className="w-full md:w-1/2 px-2 space-y-1">
                   <Label htmlFor="email">

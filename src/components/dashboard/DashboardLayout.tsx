@@ -9,7 +9,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <div className="min-h-screen bg-gray-50">
       <DashboardNavbar />
-      <div className="pt-16 pb-20">
+      <div className="pt-24 pb-20">
           {children}
       </div>
     </div>

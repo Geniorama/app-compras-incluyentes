@@ -35,7 +35,10 @@ export async function GET(request: Request) {
         numDocument,
         publicProfile,
         photo,
-        notifyEmailMessages
+        notifyEmailMessages,
+        country,
+        department,
+        city
       }`,
       { companyId: currentUser.company._id }
     );
@@ -77,6 +80,9 @@ export async function PUT(request: Request) {
       position,
       typeDocument,
       numDocument,
+      country,
+      department,
+      city,
       publicProfile,
       photo,
       notifyEmailMessages
@@ -136,6 +142,9 @@ export async function PUT(request: Request) {
       position,
       typeDocument,
       numDocument,
+      country: country ?? '',
+      department: department ?? '',
+      city: city ?? '',
       publicProfile: finalPublicProfile,
       updatedAt: new Date().toISOString()
     };

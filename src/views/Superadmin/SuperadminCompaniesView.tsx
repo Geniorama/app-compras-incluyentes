@@ -1,11 +1,15 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { Table, Button, Spinner, Modal, TextInput, Label } from 'flowbite-react';
+import { Table, Button, Spinner, Modal, TextInput, Label, Select } from 'flowbite-react';
 import { HiCheck, HiX, HiOutlinePhotograph, HiOutlineSearch } from 'react-icons/hi';
 import { useAuth } from '@/context/AuthContext';
 import toast from 'react-hot-toast';
 import SuperadminSidebar from '@/components/superadmin/SuperadminSidebar';
+import { getDepartamentosOptions, getCiudadesOptionsByDepartamento } from '@/utils/departamentosCiudades';
+import { getMexicoEstadosOptions, getMexicoMunicipiosByEstado } from '@/data/mexicoStates';
+import { LATIN_AMERICA_COUNTRIES } from '@/data/latinAmericaCountries';
+import ReactSelect from 'react-select';
 
 const PAGE_SIZES = [20, 50, 100] as const;
 const COMPANY_SIZES = ['micro', 'pequena', 'mediana', 'grande', 'indefinido'] as const;
@@ -27,6 +31,8 @@ const initialForm = {
   description: '',
   webSite: '',
   addressCompany: '',
+  countries: [] as string[],
+  country: '',
   department: '',
   city: '',
   companySize: 'indefinido' as string,
@@ -34,6 +40,8 @@ const initialForm = {
   phone: '',
   active: false,
 };
+
+const LATAM_OPTIONS = LATIN_AMERICA_COUNTRIES.map((c) => ({ value: c.value, label: c.title }));
 
 export default function SuperadminCompaniesView() {
   const { user } = useAuth();
@@ -50,7 +58,22 @@ export default function SuperadminCompaniesView() {
   const [saving, setSaving] = useState(false);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [cityOptions, setCityOptions] = useState<{ value: string; label: string }[]>([]);
   const logoInputRef = useRef<HTMLInputElement>(null);
+  const departamentosOptions = getDepartamentosOptions();
+  const mexEstadosOptions = getMexicoEstadosOptions();
+
+  useEffect(() => {
+    if (!form.department || !form.country) {
+      setCityOptions([]);
+      return;
+    }
+    if (form.country === 'MX') {
+      setCityOptions(getMexicoMunicipiosByEstado(form.department));
+    } else {
+      setCityOptions(getCiudadesOptionsByDepartamento(form.department));
+    }
+  }, [form.department, form.country]);
 
   const fetchCompanies = async () => {
     if (!user?.uid) return;
@@ -376,26 +399,85 @@ export default function SuperadminCompaniesView() {
                     </div>
                   </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="department">Departamento</Label>
-                    <TextInput
-                      id="department"
-                      name="department"
-                      value={form.department}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="city">Ciudad</Label>
-                    <TextInput
-                      id="city"
-                      name="city"
-                      value={form.city}
-                      onChange={handleInputChange}
-                    />
-                  </div>
+                <div>
+                  <Label htmlFor="countries">Países donde opera la empresa</Label>
+                  <ReactSelect
+                    id="countries"
+                    instanceId="superadmin-countries"
+                    isMulti
+                    options={LATAM_OPTIONS}
+                    value={LATAM_OPTIONS.filter((o) => form.countries.includes(o.value))}
+                    onChange={(selected) => {
+                      const values = Array.isArray(selected) ? selected.map((s) => s.value) : [];
+                      setForm((f) => {
+                        const next = { ...f, countries: values };
+                        if (!values.includes('CO') && !values.includes('MX')) {
+                          next.country = '';
+                          next.department = '';
+                          next.city = '';
+                        } else if (next.country && !values.includes(next.country)) {
+                          next.country = values.includes('CO') ? 'CO' : 'MX';
+                          next.department = '';
+                          next.city = '';
+                        }
+                        return next;
+                      });
+                    }}
+                    placeholder="Selecciona uno o más países"
+                    noOptionsMessage={() => 'No hay opciones'}
+                    className="text-sm mt-1"
+                  />
                 </div>
+                {(form.countries.includes('CO') || form.countries.includes('MX')) && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <Label htmlFor="country">País de la sede</Label>
+                      <Select
+                        id="country"
+                        value={form.country}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setForm((f) => ({ ...f, country: v, department: '', city: '' }));
+                        }}
+                      >
+                        <option value="">Selecciona</option>
+                        {form.countries.includes('CO') && <option value="CO">Colombia</option>}
+                        {form.countries.includes('MX') && <option value="MX">México</option>}
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="department">{form.country === 'MX' ? 'Estado' : 'Departamento'}</Label>
+                      <Select
+                        id="department"
+                        value={form.department}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setForm((f) => ({ ...f, department: v, city: '' }));
+                        }}
+                        disabled={!form.country}
+                      >
+                        <option value="">Selecciona</option>
+                        {(form.country === 'MX' ? mexEstadosOptions : departamentosOptions).map((o) => (
+                          <option key={o.value} value={o.value}>{o.label}</option>
+                        ))}
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="city">{form.country === 'MX' ? 'Municipio' : 'Ciudad'}</Label>
+                      <Select
+                        id="city"
+                        value={form.city}
+                        onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
+                        disabled={!form.department}
+                      >
+                        <option value="">Selecciona</option>
+                        {cityOptions.map((o) => (
+                          <option key={o.value} value={o.value}>{o.label}</option>
+                        ))}
+                      </Select>
+                    </div>
+                  </div>
+                )}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="companySize">Tamaño de empresa</Label>
