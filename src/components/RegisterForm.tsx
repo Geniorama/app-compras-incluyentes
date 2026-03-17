@@ -1560,7 +1560,7 @@ export default function RegisterForm() {
                               const error = validateField("countries", values);
                               setValidationErrors((prev) => {
                                 if (error) return { ...prev, countries: error };
-                                const { countries: _, ...rest } = prev;
+                                const { countries: _countries, ...rest } = prev; // eslint-disable-line @typescript-eslint/no-unused-vars
                                 return rest;
                               });
                             }}
@@ -1591,7 +1591,7 @@ export default function RegisterForm() {
                                   const error = validateField("addressCountry", val);
                                   setValidationErrors((prev) => {
                                     if (error) return { ...prev, addressCountry: error };
-                                    const { addressCountry: _, ...rest } = prev;
+                                    const { addressCountry: _addressCountry, ...rest } = prev; // eslint-disable-line @typescript-eslint/no-unused-vars
                                     return rest;
                                   });
                                 },
@@ -1620,7 +1620,7 @@ export default function RegisterForm() {
                                   const error = validateField("department", e.target.value);
                                   setValidationErrors((prev) => {
                                     if (error) return { ...prev, department: error };
-                                    const { department: _, ...rest } = prev;
+                                    const { department: _department, ...rest } = prev; // eslint-disable-line @typescript-eslint/no-unused-vars
                                     return rest;
                                   });
                                 },
@@ -1650,7 +1650,7 @@ export default function RegisterForm() {
                                   const error = validateField("city", e.target.value);
                                   setValidationErrors((prev) => {
                                     if (error) return { ...prev, city: error };
-                                    const { city: _, ...rest } = prev;
+                                    const { city: _city, ...rest } = prev; // eslint-disable-line @typescript-eslint/no-unused-vars
                                     return rest;
                                   });
                                 },
@@ -2273,7 +2273,7 @@ export default function RegisterForm() {
                         const error = validateField("userCountry", val);
                         setValidationErrors((prev) => {
                           if (error) return { ...prev, userCountry: error };
-                          const { userCountry: _, ...rest } = prev;
+                          const { userCountry: _userCountry, ...rest } = prev; // eslint-disable-line @typescript-eslint/no-unused-vars
                           return rest;
                         });
                       },
@@ -2305,7 +2305,7 @@ export default function RegisterForm() {
                             const error = validateField("userDepartment", e.target.value);
                             setValidationErrors((prev) => {
                               if (error) return { ...prev, userDepartment: error };
-                              const { userDepartment: _, ...rest } = prev;
+                              const { userDepartment: _userDepartment, ...rest } = prev; // eslint-disable-line @typescript-eslint/no-unused-vars
                               return rest;
                             });
                           },
@@ -2334,7 +2334,7 @@ export default function RegisterForm() {
                             const error = validateField("userCity", e.target.value);
                             setValidationErrors((prev) => {
                               if (error) return { ...prev, userCity: error };
-                              const { userCity: _, ...rest } = prev;
+                              const { userCity: _userCity, ...rest } = prev; // eslint-disable-line @typescript-eslint/no-unused-vars
                               return rest;
                             });
                           },
