@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Button, Spinner, Alert } from 'flowbite-react';
-import { HiUser, HiMail, HiPhone, HiOutlineHeart, HiOutlineTrash } from 'react-icons/hi';
+import { HiUser, HiOutlineHeart, HiOutlineTrash } from 'react-icons/hi';
 import DashboardSidebar from '@/components/DashboardSidebar';
 import { useRouter } from 'next/navigation';
 
@@ -12,8 +12,6 @@ interface FavoriteUser {
   firstName?: string;
   lastName?: string;
   position?: string;
-  email?: string;
-  phone?: string;
   photo?: { asset?: { _ref?: string } };
   company?: { _id: string; nameCompany?: string };
 }
@@ -24,13 +22,6 @@ function getImageUrl(image: FavoriteUser['photo']): string {
   return `https://cdn.sanity.io/images/${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID}/${process.env.NEXT_PUBLIC_SANITY_DATASET}/${ref}`;
 }
 
-function formatPhoneForWhatsApp(phone?: string): string {
-  if (!phone) return '';
-  const cleanPhone = phone.replace(/\D/g, '');
-  if (cleanPhone.startsWith('0')) return '57' + cleanPhone.substring(1);
-  if (cleanPhone.startsWith('57')) return cleanPhone;
-  return '57' + cleanPhone;
-}
 
 export default function FavoritosView() {
   const { user } = useAuth();
@@ -137,7 +128,6 @@ export default function FavoritosView() {
             {favorites.map((fav) => {
               const photoUrl = getImageUrl(fav.photo);
               const fullName = [fav.firstName, fav.lastName].filter(Boolean).join(' ') || 'Usuario';
-              const userPhoneFormatted = formatPhoneForWhatsApp(fav.phone);
 
               return (
                 <div
@@ -156,28 +146,6 @@ export default function FavoritosView() {
                   {fav.company?.nameCompany && (
                     <p className="text-xs text-gray-500 mb-3">{fav.company.nameCompany}</p>
                   )}
-                  <div className="flex flex-col gap-2 w-full mt-2">
-                    {fav.email && (
-                      <a
-                        href={`mailto:${fav.email}`}
-                        className="flex items-center justify-center gap-2 text-sm text-blue-600 hover:text-blue-800"
-                      >
-                        <HiMail className="w-4 h-4" />
-                        <span className="truncate">{fav.email}</span>
-                      </a>
-                    )}
-                    {fav.phone && (
-                      <a
-                        href={`https://wa.me/${userPhoneFormatted}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center justify-center gap-2 text-sm text-green-600 hover:text-green-800"
-                      >
-                        <HiPhone className="w-4 h-4" />
-                        <span>{fav.phone}</span>
-                      </a>
-                    )}
-                  </div>
                   <div className="flex gap-2 mt-4 w-full">
                     {fav.company?._id && (
                       <Button
