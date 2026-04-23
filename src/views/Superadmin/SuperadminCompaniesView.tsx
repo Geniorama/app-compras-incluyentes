@@ -1,8 +1,23 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { Table, Button, Spinner, Modal, TextInput, Label, Select } from 'flowbite-react';
-import { HiCheck, HiX, HiOutlinePhotograph, HiOutlineSearch, HiOutlineTrash, HiOutlinePencil } from 'react-icons/hi';
+import { Table, Button, Spinner, Modal, TextInput, Label, Select, Textarea } from 'flowbite-react';
+import { HiCheck, HiX, HiOutlinePhotograph, HiOutlineSearch, HiOutlineTrash, HiOutlinePencil, HiOutlineDocumentText } from 'react-icons/hi';
+
+interface SanityFile {
+  _type?: 'file';
+  asset?: { _ref?: string; _type?: 'reference' };
+}
+
+function getSanityFileUrl(file?: SanityFile | null): string | null {
+  const ref = file?.asset?._ref;
+  if (!ref) return null;
+  // ref format: "file-<hash>-<ext>"
+  const match = ref.match(/^file-([a-f0-9]+)-([a-z0-9]+)$/i);
+  if (!match) return null;
+  const [, hash, ext] = match;
+  return `https://cdn.sanity.io/files/${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID}/${process.env.NEXT_PUBLIC_SANITY_DATASET}/${hash}.${ext}`;
+}
 import { useAuth } from '@/context/AuthContext';
 import toast from 'react-hot-toast';
 import SuperadminSidebar from '@/components/superadmin/SuperadminSidebar';
@@ -47,6 +62,10 @@ interface Company {
   city?: string;
   companySize?: string;
   active: boolean;
+  hasChamberOfCommerce?: boolean;
+  hasTaxIdentificationDocument?: boolean;
+  chamberOfCommerceValidated?: boolean;
+  taxIdentificationDocumentValidated?: boolean;
   _createdAt?: string;
 }
 
@@ -80,6 +99,11 @@ const initialForm = {
   membership: false,
   annualRevenue: '',
   collaboratorsCount: '',
+  chamberOfCommerceValidated: false,
+  chamberOfCommerceComments: '',
+  taxIdentificationDocumentValidated: false,
+  taxIdentificationDocumentComments: '',
+  diverseSupplier: false,
 };
 
 const LATAM_OPTIONS = LATIN_AMERICA_COUNTRIES.map((c) => ({ value: c.value, label: c.title }));
@@ -104,6 +128,8 @@ export default function SuperadminCompaniesView() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loadingEdit, setLoadingEdit] = useState(false);
   const [existingLogo, setExistingLogo] = useState<{ _type: 'image'; asset: { _type: 'reference'; _ref: string } } | null>(null);
+  const [chamberOfCommerceFile, setChamberOfCommerceFile] = useState<SanityFile | null>(null);
+  const [taxIdentificationFile, setTaxIdentificationFile] = useState<SanityFile | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [cityOptions, setCityOptions] = useState<{ value: string; label: string }[]>([]);
@@ -166,6 +192,8 @@ export default function SuperadminCompaniesView() {
     setLogoFile(null);
     setLogoPreview(null);
     setExistingLogo(null);
+    setChamberOfCommerceFile(null);
+    setTaxIdentificationFile(null);
     setShowModal(true);
   };
 
@@ -210,6 +238,13 @@ export default function SuperadminCompaniesView() {
         membership?: boolean;
         annualRevenue?: number;
         collaboratorsCount?: number;
+        chamberOfCommerceValidated?: boolean;
+        chamberOfCommerceComments?: string;
+        taxIdentificationDocumentValidated?: boolean;
+        taxIdentificationDocumentComments?: string;
+        diverseSupplier?: boolean;
+        chamberOfCommerce?: SanityFile;
+        taxIdentificationDocument?: SanityFile;
         logo?: { _type: 'image'; asset: { _type: 'reference'; _ref: string } };
       };
       setForm({
@@ -242,7 +277,14 @@ export default function SuperadminCompaniesView() {
         membership: Boolean(c.membership),
         annualRevenue: c.annualRevenue ? String(c.annualRevenue) : '',
         collaboratorsCount: c.collaboratorsCount ? String(c.collaboratorsCount) : '',
+        chamberOfCommerceValidated: Boolean(c.chamberOfCommerceValidated),
+        chamberOfCommerceComments: c.chamberOfCommerceComments || '',
+        taxIdentificationDocumentValidated: Boolean(c.taxIdentificationDocumentValidated),
+        taxIdentificationDocumentComments: c.taxIdentificationDocumentComments || '',
+        diverseSupplier: Boolean(c.diverseSupplier),
       });
+      setChamberOfCommerceFile(c.chamberOfCommerce || null);
+      setTaxIdentificationFile(c.taxIdentificationDocument || null);
       setLogoFile(null);
       setExistingLogo(c.logo || null);
       setLogoPreview(
@@ -263,10 +305,13 @@ export default function SuperadminCompaniesView() {
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target as HTMLInputElement;
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
+    const target = e.target as HTMLInputElement;
+    const { name, value, type } = target;
     if (type === 'checkbox') {
-      setForm((f) => ({ ...f, [name]: (e.target as HTMLInputElement).checked }));
+      setForm((f) => ({ ...f, [name]: target.checked }));
     } else {
       setForm((f) => ({ ...f, [name]: value }));
     }
@@ -528,11 +573,42 @@ export default function SuperadminCompaniesView() {
                   />
                 </Table.Cell>
                 <Table.Cell>
-                  <div>
-                    <p className="font-medium">{c.nameCompany}</p>
-                    {c.businessName && (
-                      <p className="text-xs text-gray-500">{c.businessName}</p>
-                    )}
+                  <div className="flex items-start gap-2">
+                    <div className="min-w-0">
+                      <p className="font-medium">{c.nameCompany}</p>
+                      {c.businessName && (
+                        <p className="text-xs text-gray-500">{c.businessName}</p>
+                      )}
+                    </div>
+                    {(() => {
+                      const docsCount =
+                        (c.hasChamberOfCommerce ? 1 : 0) + (c.hasTaxIdentificationDocument ? 1 : 0);
+                      if (docsCount === 0) return null;
+                      const allValidated =
+                        (!c.hasChamberOfCommerce || c.chamberOfCommerceValidated) &&
+                        (!c.hasTaxIdentificationDocument || c.taxIdentificationDocumentValidated);
+                      const titleParts = [
+                        c.hasChamberOfCommerce
+                          ? `Cámara de comercio${c.chamberOfCommerceValidated ? ' (validada)' : ' (pendiente)'}`
+                          : null,
+                        c.hasTaxIdentificationDocument
+                          ? `RUT${c.taxIdentificationDocumentValidated ? ' (validado)' : ' (pendiente)'}`
+                          : null,
+                      ].filter(Boolean);
+                      return (
+                        <span
+                          title={titleParts.join(' · ')}
+                          className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs flex-shrink-0 ${
+                            allValidated
+                              ? 'bg-green-100 text-green-700'
+                              : 'bg-amber-100 text-amber-700'
+                          }`}
+                        >
+                          <HiOutlineDocumentText className="w-4 h-4" />
+                          {docsCount}
+                        </span>
+                      );
+                    })()}
                   </div>
                 </Table.Cell>
                 <Table.Cell>{[c.department, c.city].filter(Boolean).join(', ') || '-'}</Table.Cell>
@@ -1027,6 +1103,108 @@ export default function SuperadminCompaniesView() {
                         onChange={handleInputChange}
                         placeholder="0"
                       />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t border-gray-200 pt-4">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-1">Validación de documentos (interno)</h3>
+                  <p className="text-xs text-gray-500 mb-3">
+                    Observaciones del superadmin sobre los documentos aportados por la empresa.
+                  </p>
+                  <div className="space-y-4">
+                    <div className="border border-gray-200 rounded-lg p-3 space-y-2">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            id="chamberOfCommerceValidated"
+                            name="chamberOfCommerceValidated"
+                            checked={form.chamberOfCommerceValidated}
+                            onChange={handleInputChange}
+                            className="rounded border-gray-300"
+                          />
+                          <Label htmlFor="chamberOfCommerceValidated">Cámara de comercio validada</Label>
+                        </div>
+                        {getSanityFileUrl(chamberOfCommerceFile) ? (
+                          <a
+                            href={getSanityFileUrl(chamberOfCommerceFile) || '#'}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium"
+                          >
+                            <HiOutlineDocumentText className="w-4 h-4" />
+                            Ver documento
+                          </a>
+                        ) : (
+                          <span className="text-xs text-gray-400">Sin documento cargado</span>
+                        )}
+                      </div>
+                      <div>
+                        <Label htmlFor="chamberOfCommerceComments" className="text-xs text-gray-600">
+                          Observaciones (cámara de comercio)
+                        </Label>
+                        <Textarea
+                          id="chamberOfCommerceComments"
+                          name="chamberOfCommerceComments"
+                          rows={3}
+                          value={form.chamberOfCommerceComments}
+                          onChange={handleInputChange}
+                          placeholder="Notas internas para el equipo sobre el documento..."
+                        />
+                      </div>
+                    </div>
+                    <div className="border border-gray-200 rounded-lg p-3 space-y-2">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            id="taxIdentificationDocumentValidated"
+                            name="taxIdentificationDocumentValidated"
+                            checked={form.taxIdentificationDocumentValidated}
+                            onChange={handleInputChange}
+                            className="rounded border-gray-300"
+                          />
+                          <Label htmlFor="taxIdentificationDocumentValidated">RUT / documento tributario validado</Label>
+                        </div>
+                        {getSanityFileUrl(taxIdentificationFile) ? (
+                          <a
+                            href={getSanityFileUrl(taxIdentificationFile) || '#'}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium"
+                          >
+                            <HiOutlineDocumentText className="w-4 h-4" />
+                            Ver documento
+                          </a>
+                        ) : (
+                          <span className="text-xs text-gray-400">Sin documento cargado</span>
+                        )}
+                      </div>
+                      <div>
+                        <Label htmlFor="taxIdentificationDocumentComments" className="text-xs text-gray-600">
+                          Observaciones (RUT / documento tributario)
+                        </Label>
+                        <Textarea
+                          id="taxIdentificationDocumentComments"
+                          name="taxIdentificationDocumentComments"
+                          rows={3}
+                          value={form.taxIdentificationDocumentComments}
+                          onChange={handleInputChange}
+                          placeholder="Notas internas para el equipo sobre el documento..."
+                        />
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="diverseSupplier"
+                        name="diverseSupplier"
+                        checked={form.diverseSupplier}
+                        onChange={handleInputChange}
+                        className="rounded border-gray-300"
+                      />
+                      <Label htmlFor="diverseSupplier">Proveedor diverso (certificado por la plataforma)</Label>
                     </div>
                   </div>
                 </div>

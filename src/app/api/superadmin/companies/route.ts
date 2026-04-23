@@ -50,6 +50,10 @@ export async function GET(request: Request) {
           city,
           companySize,
           active,
+          "hasChamberOfCommerce": defined(chamberOfCommerce.asset),
+          "hasTaxIdentificationDocument": defined(taxIdentificationDocument.asset),
+          chamberOfCommerceValidated,
+          taxIdentificationDocumentValidated,
           _createdAt,
           _updatedAt
         }`

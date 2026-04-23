@@ -47,6 +47,13 @@ export async function GET(
         membership,
         annualRevenue,
         collaboratorsCount,
+        chamberOfCommerce,
+        chamberOfCommerceValidated,
+        chamberOfCommerceComments,
+        taxIdentificationDocument,
+        taxIdentificationDocumentValidated,
+        taxIdentificationDocumentComments,
+        diverseSupplier,
         _createdAt,
         _updatedAt
       }`,
@@ -110,6 +117,11 @@ export async function PATCH(
       membership,
       annualRevenue,
       collaboratorsCount,
+      chamberOfCommerceValidated,
+      chamberOfCommerceComments,
+      taxIdentificationDocumentValidated,
+      taxIdentificationDocumentComments,
+      diverseSupplier,
     } = body;
 
     const patch: Record<string, unknown> = { updatedAt: new Date().toISOString() };
@@ -143,6 +155,11 @@ export async function PATCH(
     if (typeof membership === 'boolean') patch.membership = membership;
     if (annualRevenue !== undefined) patch.annualRevenue = Number(annualRevenue) || 0;
     if (collaboratorsCount !== undefined) patch.collaboratorsCount = Number(collaboratorsCount) || 0;
+    if (typeof chamberOfCommerceValidated === 'boolean') patch.chamberOfCommerceValidated = chamberOfCommerceValidated;
+    if (chamberOfCommerceComments !== undefined) patch.chamberOfCommerceComments = chamberOfCommerceComments;
+    if (typeof taxIdentificationDocumentValidated === 'boolean') patch.taxIdentificationDocumentValidated = taxIdentificationDocumentValidated;
+    if (taxIdentificationDocumentComments !== undefined) patch.taxIdentificationDocumentComments = taxIdentificationDocumentComments;
+    if (typeof diverseSupplier === 'boolean') patch.diverseSupplier = diverseSupplier;
 
     const client = getAuthenticatedClient();
     await client.patch(id).set(patch).commit();

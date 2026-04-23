@@ -4,7 +4,17 @@
       "Bash(npx tsc:*)",
       "Bash(xargs grep:*)",
       "Bash(npm show:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "mcp__Sanity__list_projects",
+      "mcp__Sanity__list_datasets",
+      "mcp__Sanity__get_schema",
+      "mcp__Sanity__query_documents",
+      "Bash(curl -s \"https://rr3ptdu1.api.sanity.io/v2025-04-19/data/query/production?query=*%5B_type%20%3D%3D%20%22company%22%5D%5B0%5D\" -H \"Authorization: Bearer skeTxDdcaTSofNlFelWuM8i1uEIbDt5qpPv0X8K7m7iKGJwmMU1e25BjWdyFlb9qRMeWDDq47b4Ly1D4P0WgrfLMMwAinwuXsIgZ9sUUE5c2ygZETnHuEHa7TF0JPfi0Wi37kQD8Ka6Jwghqic3GgXBVJ9N9JwJznXoi5qbGf0asvXtQQ7Uk\")",
+      "Bash(python -c \"import json,sys; d=json.load\\(sys.stdin\\); r=d.get\\('result',{}\\); print\\('\\\\n'.join\\(sorted\\(r.keys\\(\\)\\)\\) if r else d\\)\")",
+      "Bash(curl *)",
+      "Bash(python -c ' *)",
+      "Bash(node -e \"let d='';process.stdin.on\\('data',c=>d+=c\\);process.stdin.on\\('end',\\(\\)=>{const j=JSON.parse\\(d\\);const s=new Set\\(\\);for\\(const r of \\(j.result||[]\\)\\){for\\(const k of Object.keys\\(r\\)\\)s.add\\(k\\);}console.log\\([...s].sort\\(\\).join\\('\\\\n'\\)\\);}\\);\")",
+      "Bash(node -e \"let d='';process.stdin.on\\('data',c=>d+=c\\);process.stdin.on\\('end',\\(\\)=>{const j=JSON.parse\\(d\\);const s=new Set\\(\\);for\\(const r of \\(j.result||[]\\)\\){for\\(const k of Object.keys\\(r\\)\\)s.add\\(k\\);}console.log\\('Total companies:', \\(j.result||[]\\).length\\);console.log\\([...s].sort\\(\\).join\\('\\\\n'\\)\\);}\\);\")"
     ]
   }
 }
