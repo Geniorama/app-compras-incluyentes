@@ -69,6 +69,7 @@ export default function SuperadminUsersView() {
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState('');
   const [searchDebounced, setSearchDebounced] = useState('');
+  const [roleFilter, setRoleFilter] = useState<'all' | 'user' | 'admin' | 'member' | 'superadmin'>('all');
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -118,6 +119,7 @@ export default function SuperadminUsersView() {
     try {
       const params = new URLSearchParams({ page: String(currentPage), limit: String(limit) });
       if (searchDebounced.trim()) params.set('search', searchDebounced.trim());
+      if (roleFilter !== 'all') params.set('role', roleFilter);
       const res = await fetch(`/api/superadmin/users?${params}`, {
         headers: { 'x-user-id': user.uid },
       });
@@ -159,7 +161,7 @@ export default function SuperadminUsersView() {
   useEffect(() => {
     fetchUsers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.uid, currentPage, limit, searchDebounced]);
+  }, [user?.uid, currentPage, limit, searchDebounced, roleFilter]);
 
   const resetForm = () => {
     setSelectedUser(null);
@@ -370,7 +372,21 @@ export default function SuperadminUsersView() {
       <main className="w-full md:w-3/4 md:pl-10 mt-6 md:mt-0">
         <div className="flex justify-between items-center mb-4 flex-wrap gap-4">
           <h1 className="text-2xl font-bold text-gray-900">Gestión de usuarios</h1>
-          <div className="flex gap-2 items-center">
+          <div className="flex gap-2 items-center flex-wrap">
+            <select
+              value={roleFilter}
+              onChange={(e) => {
+                setRoleFilter(e.target.value as 'all' | 'user' | 'admin' | 'member' | 'superadmin');
+                setCurrentPage(1);
+              }}
+              className="rounded-lg border border-gray-300 text-sm py-2 px-3"
+            >
+              <option value="all">Todos los roles</option>
+              <option value="user">Usuario</option>
+              <option value="admin">Administrador</option>
+              <option value="member">Miembro</option>
+              <option value="superadmin">Superadmin</option>
+            </select>
             <div className="relative">
               <HiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
               <input

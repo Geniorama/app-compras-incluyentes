@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { Table, Button, Spinner, Modal, TextInput, Label, Select } from 'flowbite-react';
-import { HiCheck, HiX, HiOutlinePhotograph, HiOutlineSearch } from 'react-icons/hi';
+import { HiCheck, HiX, HiOutlinePhotograph, HiOutlineSearch, HiOutlineTrash } from 'react-icons/hi';
 import { useAuth } from '@/context/AuthContext';
 import toast from 'react-hot-toast';
 import SuperadminSidebar from '@/components/superadmin/SuperadminSidebar';
@@ -53,6 +53,10 @@ export default function SuperadminCompaniesView() {
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState('');
   const [searchDebounced, setSearchDebounced] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'pending'>('all');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkAction, setBulkAction] = useState<'activate' | 'deactivate' | 'delete' | null>(null);
+  const [bulkBusy, setBulkBusy] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(initialForm);
   const [saving, setSaving] = useState(false);
@@ -81,6 +85,7 @@ export default function SuperadminCompaniesView() {
     try {
       const params = new URLSearchParams({ page: String(currentPage), limit: String(limit) });
       if (searchDebounced.trim()) params.set('search', searchDebounced.trim());
+      if (statusFilter !== 'all') params.set('status', statusFilter);
       const res = await fetch(`/api/superadmin/companies?${params}`, {
         headers: { 'x-user-id': user.uid },
       });
@@ -104,7 +109,11 @@ export default function SuperadminCompaniesView() {
   useEffect(() => {
     fetchCompanies();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.uid, currentPage, limit, searchDebounced]);
+  }, [user?.uid, currentPage, limit, searchDebounced, statusFilter]);
+
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [currentPage, limit, searchDebounced, statusFilter]);
 
   const openCreate = () => {
     setForm(initialForm);
@@ -176,6 +185,53 @@ export default function SuperadminCompaniesView() {
     }
   };
 
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === companies.length && companies.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(companies.map((c) => c._id)));
+    }
+  };
+
+  const runBulkAction = async (action: 'activate' | 'deactivate' | 'delete') => {
+    if (!user?.uid || selectedIds.size === 0) return;
+    setBulkBusy(true);
+    try {
+      const res = await fetch('/api/superadmin/companies/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-user-id': user.uid },
+        body: JSON.stringify({ ids: Array.from(selectedIds), action }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Error en la acción masiva');
+      }
+      toast.success(
+        action === 'delete'
+          ? `${data.data.count} empresa(s) eliminada(s)`
+          : action === 'activate'
+          ? `${data.data.count} empresa(s) aprobada(s)`
+          : `${data.data.count} empresa(s) desactivada(s)`
+      );
+      setSelectedIds(new Set());
+      setBulkAction(null);
+      await fetchCompanies();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error en la acción masiva');
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
   const toggleActive = async (id: string, active: boolean) => {
     if (!user?.uid) return;
     setUpdatingId(id);
@@ -223,7 +279,19 @@ export default function SuperadminCompaniesView() {
               Agregar empresas o aprobar/desactivar las existentes para que aparezcan en el catálogo.
             </p>
           </div>
-          <div className="flex gap-2 items-center">
+          <div className="flex gap-2 items-center flex-wrap">
+            <select
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value as 'all' | 'active' | 'pending');
+                setCurrentPage(1);
+              }}
+              className="rounded-lg border border-gray-300 text-sm py-2 px-3"
+            >
+              <option value="all">Todos los estados</option>
+              <option value="active">Activas</option>
+              <option value="pending">Pendientes</option>
+            </select>
             <div className="relative">
               <HiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
               <input
@@ -239,9 +307,58 @@ export default function SuperadminCompaniesView() {
             </Button>
           </div>
         </div>
+
+        {selectedIds.size > 0 && (
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
+            <span className="text-sm text-blue-900 font-medium">
+              {selectedIds.size} empresa(s) seleccionada(s)
+            </span>
+            <div className="flex gap-2">
+              <Button
+                size="xs"
+                color="success"
+                onClick={() => setBulkAction('activate')}
+                disabled={bulkBusy}
+              >
+                <HiCheck className="mr-1 h-4 w-4" />
+                Aprobar
+              </Button>
+              <Button
+                size="xs"
+                color="warning"
+                onClick={() => setBulkAction('deactivate')}
+                disabled={bulkBusy}
+              >
+                <HiX className="mr-1 h-4 w-4" />
+                Desactivar
+              </Button>
+              <Button
+                size="xs"
+                color="failure"
+                onClick={() => setBulkAction('delete')}
+                disabled={bulkBusy}
+              >
+                <HiOutlineTrash className="mr-1 h-4 w-4" />
+                Eliminar
+              </Button>
+              <Button size="xs" color="gray" onClick={() => setSelectedIds(new Set())} disabled={bulkBusy}>
+                Limpiar selección
+              </Button>
+            </div>
+          </div>
+        )}
       <div className="overflow-x-auto rounded-lg border border-gray-200">
         <Table>
           <Table.Head>
+            <Table.HeadCell className="w-10">
+              <input
+                type="checkbox"
+                aria-label="Seleccionar todas las empresas de la página"
+                checked={companies.length > 0 && selectedIds.size === companies.length}
+                onChange={toggleSelectAll}
+                className="rounded border-gray-300"
+              />
+            </Table.HeadCell>
             <Table.HeadCell>Empresa</Table.HeadCell>
             <Table.HeadCell>Departamento</Table.HeadCell>
             <Table.HeadCell>Tamaño</Table.HeadCell>
@@ -250,7 +367,16 @@ export default function SuperadminCompaniesView() {
           </Table.Head>
           <Table.Body>
             {companies.map((c) => (
-              <Table.Row key={c._id}>
+              <Table.Row key={c._id} className={selectedIds.has(c._id) ? 'bg-blue-50' : ''}>
+                <Table.Cell className="w-10">
+                  <input
+                    type="checkbox"
+                    aria-label={`Seleccionar ${c.nameCompany}`}
+                    checked={selectedIds.has(c._id)}
+                    onChange={() => toggleSelect(c._id)}
+                    className="rounded border-gray-300"
+                  />
+                </Table.Cell>
                 <Table.Cell>
                   <div>
                     <p className="font-medium">{c.nameCompany}</p>
@@ -343,6 +469,37 @@ export default function SuperadminCompaniesView() {
         {companies.length === 0 && (
           <p className="text-center text-gray-500 py-8">No hay empresas registradas.</p>
         )}
+
+        <Modal show={bulkAction !== null} onClose={() => !bulkBusy && setBulkAction(null)} size="md">
+          <Modal.Header>
+            {bulkAction === 'activate'
+              ? 'Aprobar empresas'
+              : bulkAction === 'deactivate'
+              ? 'Desactivar empresas'
+              : 'Eliminar empresas'}
+          </Modal.Header>
+          <Modal.Body>
+            <p className="text-sm text-gray-700">
+              {bulkAction === 'delete'
+                ? `Se eliminarán ${selectedIds.size} empresa(s) de forma permanente. Esta acción no se puede deshacer.`
+                : bulkAction === 'activate'
+                ? `Se activarán ${selectedIds.size} empresa(s) y aparecerán en el catálogo.`
+                : `Se desactivarán ${selectedIds.size} empresa(s) y dejarán de aparecer en el catálogo.`}
+            </p>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button
+              color={bulkAction === 'delete' ? 'failure' : bulkAction === 'activate' ? 'success' : 'warning'}
+              disabled={bulkBusy}
+              onClick={() => bulkAction && runBulkAction(bulkAction)}
+            >
+              {bulkBusy ? <Spinner size="sm" /> : 'Confirmar'}
+            </Button>
+            <Button color="gray" onClick={() => setBulkAction(null)} disabled={bulkBusy}>
+              Cancelar
+            </Button>
+          </Modal.Footer>
+        </Modal>
 
         <Modal show={showModal} onClose={() => setShowModal(false)} size="2xl">
           <Modal.Header>Agregar empresa</Modal.Header>

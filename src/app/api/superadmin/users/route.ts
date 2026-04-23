@@ -23,6 +23,8 @@ export async function GET(request: Request) {
     const limitParam = parseInt(searchParams.get('limit') || '20', 10);
     const limit = VALID_LIMITS.includes(limitParam) ? limitParam : 20;
     const search = searchParams.get('search')?.trim() || '';
+    const role = searchParams.get('role')?.trim() || '';
+    const ALLOWED_ROLES = ['user', 'admin', 'member', 'superadmin'];
     const start = (page - 1) * limit;
     const end = start + limit;
 
@@ -32,7 +34,8 @@ export async function GET(request: Request) {
     const searchFilter = search
       ? ` && (firstName match "*${escapeGROQ(search)}*" || lastName match "*${escapeGROQ(search)}*" || email match "*${escapeGROQ(search)}*" || (defined(company) && company->nameCompany match "*${escapeGROQ(search)}*"))`
       : '';
-    const fullFilter = baseFilter + searchFilter;
+    const roleFilter = role && ALLOWED_ROLES.includes(role) ? ` && role == "${role}"` : '';
+    const fullFilter = baseFilter + roleFilter + searchFilter;
 
     const [users, total] = await Promise.all([
       client.fetch(

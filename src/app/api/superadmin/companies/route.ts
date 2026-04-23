@@ -21,6 +21,7 @@ export async function GET(request: Request) {
     const limitParam = parseInt(searchParams.get('limit') || '20', 10);
     const limit = VALID_LIMITS.includes(limitParam) ? limitParam : 20;
     const search = searchParams.get('search')?.trim() || '';
+    const status = searchParams.get('status') || 'all';
     const start = (page - 1) * limit;
     const end = start + limit;
 
@@ -30,7 +31,13 @@ export async function GET(request: Request) {
     const searchFilter = search
       ? ` && (nameCompany match "*${escapeGROQ(search)}*" || businessName match "*${escapeGROQ(search)}*" || department match "*${escapeGROQ(search)}*" || city match "*${escapeGROQ(search)}*")`
       : '';
-    const fullFilter = baseFilter + searchFilter;
+    const statusFilter =
+      status === 'active'
+        ? ` && active == true`
+        : status === 'pending'
+        ? ` && (active == false || !defined(active))`
+        : '';
+    const fullFilter = baseFilter + statusFilter + searchFilter;
 
     const [companies, total] = await Promise.all([
       client.fetch(
