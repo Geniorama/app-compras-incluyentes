@@ -4,3 +4,12 @@
   # El secrets scanner de Netlify las detecta como falsos positivos (el
   # prefijo "AIza" de las Firebase API keys dispara la alerta).
   SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_FIREBASE_API_KEY,NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,NEXT_PUBLIC_FIREBASE_PROJECT_ID,NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,NEXT_PUBLIC_FIREBASE_APP_ID,NEXT_PUBLIC_SANITY_PROJECT_ID,NEXT_PUBLIC_SANITY_DATASET,NEXT_PUBLIC_SANITY_API_VERSION,NEXT_PUBLIC_APP_URL"
+
+  # Desactivar la "smart detection" que busca patrones tipo "AIza..." en el
+  # build output. Esas son Firebase Web API keys, públicas por diseño y
+  # protegidas por las reglas de seguridad de Firebase, no por secrecía.
+  SECRETS_SCAN_SMART_DETECTION_ENABLED = "false"
+
+  # Excluir el output de Next.js del scan (los chunks del navegador incluyen
+  # los valores de NEXT_PUBLIC_* inlineados, que ya sabemos son públicos).
+  SECRETS_SCAN_OMIT_PATHS = ".next/**,.netlify/**"
