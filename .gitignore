@@ -41,3 +41,6 @@ yarn-error.log*
 next-env.d.ts
 
 informe-restauracion-firebase.md
+
+# Claude Code local settings (pueden contener tokens aceptados en permisos)
+.claude/
