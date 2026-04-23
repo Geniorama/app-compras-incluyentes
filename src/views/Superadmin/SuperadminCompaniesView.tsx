@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { Table, Button, Spinner, Modal, TextInput, Label, Select } from 'flowbite-react';
-import { HiCheck, HiX, HiOutlinePhotograph, HiOutlineSearch, HiOutlineTrash } from 'react-icons/hi';
+import { HiCheck, HiX, HiOutlinePhotograph, HiOutlineSearch, HiOutlineTrash, HiOutlinePencil } from 'react-icons/hi';
 import { useAuth } from '@/context/AuthContext';
 import toast from 'react-hot-toast';
 import SuperadminSidebar from '@/components/superadmin/SuperadminSidebar';
@@ -10,6 +10,31 @@ import { getDepartamentosOptions, getCiudadesOptionsByDepartamento } from '@/uti
 import { getMexicoEstadosOptions, getMexicoMunicipiosByEstado } from '@/data/mexicoStates';
 import { LATIN_AMERICA_COUNTRIES } from '@/data/latinAmericaCountries';
 import ReactSelect from 'react-select';
+import { getCIIUOptions } from '@/utils/ciiuOptions';
+
+const PEOPLE_GROUP_OPTIONS = [
+  { value: 'lgbtiq', label: 'LGBTIQ+' },
+  { value: 'discapacidad-sensorial', label: 'Personas con discapacidad Sensorial' },
+  { value: 'discapacidad-fisico-motora', label: 'Personas con discapacidad Físico Motora' },
+  { value: 'discapacidad-psicosocial', label: 'Personas con discapacidad Psicosocial' },
+  { value: 'discapacidad-cognitiva', label: 'Personas con discapacidad Cognitiva' },
+  { value: 'migrantes', label: 'Migrantes' },
+  { value: 'etnia-afrodescendientes', label: 'Etnia y Raza: Afrodescendientes, raizales y palenqueros' },
+  { value: 'etnia-indigenas', label: 'Etnia y Raza: Indígenas' },
+  { value: 'victimas-reconciliacion-paz', label: 'Víctimas del conflicto armado y personas en proceso de reintegración o reincorporación' },
+  { value: 'pospenadas', label: 'Pospenadas' },
+  { value: 'diversidad-generacional-mayores-50', label: 'Diversidad Generacional mayores de 50 años' },
+  { value: 'diversidad-generacional-primer-empleo', label: 'Diversidad Generacional primer empleo' },
+  { value: 'madres-cabeza-familia', label: 'Madres cabeza de familia' },
+  { value: 'diversidad-sexual', label: 'Diversidad Sexual' },
+  { value: 'etnia-raza-afro', label: 'Etnia, raza o afro' },
+  { value: 'personas-migrantes', label: 'Personas migrantes' },
+  { value: 'generacional', label: 'Generacional' },
+  { value: 'equidad-genero', label: 'Equidad de Género' },
+  { value: 'pospenados-reinsertados', label: 'Pospenados o reinsertados' },
+  { value: 'ninguno', label: 'Ninguno' },
+  { value: 'otro', label: 'Otro' },
+];
 
 const PAGE_SIZES = [20, 50, 100] as const;
 const COMPANY_SIZES = ['micro', 'pequena', 'mediana', 'grande', 'indefinido'] as const;
@@ -29,6 +54,9 @@ const initialForm = {
   nameCompany: '',
   businessName: '',
   description: '',
+  typeDocumentCompany: 'nit' as string,
+  numDocumentCompany: '',
+  ciiu: '',
   webSite: '',
   addressCompany: '',
   countries: [] as string[],
@@ -39,6 +67,19 @@ const initialForm = {
   sector: '',
   phone: '',
   active: false,
+  facebook: '',
+  instagram: '',
+  tiktok: '',
+  pinterest: '',
+  linkedin: '',
+  xtwitter: '',
+  peopleGroup: [] as string[],
+  otherPeopleGroup: '',
+  friendlyBizz: false,
+  inclusionDEI: false,
+  membership: false,
+  annualRevenue: '',
+  collaboratorsCount: '',
 };
 
 const LATAM_OPTIONS = LATIN_AMERICA_COUNTRIES.map((c) => ({ value: c.value, label: c.title }));
@@ -60,12 +101,16 @@ export default function SuperadminCompaniesView() {
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(initialForm);
   const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [loadingEdit, setLoadingEdit] = useState(false);
+  const [existingLogo, setExistingLogo] = useState<{ _type: 'image'; asset: { _type: 'reference'; _ref: string } } | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [cityOptions, setCityOptions] = useState<{ value: string; label: string }[]>([]);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const departamentosOptions = getDepartamentosOptions();
   const mexEstadosOptions = getMexicoEstadosOptions();
+  const ciiuOptions = getCIIUOptions();
 
   useEffect(() => {
     if (!form.department || !form.country) {
@@ -116,16 +161,112 @@ export default function SuperadminCompaniesView() {
   }, [currentPage, limit, searchDebounced, statusFilter]);
 
   const openCreate = () => {
+    setEditingId(null);
     setForm(initialForm);
     setLogoFile(null);
     setLogoPreview(null);
+    setExistingLogo(null);
     setShowModal(true);
   };
 
+  const openEdit = async (id: string) => {
+    if (!user?.uid) return;
+    setEditingId(id);
+    setLoadingEdit(true);
+    setShowModal(true);
+    try {
+      const res = await fetch(`/api/superadmin/companies/${id}`, {
+        headers: { 'x-user-id': user.uid },
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.message || 'Error al cargar empresa');
+      const c = data.data.company as {
+        nameCompany?: string;
+        businessName?: string;
+        description?: string;
+        typeDocumentCompany?: string;
+        numDocumentCompany?: string;
+        ciiu?: string;
+        webSite?: string;
+        addressCompany?: string;
+        countries?: string[];
+        country?: string;
+        department?: string;
+        city?: string;
+        companySize?: string;
+        sector?: string;
+        phone?: string;
+        active?: boolean;
+        facebook?: string;
+        instagram?: string;
+        tiktok?: string;
+        pinterest?: string;
+        linkedin?: string;
+        xtwitter?: string;
+        peopleGroup?: string[];
+        otherPeopleGroup?: string;
+        friendlyBizz?: boolean;
+        inclusionDEI?: boolean;
+        membership?: boolean;
+        annualRevenue?: number;
+        collaboratorsCount?: number;
+        logo?: { _type: 'image'; asset: { _type: 'reference'; _ref: string } };
+      };
+      setForm({
+        nameCompany: c.nameCompany || '',
+        businessName: c.businessName || '',
+        description: c.description || '',
+        typeDocumentCompany: c.typeDocumentCompany || 'nit',
+        numDocumentCompany: c.numDocumentCompany || '',
+        ciiu: c.ciiu || '',
+        webSite: c.webSite || '',
+        addressCompany: c.addressCompany || '',
+        countries: Array.isArray(c.countries) ? c.countries : (c.country ? [c.country] : []),
+        country: c.country || '',
+        department: c.department || '',
+        city: c.city || '',
+        companySize: c.companySize || 'indefinido',
+        sector: c.sector || '',
+        phone: c.phone || '',
+        active: Boolean(c.active),
+        facebook: c.facebook || '',
+        instagram: c.instagram || '',
+        tiktok: c.tiktok || '',
+        pinterest: c.pinterest || '',
+        linkedin: c.linkedin || '',
+        xtwitter: c.xtwitter || '',
+        peopleGroup: Array.isArray(c.peopleGroup) ? c.peopleGroup : [],
+        otherPeopleGroup: c.otherPeopleGroup || '',
+        friendlyBizz: Boolean(c.friendlyBizz),
+        inclusionDEI: Boolean(c.inclusionDEI),
+        membership: Boolean(c.membership),
+        annualRevenue: c.annualRevenue ? String(c.annualRevenue) : '',
+        collaboratorsCount: c.collaboratorsCount ? String(c.collaboratorsCount) : '',
+      });
+      setLogoFile(null);
+      setExistingLogo(c.logo || null);
+      setLogoPreview(
+        c.logo?.asset?._ref
+          ? `https://cdn.sanity.io/images/${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID}/${process.env.NEXT_PUBLIC_SANITY_DATASET}/${c.logo.asset._ref
+              .replace('image-', '')
+              .replace('-jpg', '.jpg')
+              .replace('-png', '.png')
+              .replace('-webp', '.webp')}`
+          : null
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error al cargar empresa');
+      setShowModal(false);
+      setEditingId(null);
+    } finally {
+      setLoadingEdit(false);
+    }
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    if (name === 'active') {
-      setForm((f) => ({ ...f, active: (e.target as HTMLInputElement).checked }));
+    const { name, value, type } = e.target as HTMLInputElement;
+    if (type === 'checkbox') {
+      setForm((f) => ({ ...f, [name]: (e.target as HTMLInputElement).checked }));
     } else {
       setForm((f) => ({ ...f, [name]: value }));
     }
@@ -164,22 +305,37 @@ export default function SuperadminCompaniesView() {
         logoAsset = { _type: 'image', asset: uploadData.asset };
       }
 
-      const res = await fetch('/api/superadmin/companies', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-user-id': user.uid },
-        body: JSON.stringify({
-          ...form,
-          logo: logoAsset,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Error al crear empresa');
+      if (editingId) {
+        const res = await fetch(`/api/superadmin/companies/${editingId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', 'x-user-id': user.uid },
+          body: JSON.stringify({
+            ...form,
+            logo: logoAsset ?? existingLogo ?? undefined,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.message || 'Error al actualizar empresa');
+        toast.success('Empresa actualizada correctamente');
+      } else {
+        const res = await fetch('/api/superadmin/companies', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-user-id': user.uid },
+          body: JSON.stringify({
+            ...form,
+            logo: logoAsset,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Error al crear empresa');
+        toast.success('Empresa creada correctamente');
+      }
 
-      toast.success('Empresa creada correctamente');
       setShowModal(false);
+      setEditingId(null);
       await fetchCompanies();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Error al crear empresa');
+      toast.error(err instanceof Error ? err.message : 'Error al guardar empresa');
     } finally {
       setSaving(false);
     }
@@ -256,17 +412,6 @@ export default function SuperadminCompaniesView() {
       setUpdatingId(null);
     }
   };
-
-  if (loading) {
-    return (
-      <div className="flex container mx-auto mt-10">
-        <SuperadminSidebar />
-        <main className="w-full md:w-3/4 md:pl-10 mt-6 md:mt-0 flex justify-center items-center">
-          <Spinner size="xl" />
-        </main>
-      </div>
-    );
-  }
 
   return (
     <div className="flex container mx-auto mt-10">
@@ -347,7 +492,12 @@ export default function SuperadminCompaniesView() {
             </div>
           </div>
         )}
-      <div className="overflow-x-auto rounded-lg border border-gray-200">
+      <div className="relative overflow-x-auto rounded-lg border border-gray-200">
+        {loading && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/70">
+            <Spinner size="xl" />
+          </div>
+        )}
         <Table>
           <Table.Head>
             <Table.HeadCell className="w-10">
@@ -397,27 +547,32 @@ export default function SuperadminCompaniesView() {
                   </span>
                 </Table.Cell>
                 <Table.Cell>
-                  {updatingId === c._id ? (
-                    <Spinner size="sm" />
-                  ) : c.active ? (
-                    <Button
-                      size="xs"
-                      color="failure"
-                      onClick={() => toggleActive(c._id, false)}
-                    >
-                      <HiX className="mr-1 h-4 w-4" />
-                      Desactivar
+                  <div className="flex gap-2">
+                    <Button size="xs" color="light" onClick={() => openEdit(c._id)}>
+                      <HiOutlinePencil className="h-4 w-4" />
                     </Button>
-                  ) : (
-                    <Button
-                      size="xs"
-                      color="success"
-                      onClick={() => toggleActive(c._id, true)}
-                    >
-                      <HiCheck className="mr-1 h-4 w-4" />
-                      Aprobar
-                    </Button>
-                  )}
+                    {updatingId === c._id ? (
+                      <Spinner size="sm" />
+                    ) : c.active ? (
+                      <Button
+                        size="xs"
+                        color="failure"
+                        onClick={() => toggleActive(c._id, false)}
+                      >
+                        <HiX className="mr-1 h-4 w-4" />
+                        Desactivar
+                      </Button>
+                    ) : (
+                      <Button
+                        size="xs"
+                        color="success"
+                        onClick={() => toggleActive(c._id, true)}
+                      >
+                        <HiCheck className="mr-1 h-4 w-4" />
+                        Aprobar
+                      </Button>
+                    )}
+                  </div>
                 </Table.Cell>
               </Table.Row>
             ))}
@@ -501,10 +656,15 @@ export default function SuperadminCompaniesView() {
           </Modal.Footer>
         </Modal>
 
-        <Modal show={showModal} onClose={() => setShowModal(false)} size="2xl">
-          <Modal.Header>Agregar empresa</Modal.Header>
+        <Modal show={showModal} onClose={() => { setShowModal(false); setEditingId(null); }} size="2xl">
+          <Modal.Header>{editingId ? 'Editar empresa' : 'Agregar empresa'}</Modal.Header>
           <form onSubmit={handleCreate}>
             <Modal.Body>
+              {loadingEdit ? (
+                <div className="flex justify-center py-8">
+                  <Spinner size="xl" />
+                </div>
+              ) : (
               <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
                 <div>
                   <Label htmlFor="nameCompany">Nombre de la empresa *</Label>
@@ -525,6 +685,49 @@ export default function SuperadminCompaniesView() {
                     value={form.businessName}
                     onChange={handleInputChange}
                     placeholder="Se usa el nombre si se deja vacío"
+                  />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="typeDocumentCompany">Tipo de documento</Label>
+                    <select
+                      id="typeDocumentCompany"
+                      name="typeDocumentCompany"
+                      value={form.typeDocumentCompany}
+                      onChange={handleInputChange}
+                      className="block w-full rounded-lg border border-gray-300"
+                    >
+                      <option value="nit">NIT</option>
+                      <option value="rut">RUT</option>
+                      <option value="rfc">RFC</option>
+                      <option value="otro">Otro</option>
+                    </select>
+                  </div>
+                  <div>
+                    <Label htmlFor="numDocumentCompany">Número de documento</Label>
+                    <TextInput
+                      id="numDocumentCompany"
+                      name="numDocumentCompany"
+                      value={form.numDocumentCompany}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="ciiu">CIIU</Label>
+                  <ReactSelect
+                    id="ciiu"
+                    instanceId="superadmin-ciiu"
+                    options={ciiuOptions}
+                    value={ciiuOptions.find((o) => o.value === form.ciiu) || null}
+                    onChange={(selected) => {
+                      const v = (selected as { value?: string } | null)?.value || '';
+                      setForm((f) => ({ ...f, ciiu: v }));
+                    }}
+                    placeholder="Selecciona un CIIU"
+                    isClearable
+                    noOptionsMessage={() => 'No hay opciones'}
+                    className="text-sm mt-1"
                   />
                 </div>
                 <div>
@@ -652,12 +855,19 @@ export default function SuperadminCompaniesView() {
                   </div>
                   <div>
                     <Label htmlFor="sector">Sector</Label>
-                    <TextInput
+                    <select
                       id="sector"
                       name="sector"
                       value={form.sector}
                       onChange={handleInputChange}
-                    />
+                      className="block w-full rounded-lg border border-gray-300"
+                    >
+                      <option value="">Selecciona un sector</option>
+                      <option value="COMERCIO">Comercio</option>
+                      <option value="MANUFACTURA">Manufactura</option>
+                      <option value="SERVICIOS">Servicios</option>
+                      <option value="OTRO">Otro</option>
+                    </select>
                   </div>
                 </div>
                 <div>
@@ -698,7 +908,130 @@ export default function SuperadminCompaniesView() {
                     onChange={handleInputChange}
                   />
                 </div>
-                <div className="flex items-center gap-2">
+
+                <div className="border-t border-gray-200 pt-4">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Redes sociales</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="facebook">Facebook</Label>
+                      <TextInput id="facebook" name="facebook" value={form.facebook} onChange={handleInputChange} placeholder="https://facebook.com/..." />
+                    </div>
+                    <div>
+                      <Label htmlFor="instagram">Instagram</Label>
+                      <TextInput id="instagram" name="instagram" value={form.instagram} onChange={handleInputChange} placeholder="https://instagram.com/..." />
+                    </div>
+                    <div>
+                      <Label htmlFor="linkedin">LinkedIn</Label>
+                      <TextInput id="linkedin" name="linkedin" value={form.linkedin} onChange={handleInputChange} placeholder="https://linkedin.com/..." />
+                    </div>
+                    <div>
+                      <Label htmlFor="xtwitter">X (Twitter)</Label>
+                      <TextInput id="xtwitter" name="xtwitter" value={form.xtwitter} onChange={handleInputChange} placeholder="https://x.com/..." />
+                    </div>
+                    <div>
+                      <Label htmlFor="tiktok">TikTok</Label>
+                      <TextInput id="tiktok" name="tiktok" value={form.tiktok} onChange={handleInputChange} placeholder="https://tiktok.com/@..." />
+                    </div>
+                    <div>
+                      <Label htmlFor="pinterest">Pinterest</Label>
+                      <TextInput id="pinterest" name="pinterest" value={form.pinterest} onChange={handleInputChange} placeholder="https://pinterest.com/..." />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t border-gray-200 pt-4">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Diversidad e inclusión</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="peopleGroup">Grupos poblacionales</Label>
+                      <ReactSelect
+                        id="peopleGroup"
+                        instanceId="superadmin-people-group"
+                        isMulti
+                        options={PEOPLE_GROUP_OPTIONS}
+                        value={PEOPLE_GROUP_OPTIONS.filter((o) => form.peopleGroup.includes(o.value))}
+                        onChange={(selected) => {
+                          const values = Array.isArray(selected) ? selected.map((s) => s.value) : [];
+                          setForm((f) => ({ ...f, peopleGroup: values }));
+                        }}
+                        placeholder="Selecciona uno o más grupos"
+                        noOptionsMessage={() => 'No hay opciones'}
+                        className="text-sm mt-1"
+                      />
+                    </div>
+                    {form.peopleGroup.includes('otro') && (
+                      <div>
+                        <Label htmlFor="otherPeopleGroup">Otro grupo poblacional</Label>
+                        <TextInput id="otherPeopleGroup" name="otherPeopleGroup" value={form.otherPeopleGroup} onChange={handleInputChange} />
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="inclusionDEI"
+                        name="inclusionDEI"
+                        checked={form.inclusionDEI}
+                        onChange={handleInputChange}
+                        className="rounded border-gray-300"
+                      />
+                      <Label htmlFor="inclusionDEI">Empresa con política DEI</Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="friendlyBizz"
+                        name="friendlyBizz"
+                        checked={form.friendlyBizz}
+                        onChange={handleInputChange}
+                        className="rounded border-gray-300"
+                      />
+                      <Label htmlFor="friendlyBizz">Friendly Biz</Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="membership"
+                        name="membership"
+                        checked={form.membership}
+                        onChange={handleInputChange}
+                        className="rounded border-gray-300"
+                      />
+                      <Label htmlFor="membership">Empresa miembro de la Cámara</Label>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t border-gray-200 pt-4">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Información financiera</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="annualRevenue">Ingresos anuales (COP)</Label>
+                      <TextInput
+                        id="annualRevenue"
+                        name="annualRevenue"
+                        type="number"
+                        min={0}
+                        value={form.annualRevenue}
+                        onChange={handleInputChange}
+                        placeholder="0"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="collaboratorsCount">Cantidad de colaboradores</Label>
+                      <TextInput
+                        id="collaboratorsCount"
+                        name="collaboratorsCount"
+                        type="number"
+                        min={0}
+                        value={form.collaboratorsCount}
+                        onChange={handleInputChange}
+                        placeholder="0"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t border-gray-200 pt-4 flex items-center gap-2">
                   <input
                     type="checkbox"
                     id="active"
@@ -710,12 +1043,13 @@ export default function SuperadminCompaniesView() {
                   <Label htmlFor="active">Activar empresa (visible en catálogo)</Label>
                 </div>
               </div>
+              )}
             </Modal.Body>
             <Modal.Footer>
-              <Button type="submit" disabled={saving}>
-                {saving ? <Spinner size="sm" /> : 'Crear empresa'}
+              <Button type="submit" disabled={saving || loadingEdit}>
+                {saving ? <Spinner size="sm" /> : editingId ? 'Guardar cambios' : 'Crear empresa'}
               </Button>
-              <Button color="gray" onClick={() => setShowModal(false)}>
+              <Button color="gray" onClick={() => { setShowModal(false); setEditingId(null); }}>
                 Cancelar
               </Button>
             </Modal.Footer>

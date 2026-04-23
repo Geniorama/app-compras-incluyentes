@@ -355,17 +355,6 @@ export default function SuperadminUsersView() {
     setShowDeleteModal(true);
   };
 
-  if (loading) {
-    return (
-      <div className="flex container mx-auto mt-10">
-        <SuperadminSidebar />
-        <main className="w-full md:w-3/4 md:pl-10 mt-6 md:mt-0 flex justify-center items-center">
-          <Spinner size="xl" />
-        </main>
-      </div>
-    );
-  }
-
   return (
     <div className="flex container mx-auto mt-10">
       <SuperadminSidebar />
@@ -403,7 +392,12 @@ export default function SuperadminUsersView() {
           </div>
         </div>
 
-        <div className="overflow-x-auto rounded-lg border border-gray-200">
+        <div className="relative overflow-x-auto rounded-lg border border-gray-200">
+          {loading && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/70">
+              <Spinner size="xl" />
+            </div>
+          )}
           <Table>
             <Table.Head>
               <Table.HeadCell>Nombre</Table.HeadCell>
