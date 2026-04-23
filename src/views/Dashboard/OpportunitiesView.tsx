@@ -14,12 +14,20 @@ import {
   Textarea,
   Label,
 } from 'flowbite-react';
-import { HiOutlinePlus, HiOutlinePencil, HiCalendar, HiOutlineOfficeBuilding } from 'react-icons/hi';
+import { HiOutlinePlus, HiOutlinePencil, HiCalendar, HiOutlineOfficeBuilding, HiChevronDown, HiChevronUp, HiOutlineMail, HiOutlinePhone } from 'react-icons/hi';
 import toast from 'react-hot-toast';
 
 
 interface SanityImage {
   asset?: { _ref: string };
+}
+
+interface Applicant {
+  _id: string;
+  nameCompany: string;
+  logo?: SanityImage;
+  phone?: string;
+  email?: string;
 }
 
 interface Opportunity {
@@ -33,7 +41,7 @@ interface Opportunity {
   contractValue?: number;
   status: string;
   company?: { _id: string; nameCompany: string };
-  applications?: Array<{ _id: string; nameCompany: string }>;
+  applications?: Applicant[];
 }
 
 function formatDate(dateStr: string): string {
@@ -73,12 +81,18 @@ function getImageUrl(img?: SanityImage): string {
   return `https://cdn.sanity.io/images/${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID}/${process.env.NEXT_PUBLIC_SANITY_DATASET}/${ref}`;
 }
 
+type TabKey = 'main' | 'applied';
+
 export default function OpportunitiesView() {
   const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState<TabKey>('main');
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
+  const [appliedOpportunities, setAppliedOpportunities] = useState<Opportunity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingApplied, setLoadingApplied] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [expandedApplicants, setExpandedApplicants] = useState<Record<string, boolean>>({});
   const [form, setForm] = useState({
     title: '',
     startDate: '',
@@ -101,6 +115,13 @@ export default function OpportunitiesView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
+  useEffect(() => {
+    if (user && companyId && activeTab === 'applied' && appliedOpportunities.length === 0) {
+      fetchAppliedOpportunities();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, companyId, activeTab]);
+
   const fetchOpportunities = async () => {
     setLoading(true);
     try {
@@ -114,6 +135,22 @@ export default function OpportunitiesView() {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAppliedOpportunities = async () => {
+    if (!companyId) return;
+    setLoadingApplied(true);
+    try {
+      const params = new URLSearchParams();
+      params.set('appliedByCompanyId', companyId);
+      const res = await fetch(`/api/opportunities?${params}`);
+      const data = await res.json();
+      setAppliedOpportunities(data.opportunities || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingApplied(false);
     }
   };
 
@@ -232,7 +269,36 @@ export default function OpportunitiesView() {
           )}
         </div>
 
-        {loading ? (
+        <div className="flex border-b border-gray-200 mb-6" role="tablist">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'main'}
+            onClick={() => setActiveTab('main')}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition ${
+              activeTab === 'main'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-600 hover:text-gray-800'
+            }`}
+          >
+            {isLargeCompany ? 'Mis oportunidades' : 'Oportunidades abiertas'}
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'applied'}
+            onClick={() => setActiveTab('applied')}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition ${
+              activeTab === 'applied'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-600 hover:text-gray-800'
+            }`}
+          >
+            Mis postulaciones
+          </button>
+        </div>
+
+        {activeTab === 'main' && (loading ? (
           <div className="flex justify-center py-16">
             <Spinner size="xl" />
           </div>
@@ -291,8 +357,26 @@ export default function OpportunitiesView() {
                         Cierre: {formatDate(opp.maxApplicationDate)}
                       </span>
                       {opp.contractValue && <span>{formatCurrency(opp.contractValue)}</span>}
-                      {opp.applications && opp.applications.length > 0 && (
-                        <span>{opp.applications.length} postulación(es)</span>
+                      {isLargeCompany && opp.company?._id === companyId ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setExpandedApplicants((prev) => ({ ...prev, [opp._id]: !prev[opp._id] }))
+                          }
+                          className="flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium"
+                          aria-expanded={!!expandedApplicants[opp._id]}
+                        >
+                          {opp.applications?.length || 0} postulación(es)
+                          {expandedApplicants[opp._id] ? (
+                            <HiChevronUp className="w-4 h-4" />
+                          ) : (
+                            <HiChevronDown className="w-4 h-4" />
+                          )}
+                        </button>
+                      ) : (
+                        opp.applications && opp.applications.length > 0 && (
+                          <span>{opp.applications.length} postulación(es)</span>
+                        )
                       )}
                     </div>
                   </div>
@@ -308,10 +392,137 @@ export default function OpportunitiesView() {
                   </div>
                 </div>
                 </div>
+                {isLargeCompany &&
+                  opp.company?._id === companyId &&
+                  expandedApplicants[opp._id] && (
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                      <h3 className="text-sm font-semibold text-gray-800 mb-3">
+                        Empresas postuladas
+                      </h3>
+                      {!opp.applications || opp.applications.length === 0 ? (
+                        <p className="text-sm text-gray-500">Aún no hay postulaciones.</p>
+                      ) : (
+                        <ul className="space-y-2">
+                          {opp.applications.map((a) => (
+                            <li
+                              key={a._id}
+                              className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 bg-gray-50 rounded-lg"
+                            >
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center overflow-hidden flex-shrink-0">
+                                  {a.logo?.asset?._ref ? (
+                                    <img
+                                      src={getImageUrl(a.logo)}
+                                      alt={a.nameCompany}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  ) : (
+                                    <HiOutlineOfficeBuilding className="w-5 h-5 text-gray-400" />
+                                  )}
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="font-medium text-gray-900 truncate">{a.nameCompany}</p>
+                                  <div className="flex flex-wrap gap-3 text-xs text-gray-500">
+                                    {a.email && (
+                                      <a
+                                        href={`mailto:${a.email}`}
+                                        className="flex items-center gap-1 hover:text-blue-600"
+                                      >
+                                        <HiOutlineMail className="w-3.5 h-3.5" />
+                                        {a.email}
+                                      </a>
+                                    )}
+                                    {a.phone && (
+                                      <span className="flex items-center gap-1">
+                                        <HiOutlinePhone className="w-3.5 h-3.5" />
+                                        {a.phone}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              <Button
+                                size="xs"
+                                color="light"
+                                onClick={() => window.open(`/empresas/${a._id}`, '_blank')}
+                              >
+                                Ver empresa
+                              </Button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  )}
               </Card>
             ))}
           </div>
-        )}
+        ))}
+
+        {activeTab === 'applied' && (loadingApplied ? (
+          <div className="flex justify-center py-16">
+            <Spinner size="xl" />
+          </div>
+        ) : appliedOpportunities.length === 0 ? (
+          <Card>
+            <p className="text-gray-500 text-center py-8">
+              Tu empresa aún no se ha postulado a ninguna oportunidad.
+            </p>
+            <Button color="blue" onClick={() => window.open('/oportunidades', '_blank')}>
+              Explorar oportunidades
+            </Button>
+          </Card>
+        ) : (
+          <div className="space-y-4">
+            {appliedOpportunities.map((opp) => (
+              <Card key={opp._id} className="hover:shadow-md transition-shadow overflow-hidden">
+                <div className="flex flex-col md:flex-row gap-4">
+                  <div className="w-full md:w-40 h-28 flex-shrink-0 rounded overflow-hidden">
+                    {opp.cover?.asset?._ref ? (
+                      <img
+                        src={getImageUrl(opp.cover)}
+                        alt={opp.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200" />
+                    )}
+                  </div>
+                  <div className="flex-1 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        <Badge color={opp.status === 'open' ? 'success' : opp.status === 'closed' ? 'failure' : 'gray'}>
+                          {opp.status === 'open' ? 'Abierta' : opp.status === 'closed' ? 'Cerrada' : 'Borrador'}
+                        </Badge>
+                        <Badge color="info">Postulado</Badge>
+                        {opp.company && (
+                          <span className="flex items-center gap-1 text-sm text-gray-600">
+                            <HiOutlineOfficeBuilding className="w-4 h-4" />
+                            {opp.company.nameCompany}
+                          </span>
+                        )}
+                      </div>
+                      <h2 className="text-lg font-semibold text-gray-900">{opp.title}</h2>
+                      <p className="text-gray-600 text-sm mt-1 line-clamp-2">{opp.description}</p>
+                      <div className="flex flex-wrap gap-4 mt-2 text-sm text-gray-500">
+                        <span className="flex items-center gap-1">
+                          <HiCalendar className="w-4 h-4" />
+                          Cierre: {formatDate(opp.maxApplicationDate)}
+                        </span>
+                        {opp.contractValue && <span>{formatCurrency(opp.contractValue)}</span>}
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" color="light" onClick={() => window.open(`/oportunidades/${opp._id}`, '_blank')}>
+                        Ver
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        ))}
 
         <Modal show={showModal} onClose={() => setShowModal(false)} size="2xl">
           <Modal.Header>{editingId ? 'Editar oportunidad' : 'Nueva oportunidad'}</Modal.Header>

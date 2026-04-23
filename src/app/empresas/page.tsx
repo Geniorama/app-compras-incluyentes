@@ -67,34 +67,52 @@ export default function EmpresasPage() {
   const fetchCompanies = useCallback(async () => {
     try {
       setIsLoading(true);
+      const escapeGROQ = (str: string) =>
+        str.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\*/g, '\\*');
+
       // Construir la consulta base
       let query = `*[_type == "company" && active == true`;
-      
+
       // Agregar filtros si existen
       const filters = [];
-      if (searchTerm) filters.push(`(nameCompany match "${searchTerm}*" || businessName match "${searchTerm}*")`);
+      if (searchTerm) {
+        const safe = escapeGROQ(searchTerm);
+        filters.push(
+          `(nameCompany match "*${safe}*" || businessName match "*${safe}*" || department match "*${safe}*" || city match "*${safe}*")`
+        );
+      }
       if (sector.length > 0) {
-        const sectorFilter = sector.map(s => `"${s}"`).join(', ');
+        const sectorFilter = sector.map(s => `"${escapeGROQ(s)}"`).join(', ');
         filters.push(`ciiu in [${sectorFilter}]`);
       }
       if (country) {
         const countryFilter = country === 'CO'
-          ? `(country == "CO" || country == "Colombia")`
+          ? `(country == "CO" || country == "Colombia" || "CO" in countries || "Colombia" in countries)`
           : country === 'MX'
-          ? `(country == "MX" || country == "México")`
-          : `country == "${country}"`;
+          ? `(country == "MX" || country == "México" || "MX" in countries || "México" in countries)`
+          : `(country == "${escapeGROQ(country)}" || "${escapeGROQ(country)}" in countries)`;
         filters.push(countryFilter);
       }
-      if (department) filters.push(`department == "${department.replace(/"/g, '\\"')}"`);
-      if (city) filters.push(`city == "${city.replace(/"/g, '\\"')}"`);
+      if (department) filters.push(`department == "${escapeGROQ(department)}"`);
+      if (city) filters.push(`city == "${escapeGROQ(city)}"`);
       if (peopleGroup.length > 0) {
-        const pgConditions = peopleGroup
-          .map(pg => `"${pg.replace(/"/g, '\\"')}" in peopleGroup`)
+        const DISABILITY_SUBCATEGORIES = [
+          'discapacidad-sensorial',
+          'discapacidad-fisico-motora',
+          'discapacidad-psicosocial',
+          'discapacidad-cognitiva',
+        ];
+        const includesDisability = peopleGroup.some(pg => DISABILITY_SUBCATEGORIES.includes(pg));
+        const pgValues = includesDisability
+          ? Array.from(new Set([...peopleGroup, 'personas-discapacidad']))
+          : peopleGroup;
+        const pgConditions = pgValues
+          .map(pg => `"${escapeGROQ(pg)}" in peopleGroup`)
           .join(' || ');
         filters.push(`(${pgConditions})`);
       }
       if (companySize.length > 0) {
-        const sizeFilter = companySize.map(size => `"${size}"`).join(', ');
+        const sizeFilter = companySize.map(size => `"${escapeGROQ(size)}"`).join(', ');
         filters.push(`companySize in [${sizeFilter}]`);
       }
       if (inclusionDEI === 'yes') {

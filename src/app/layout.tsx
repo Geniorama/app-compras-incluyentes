@@ -24,7 +24,7 @@ export default function RootLayout({
       <body className={'font-sans'}>
         <AuthProvider>
           <AccessibilityBar />
-          <main id="main-content" className="pt-8">
+          <main id="main-content">
             {children}
           </main>
           <SurveyModal />

@@ -13,7 +13,7 @@ const OPPORTUNITY_FIELDS = `
   contractValue,
   status,
   company->{ _id, nameCompany, logo },
-  applications[]->{ _id, nameCompany }
+  applications[]->{ _id, nameCompany, logo, phone, email }
 `;
 
 function escapeGROQ(str: string): string {
@@ -24,6 +24,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const status = searchParams.get('status');
   const companyId = searchParams.get('companyId');
+  const appliedByCompanyId = searchParams.get('appliedByCompanyId');
   const search = searchParams.get('search');
   const minValue = searchParams.get('minValue');
   const maxValue = searchParams.get('maxValue');
@@ -40,6 +41,7 @@ export async function GET(req: NextRequest) {
     const filters: string[] = ['_type == "opportunity"'];
     if (status) filters.push(`status == "${status}"`);
     if (companyId) filters.push(`company._ref == "${companyId}"`);
+    if (appliedByCompanyId) filters.push(`"${escapeGROQ(appliedByCompanyId)}" in applications[]._ref`);
     if (search && search.trim()) {
       const term = escapeGROQ(search.trim());
       filters.push(`(title match "*${term}*" || (defined(description) && description match "*${term}*"))`);
