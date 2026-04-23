@@ -158,8 +158,7 @@ export default function EmpresasView({
     { value: 'micro', label: 'Micro' },
     { value: 'pequena', label: 'Pequeña' },
     { value: 'mediana', label: 'Mediana' },
-    { value: 'grande', label: 'Grande' },
-    { value: 'indefinido', label: 'Indefinido' }
+    { value: 'grande', label: 'Grande' }
   ];
 
   // Opciones para grupos poblacionales
@@ -172,13 +171,12 @@ export default function EmpresasView({
     { value: 'migrantes', label: 'Migrantes' },
     { value: 'etnia-afrodescendientes', label: 'Etnia y Raza: Afrodescendientes, raizales y palenqueros' },
     { value: 'etnia-indigenas', label: 'Etnia y Raza: Indígenas' },
-    { value: 'victimas-reconciliacion-paz', label: 'Víctimas de reconciliación y paz (víctimas, victimarios)' },
+    { value: 'victimas-reconciliacion-paz', label: 'Víctimas del conflicto armado y personas en proceso de reintegración o reincorporación' },
     { value: 'pospenadas', label: 'Pospenadas' },
     { value: 'diversidad-generacional-mayores-50', label: 'Diversidad Generacional mayores de 50 años' },
     { value: 'diversidad-generacional-primer-empleo', label: 'Diversidad Generacional primer empleo' },
     { value: 'madres-cabeza-familia', label: 'Madres cabeza de familia' },
     { value: 'diversidad-sexual', label: 'Diversidad Sexual' },
-    { value: 'personas-discapacidad', label: 'Personas con discapacidad' },
     { value: 'etnia-raza-afro', label: 'Etnia, raza o afro' },
     { value: 'personas-migrantes', label: 'Personas migrantes' },
     { value: 'generacional', label: 'Generacional' },
@@ -265,8 +263,8 @@ export default function EmpresasView({
         <div className="container mx-auto px-4 py-8">
           <div className="flex flex-col justify-between items-start gap-4 mb-6">
             <h2 className="text-xl font-semibold text-gray-800">Empresas</h2>
-            <div className="flex flex-wrap gap-4 md:gap-x-4">
-              <div className="min-w-[150px]">
+            <div className="flex flex-wrap items-end gap-4 w-full">
+              <div className="flex-1 basis-[160px]">
                 <Label htmlFor="country-filter" className="text-sm font-medium text-gray-700 mb-1 block">
                   País
                 </Label>
@@ -274,11 +272,11 @@ export default function EmpresasView({
                   id="country-filter"
                   value={country}
                   onChange={(e) => onCountryChange(e.target.value)}
-                  className="min-w-[150px]"
+                  className="w-full"
                   theme={{
                     field: {
                       select: {
-                        base: "bg-blue-50 border-blue-300 text-sm focus:border-blue-500 focus:ring-blue-500"
+                        base: "block w-full bg-blue-50 border-blue-300 text-sm focus:border-blue-500 focus:ring-blue-500"
                       }
                     }
                   }}
@@ -290,7 +288,7 @@ export default function EmpresasView({
               </div>
               {((country === 'CO') || (country === 'MX')) && (
                 <>
-              <div className="min-w-[150px]">
+              <div className="flex-1 basis-[160px]">
                 <Label htmlFor="department-filter" className="text-sm font-medium text-gray-700 mb-1 block">
                   {country === 'MX' ? 'Estado' : 'Departamento'}
                 </Label>
@@ -298,11 +296,11 @@ export default function EmpresasView({
                   id="department-filter"
                   value={department}
                   onChange={(e) => onDepartmentChange(e.target.value)}
-                  className="min-w-[150px]"
+                  className="w-full"
                   theme={{
                     field: {
                       select: {
-                        base: "bg-blue-50 border-blue-300 text-sm focus:border-blue-500 focus:ring-blue-500"
+                        base: "block w-full bg-blue-50 border-blue-300 text-sm focus:border-blue-500 focus:ring-blue-500"
                       }
                     }
                   }}
@@ -313,7 +311,7 @@ export default function EmpresasView({
                   ))}
                 </Select>
               </div>
-              <div className="min-w-[150px]">
+              <div className="flex-1 basis-[160px]">
                 <Label htmlFor="city-filter" className="text-sm font-medium text-gray-700 mb-1 block">
                   {country === 'MX' ? 'Municipio' : 'Ciudad'}
                 </Label>
@@ -321,12 +319,12 @@ export default function EmpresasView({
                   id="city-filter"
                   value={city}
                   onChange={(e) => onCityChange(e.target.value)}
-                  className="min-w-[150px]"
+                  className="w-full"
                   disabled={!department}
                   theme={{
                     field: {
                       select: {
-                        base: `bg-blue-50 border-blue-300 text-sm focus:border-blue-500 focus:ring-blue-500 ${!department ? "bg-gray-100 text-gray-500 border-gray-200" : ""}`
+                        base: `block w-full bg-blue-50 border-blue-300 text-sm focus:border-blue-500 focus:ring-blue-500 ${!department ? "bg-gray-100 text-gray-500 border-gray-200" : ""}`
                       }
                     }
                   }}
@@ -339,7 +337,7 @@ export default function EmpresasView({
               </div>
                 </>
               )}
-              <div className="min-w-[150px]">
+              <div className="flex-1 basis-[160px]">
                 <Label htmlFor="sector-filter" className="text-sm font-medium text-gray-700 mb-1 block">
                   Sector (CIIU)
                 </Label>
@@ -368,7 +366,7 @@ export default function EmpresasView({
                   </div>
                 )}
               </div>
-              <div className="min-w-[150px]">
+              <div className="flex-1 basis-[160px]">
                 <Label htmlFor="company-size-filter" className="text-sm font-medium text-gray-700 mb-1 block">
                   Tamaño de empresa
                 </Label>
@@ -397,7 +395,7 @@ export default function EmpresasView({
                   </div>
                 )}
               </div>
-              <div className="min-w-[180px]">
+              <div className="flex-1 basis-[160px]">
                 <Label htmlFor="people-group-filter" className="text-sm font-medium text-gray-700 mb-1 block">
                   Grupo poblacional
                 </Label>
@@ -426,19 +424,19 @@ export default function EmpresasView({
                   </div>
                 )}
               </div>
-              <div className="min-w-[150px]">
+              <div className="flex-1 basis-[160px]">
                 <Label htmlFor="inclusion-dei-filter" className="text-sm font-medium text-gray-700 mb-1 block">
                   Política DEI
                 </Label>
-                <Select 
+                <Select
                   id="inclusion-dei-filter"
-                  value={inclusionDEI} 
+                  value={inclusionDEI}
                   onChange={(e) => onInclusionDEIChange(e.target.value)}
-                  className="min-w-[150px]"
+                  className="w-full"
                   theme={{
                     field: {
                       select: {
-                        base: "bg-blue-50 border-blue-300 text-sm focus:border-blue-500 focus:ring-blue-500"
+                        base: "block w-full bg-blue-50 border-blue-300 text-sm focus:border-blue-500 focus:ring-blue-500"
                       }
                     }
                   }}
@@ -448,7 +446,7 @@ export default function EmpresasView({
                   <option value="no">Sin política DEI</option>
                 </Select>
               </div>
-              <div className="flex flex-col gap-1">
+              <div className="flex-[1.3] basis-[200px] flex flex-col gap-1">
                 <Label htmlFor="sort-field" className="text-sm font-medium text-gray-700">
                   Ordenar por
                 </Label>
@@ -457,11 +455,11 @@ export default function EmpresasView({
                     id="sort-field"
                     value={sortField}
                     onChange={(e) => onSortChange(e.target.value as 'nameCompany' | '_createdAt', sortDirection)}
-                    className="min-w-[120px]"
+                    className="flex-1"
                     theme={{
                       field: {
                         select: {
-                          base: "bg-gray-50 border-gray-300 text-sm text-gray-700 focus:border-gray-400 focus:ring-gray-400"
+                          base: "block w-full bg-gray-50 border-gray-300 text-sm text-gray-700 focus:border-gray-400 focus:ring-gray-400"
                         }
                       }
                     }}

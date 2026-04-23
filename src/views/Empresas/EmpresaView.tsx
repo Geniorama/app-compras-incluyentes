@@ -72,7 +72,7 @@ function getPeopleGroupLabels(groups?: string | string[]): string[] {
     'migrantes': 'Migrantes',
     'etnia-afrodescendientes': 'Etnia y Raza: Afrodescendientes, raizales y palenqueros',
     'etnia-indigenas': 'Etnia y Raza: Indígenas',
-    'victimas-reconciliacion-paz': 'Víctimas de reconciliación y paz (víctimas, victimarios)',
+    'victimas-reconciliacion-paz': 'Víctimas del conflicto armado y personas en proceso de reintegración o reincorporación',
     'pospenadas': 'Pospenadas',
     'diversidad-generacional-mayores-50': 'Diversidad Generacional mayores de 50 años',
     'diversidad-generacional-primer-empleo': 'Diversidad Generacional primer empleo',
