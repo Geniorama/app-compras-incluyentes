@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { Table, Button, Spinner, Modal, TextInput, Label, Select, Alert } from 'flowbite-react';
 import { useAuth } from '@/context/AuthContext';
 import SuperadminSidebar from '@/components/superadmin/SuperadminSidebar';
+import SearchableSelect from '@/components/superadmin/SearchableSelect';
 import { HiUser, HiOutlinePencil, HiOutlineTrash, HiOutlineSearch } from 'react-icons/hi';
 import toast from 'react-hot-toast';
 import { getDepartamentosOptions, getCiudadesOptionsByDepartamento } from '@/utils/departamentosCiudades';
@@ -93,6 +94,14 @@ export default function SuperadminUsersView() {
     notifyEmailMessages: false,
   });
   const [userCityOptions, setUserCityOptions] = useState<{ value: string; label: string }[]>([]);
+  const companyOptions = useMemo(
+    () =>
+      companies.map((c) => ({
+        value: c._id,
+        label: c.nameCompany || '(sin nombre)',
+      })),
+    [companies]
+  );
   const departamentosOpts = getDepartamentosOptions();
   const mexEstadosOpts = getMexicoEstadosOptions();
 
@@ -138,7 +147,7 @@ export default function SuperadminUsersView() {
   const fetchCompanies = async () => {
     if (!user?.uid) return;
     try {
-      const res = await fetch('/api/superadmin/companies', {
+      const res = await fetch('/api/superadmin/companies?all=true', {
         headers: { 'x-user-id': user.uid },
       });
       const data = await res.json();
@@ -214,6 +223,10 @@ export default function SuperadminUsersView() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user?.uid) return;
+    if (form.role !== 'superadmin' && !form.companyId) {
+      setError('Selecciona una empresa');
+      return;
+    }
 
     setIsSubmitting(true);
     setError('');
@@ -257,6 +270,10 @@ export default function SuperadminUsersView() {
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user?.uid || !selectedUser) return;
+    if (form.role !== 'superadmin' && !form.companyId) {
+      setError('Selecciona una empresa');
+      return;
+    }
 
     setIsSubmitting(true);
     setError('');
@@ -554,20 +571,14 @@ export default function SuperadminUsersView() {
               {(form.role !== 'superadmin' || !selectedUser) && (
                 <div>
                   <Label htmlFor="companyId">Empresa</Label>
-                  <Select
+                  <SearchableSelect
                     id="companyId"
-                    name="companyId"
+                    options={companyOptions}
                     value={form.companyId}
-                    onChange={handleInputChange}
-                    required={form.role !== 'superadmin'}
-                  >
-                    <option value="">Seleccionar empresa...</option>
-                    {companies.map((c) => (
-                      <option key={c._id} value={c._id}>
-                        {c.nameCompany}
-                      </option>
-                    ))}
-                  </Select>
+                    onChange={(v) => setForm((f) => ({ ...f, companyId: v }))}
+                    placeholder="Seleccionar empresa..."
+                    emptyMessage="No se encontraron empresas"
+                  />
                 </div>
               )}
               {!selectedUser && form.role !== 'member' && (

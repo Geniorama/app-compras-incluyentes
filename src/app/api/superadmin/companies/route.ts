@@ -17,6 +17,23 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url);
+
+    const client = getAuthenticatedClient();
+
+    // Modo "todas": listado liviano (id + nombre) sin paginar, para selectores
+    if (searchParams.get('all') === 'true') {
+      const companies = await client.fetch(
+        `*[_type == "company" && !(_id in path("drafts.**"))] | order(nameCompany asc) {
+          _id,
+          nameCompany
+        }`
+      );
+      return NextResponse.json({
+        success: true,
+        data: { companies, total: companies.length },
+      });
+    }
+
     const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
     const limitParam = parseInt(searchParams.get('limit') || '20', 10);
     const limit = VALID_LIMITS.includes(limitParam) ? limitParam : 20;
@@ -24,8 +41,6 @@ export async function GET(request: Request) {
     const status = searchParams.get('status') || 'all';
     const start = (page - 1) * limit;
     const end = start + limit;
-
-    const client = getAuthenticatedClient();
 
     const baseFilter = `_type == "company" && !(_id in path("drafts.**"))`;
     const searchFilter = search
