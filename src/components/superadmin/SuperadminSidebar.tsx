@@ -8,6 +8,7 @@ import {
   HiOutlineOfficeBuilding,
   HiOutlineTag,
   HiOutlineChartBar,
+  HiOutlineClipboardList,
   HiOutlineDownload,
   HiOutlineHome,
   HiOutlineLogout,
@@ -19,6 +20,7 @@ const menuItems = [
   { href: '/superadmin/empresas', icon: HiOutlineOfficeBuilding, label: 'Empresas' },
   { href: '/superadmin/categorias', icon: HiOutlineTag, label: 'Categorías' },
   { href: '/superadmin/estadisticas', icon: HiOutlineChartBar, label: 'Estadísticas' },
+  { href: '/superadmin/cuestionario', icon: HiOutlineClipboardList, label: 'Cuestionario' },
   { href: '/superadmin/exportar', icon: HiOutlineDownload, label: 'Exportar datos' },
 ];
 

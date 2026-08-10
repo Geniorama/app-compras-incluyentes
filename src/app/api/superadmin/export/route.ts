@@ -4,11 +4,41 @@ import { isSuperadmin } from '@/lib/superadmin';
 
 function escapeCsv(value: unknown): string {
   if (value == null) return '';
-  const str = String(value);
-  if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+  let str = String(value);
+  // Neutralizar fórmulas: Excel y Sheets ejecutan las celdas que empiezan por
+  // estos caracteres, y aquí entra texto escrito por los usuarios
+  if (/^[=+\-@\t\r]/.test(str)) str = `'${str}`;
+  if (/[",\n\r]/.test(str)) {
     return `"${str.replace(/"/g, '""')}"`;
   }
   return str;
+}
+
+function buildCsv(headers: string[], rows: unknown[][]): string {
+  return [headers.join(','), ...rows.map((r) => r.map(escapeCsv).join(','))].join('\n');
+}
+
+function csvResponse(filenamePrefix: string, csv: string): NextResponse {
+  // El BOM hace que Excel abra el archivo como UTF-8 y respete las tildes
+  return new NextResponse(`\uFEFF${csv}`, {
+    headers: {
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': `attachment; filename="${filenamePrefix}-${new Date().toISOString().slice(0, 10)}.csv"`,
+    },
+  });
+}
+
+const CHOICE_LABELS: Record<string, string> = {
+  si: 'Sí',
+  no: 'No',
+  'en-parte': 'En parte',
+};
+
+function npsCategory(score: unknown): string {
+  if (typeof score !== 'number') return '';
+  if (score >= 9) return 'Promotor';
+  if (score >= 7) return 'Pasivo';
+  return 'Detractor';
 }
 
 export async function GET(request: Request) {
@@ -46,14 +76,7 @@ export async function GET(request: Request) {
         u.empresa,
         u._createdAt,
       ]);
-      const csv = [headers.join(','), ...rows.map((r: unknown[]) => r.map(escapeCsv).join(','))].join('\n');
-
-      return new NextResponse(csv, {
-        headers: {
-          'Content-Type': 'text/csv; charset=utf-8',
-          'Content-Disposition': `attachment; filename="usuarios-${new Date().toISOString().slice(0, 10)}.csv"`,
-        },
-      });
+      return csvResponse('usuarios', buildCsv(headers, rows));
     }
 
     if (type === 'companies') {
@@ -81,14 +104,7 @@ export async function GET(request: Request) {
         c.active ? 'Sí' : 'No',
         c._createdAt,
       ]);
-      const csv = [headers.join(','), ...rows.map((r: unknown[]) => r.map(escapeCsv).join(','))].join('\n');
-
-      return new NextResponse(csv, {
-        headers: {
-          'Content-Type': 'text/csv; charset=utf-8',
-          'Content-Disposition': `attachment; filename="empresas-${new Date().toISOString().slice(0, 10)}.csv"`,
-        },
-      });
+      return csvResponse('empresas', buildCsv(headers, rows));
     }
 
     if (type === 'categories') {
@@ -108,14 +124,54 @@ export async function GET(request: Request) {
         Array.isArray(c.types) ? c.types.join('; ') : '',
         c._createdAt,
       ]);
-      const csv = [headers.join(','), ...rows.map((r: unknown[]) => r.map(escapeCsv).join(','))].join('\n');
+      return csvResponse('categorias', buildCsv(headers, rows));
+    }
 
-      return new NextResponse(csv, {
-        headers: {
-          'Content-Type': 'text/csv; charset=utf-8',
-          'Content-Disposition': `attachment; filename="categorias-${new Date().toISOString().slice(0, 10)}.csv"`,
-        },
-      });
+    if (type === 'survey') {
+      const responses = await client.fetch(
+        `*[_type == "platformSurveyResponse" && !(_id in path("drafts.**"))] | order(coalesce(submittedAt, _createdAt) desc) {
+          experienceRating,
+          helpedGetClients,
+          helpedGetProjects,
+          recommendationScore,
+          additionalComments,
+          submittedAt,
+          _createdAt,
+          "nombre": user->firstName,
+          "apellido": user->lastName,
+          "email": user->email,
+          "empresa": user->company->nameCompany
+        }`
+      );
+
+      const headers = [
+        'Nombre',
+        'Apellido',
+        'Email',
+        'Empresa',
+        'Experiencia (1-5)',
+        '¿Ayudó a conseguir clientes?',
+        '¿Ayudó a conseguir proyectos?',
+        'Recomendación (0-10)',
+        'Categoría NPS',
+        'Comentarios',
+        'Fecha de envío',
+      ];
+      const rows = responses.map((r: Record<string, unknown>) => [
+        r.nombre,
+        r.apellido,
+        r.email,
+        r.empresa,
+        r.experienceRating,
+        CHOICE_LABELS[String(r.helpedGetClients)] ?? '',
+        CHOICE_LABELS[String(r.helpedGetProjects)] ?? '',
+        r.recommendationScore,
+        npsCategory(r.recommendationScore),
+        r.additionalComments,
+        r.submittedAt || r._createdAt,
+      ]);
+
+      return csvResponse('cuestionario', buildCsv(headers, rows));
     }
 
     return NextResponse.json({ message: 'Tipo de exportación no válido' }, { status: 400 });
