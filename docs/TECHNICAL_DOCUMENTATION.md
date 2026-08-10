@@ -29,6 +29,7 @@ Esta documentación resume la arquitectura, dependencias, configuración y princ
 | `npm run build` | Genera la build optimizada para producción. |
 | `npm run start` | Levanta la build generada en modo producción. |
 | `npm run lint` | Ejecuta ESLint con la configuración de Next.js. |
+| `npm run restore-firebase-users` | Script de mantenimiento (`scripts/restore-firebase-users.ts`, ejecutado con `tsx`) que recrea en Firebase Auth los usuarios que existen en Sanity. Requiere las credenciales del Admin SDK. |
 
 ## 5. Configuración de entorno
 Crear un archivo `.env.local` basado en `env.example` y completar las variables:
@@ -141,8 +142,11 @@ export function middleware(req: NextRequest) {
 | `src/data/` | Datasets estáticos para formularios (`ciiu.ts`, `cities.ts`, `latinAmericaCountries.ts`, `mexicoStates.ts`). |
 | `src/types/` | Definiciones TypeScript compartidas entre frontend y API. |
 | `schemas/` | Schemas de Sanity pendientes de copiar al Studio. |
+| `scripts/` | Scripts de mantenimiento ejecutados con `tsx` (`restore-firebase-users.ts`). |
 | `public/` | Assets estáticos. |
-| `docs/` | Documentación técnica (este archivo). |
+| `docs/` | Documentación técnica (este archivo), guía del panel superadmin e `historial/` con bitácoras de cambios pasados. |
+
+> En la raíz existe además un `lib/sanity.client.ts` heredado, duplicado de `src/lib/sanity.client.ts`. El código de la aplicación importa siempre el de `src/`; el de la raíz puede eliminarse cuando se confirme que nada lo referencia.
 
 ## 8. Modelos de datos en Sanity
 | Documento | Campos clave | Notas |
@@ -170,6 +174,7 @@ export function middleware(req: NextRequest) {
 
 ### 9.3 Gestión de catálogo
 - Desde el dashboard, `POST /api/products` y `POST /api/services` crean registros con referencias al usuario autenticado y su empresa; las actualizaciones usan `PUT` (establecen `updatedBy`).
+- `/dashboard/productos` exige que el usuario tenga empresa asociada: si `user.company` viene vacío, corta la carga y muestra un aviso de "Sin empresa asignada" en lugar de quedarse en el spinner. Las empresas de tamaño `grande` ven en su lugar el mensaje informativo (no gestionan catálogo).
 - `useCatalogSync` consulta `/api/catalog/fresh` periódicamente (cada 60 s en `/catalogo`) para asegurar datos actualizados sin depender del CDN, y emite el evento `catalog-updated`.
 - La vista pública `/catalogo` filtra en cliente sobre el conjunto ya descargado (búsqueda, categoría, tipo y empresa) y **pagina el render con scroll infinito** en bloques de 12 tarjetas mediante `IntersectionObserver`, con botón "Cargar más" como respaldo accesible. Título y descripción se truncan (55 y 120 caracteres) cortando en palabra completa, con enlace "Ver más" hacia la ficha de la empresa.
 
@@ -284,6 +289,7 @@ export function middleware(req: NextRequest) {
 - `src/utils/sanityImage.ts`: construye URLs de assets, verifica imágenes válidas y ofrece fallback.
 - `src/lib/superadmin.ts`: `isSuperadmin(firebaseUid)` — única verificación de rol del backend.
 - `src/utils/ciiuOptions.ts`, `src/utils/countryCodes.ts`, `src/utils/departamentosCiudades.ts` y `src/data/*`: listas de apoyo para formularios.
+- `src/lib/sanity.image.ts`: helper basado en `@sanity/image-url` que **hoy no usa ningún módulo**; además `@sanity/image-url` no figura en `package.json`, por lo que importarlo rompería la build. La construcción de URLs de assets en uso es la de `src/utils/sanityImage.ts`.
 
 ## 13. Accesibilidad
 `AccessibilityBar` (`src/components/AccessibilityBar.tsx`) se monta en el layout raíz y ofrece un panel lateral con preferencias persistidas en `localStorage` (clave `ci-accessibility`):
@@ -338,3 +344,21 @@ El CSV del cuestionario incluye datos del usuario y su empresa, las cuatro respu
 - Añadir compresión real de imágenes en `/api/upload-image`.
 - Registrar auditoría de las acciones de superadmin (creación/edición/borrado y exportaciones).
 - Mantener este documento actualizado cuando cambien los flujos o se agreguen nuevos endpoints.
+
+## 19. Despliegue
+El sitio se despliega en **Netlify**, que construye con `npm run build` y sirve la aplicación de Next.js mediante el runtime de Next de Netlify. Las variables de entorno de §5 se cargan desde el panel del sitio (no desde `.env`, que está fuera del control de versiones).
+
+La configuración versionada vive en `netlify.toml` y hoy solo ajusta el **secrets scanner** de Netlify:
+
+| Clave | Motivo |
+| ----- | ------ |
+| `SECRETS_SCAN_OMIT_KEYS` | Excluye las `NEXT_PUBLIC_*` de Firebase y Sanity. Son públicas por diseño —Next.js las inlinea en el bundle del navegador— y el scanner las marcaba como falsos positivos. |
+| `SECRETS_SCAN_SMART_DETECTION_ENABLED = "false"` | Desactiva la detección por patrón, que se disparaba con el prefijo `AIza` de las API keys web de Firebase. Esas llaves están protegidas por las reglas de seguridad de Firebase, no por secrecía. |
+| `SECRETS_SCAN_OMIT_PATHS` | Excluye `.next/**` y `.netlify/**`, cuyo output contiene los valores `NEXT_PUBLIC_*` ya inlineados. |
+
+Consideraciones al desplegar:
+
+- Los secretos reales (`SANITY_API_TOKEN`, `SANITY_WEBHOOK_SECRET`, `FIREBASE_ADMIN_*`, credenciales SMTP) **no** están en las listas de omisión y siguen cubiertos por el scanner. No deben prefijarse con `NEXT_PUBLIC_`.
+- `FIREBASE_ADMIN_PRIVATE_KEY` se guarda con los saltos de línea escapados (`\n`); el código los reemplaza al inicializar (§5).
+- `NEXT_PUBLIC_APP_URL` debe apuntar al dominio de producción: de ahí salen los enlaces de los correos transaccionales.
+- Los webhooks de Sanity (§10.6) apuntan a las URLs públicas del sitio desplegado y comparten `SANITY_WEBHOOK_SECRET` con el Studio.
