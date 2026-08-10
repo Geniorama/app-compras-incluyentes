@@ -155,8 +155,10 @@ export default function ProductsPage() {
 
     if (user?.company?._id) {
       fetchData();
+    } else if (user) {
+      setIsLoading(false);
     }
-  }, [user?.company?._id, isLargeCompany]);
+  }, [user?.company?._id, isLargeCompany, user]);
 
   if (loading || isLoading) {
     return (
@@ -168,6 +170,41 @@ export default function ProductsPage() {
 
   if (!user) {
     return null;
+  }
+
+  // Si el usuario no tiene empresa asignada
+  if (!user.company?._id) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-4xl mx-auto px-4 py-8">
+          <div className="bg-white rounded-lg shadow-md p-8 text-center">
+            <div className="mb-6">
+              <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-yellow-100 mb-4">
+                <svg
+                  className="h-8 w-8 text-yellow-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 9v2m0 4h.01M12 3a9 9 0 100 18A9 9 0 0012 3z"
+                  />
+                </svg>
+              </div>
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                Sin empresa asignada
+              </h1>
+              <p className="text-lg text-gray-600">
+                No tienes una empresa asociada a tu cuenta. Contacta al administrador para que te asigne una empresa.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // Si es empresa grande, mostrar mensaje informativo
