@@ -8,23 +8,65 @@ interface A11ySettings {
   fontSize: 0 | 1 | 2; // 0=normal, 1=grande, 2=muy grande
   highContrast: boolean;
   grayscale: boolean;
+  screenReader: boolean;
 }
 
-const defaults: A11ySettings = { fontSize: 0, highContrast: false, grayscale: false };
+const defaults: A11ySettings = { fontSize: 0, highContrast: false, grayscale: false, screenReader: false };
 
 const FONT_CLASSES = ["", "a11y-font-lg", "a11y-font-xl"] as const;
+
+// Elementos cuyo contenido tiene sentido leer en voz alta al pasar el cursor o el foco
+const READABLE_SELECTOR =
+  'a, button, summary, label, input, select, textarea, img, h1, h2, h3, h4, h5, h6, p, li, td, th, figcaption, legend, [role="button"], [role="link"], [aria-label]';
+
+const MAX_SPOKEN_CHARS = 300;
+
+const isSpeechSupported = () => typeof window !== "undefined" && "speechSynthesis" in window;
+
+// Texto legible de un elemento, priorizando las etiquetas accesibles sobre el contenido visible
+const getReadableText = (el: HTMLElement): string => {
+  const label = el.getAttribute("aria-label") || el.getAttribute("alt") || el.getAttribute("title");
+  if (label?.trim()) return label.trim().slice(0, MAX_SPOKEN_CHARS);
+
+  if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+    const value = el.placeholder || (el.type === "password" ? "" : el.value);
+    return value.trim().slice(0, MAX_SPOKEN_CHARS);
+  }
+
+  const text = el.innerText?.replace(/\s+/g, " ").trim() ?? "";
+  return text.slice(0, MAX_SPOKEN_CHARS);
+};
+
+const speak = (text: string) => {
+  if (!isSpeechSupported() || !text) return;
+  const synth = window.speechSynthesis;
+  synth.cancel(); // interrumpir lo anterior para seguir el ritmo del usuario
+
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = "es-ES";
+  const spanishVoice = synth.getVoices().find((v) => v.lang.toLowerCase().startsWith("es"));
+  if (spanishVoice) utterance.voice = spanishVoice;
+  synth.speak(utterance);
+};
 
 export default function AccessibilityBar() {
   const [settings, setSettings] = useState<A11ySettings>(defaults);
   const [open, setOpen] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(true);
   const panelRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+
+  // El soporte se evalúa en el cliente para no romper el render del servidor
+  useEffect(() => {
+    setSpeechSupported(isSpeechSupported());
+  }, []);
 
   // Cargar preferencias guardadas
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) setSettings(JSON.parse(saved) as A11ySettings);
+      // Combinar con defaults para no dejar campos sin definir si el formato guardado es anterior
+      if (saved) setSettings({ ...defaults, ...(JSON.parse(saved) as Partial<A11ySettings>) });
     } catch {
       // ignorar errores de parsing
     }
@@ -46,6 +88,41 @@ export default function AccessibilityBar() {
       // ignorar
     }
   }, [settings]);
+
+  // Lector de pantalla: leer en voz alta el elemento bajo el cursor o con el foco
+  useEffect(() => {
+    if (!isSpeechSupported()) return;
+    if (!settings.screenReader) {
+      window.speechSynthesis.cancel();
+      return;
+    }
+
+    let lastSpoken = "";
+
+    const handleTarget = (event: Event) => {
+      const target = event.target as HTMLElement | null;
+      if (!target || target.nodeType !== Node.ELEMENT_NODE) return;
+
+      const element = target.closest<HTMLElement>(READABLE_SELECTOR);
+      // Ignorar lo que ya está oculto para tecnologías de asistencia
+      if (!element || element.closest('[aria-hidden="true"]')) return;
+
+      const text = getReadableText(element);
+      if (!text || text === lastSpoken) return;
+
+      lastSpoken = text;
+      speak(text);
+    };
+
+    document.addEventListener("mouseover", handleTarget, true);
+    document.addEventListener("focusin", handleTarget, true);
+
+    return () => {
+      document.removeEventListener("mouseover", handleTarget, true);
+      document.removeEventListener("focusin", handleTarget, true);
+      window.speechSynthesis.cancel();
+    };
+  }, [settings.screenReader]);
 
   // Cerrar con tecla Escape y devolver foco al botón
   useEffect(() => {
@@ -70,6 +147,16 @@ export default function AccessibilityBar() {
   }, []);
 
   const reset = useCallback(() => setSettings(defaults), []);
+
+  const toggleScreenReader = useCallback(() => {
+    const next = !settings.screenReader;
+    update({ screenReader: next });
+    if (next) {
+      speak("Lector de pantalla activado. Pasa el cursor o navega con el tabulador para escuchar el contenido.");
+    } else if (isSpeechSupported()) {
+      window.speechSynthesis.cancel();
+    }
+  }, [settings.screenReader, update]);
 
   const iconClass = "w-5 h-5 inline-block";
 
@@ -228,6 +315,38 @@ export default function AccessibilityBar() {
               </span>
               <span className="text-xs opacity-80">{settings.grayscale ? "ON" : "OFF"}</span>
             </button>
+          </div>
+
+          {/* Lector de pantalla */}
+          <div>
+            <h3 className="font-semibold mb-2">Lector de pantalla</h3>
+            <button
+              onClick={toggleScreenReader}
+              disabled={!speechSupported}
+              aria-label={settings.screenReader ? "Desactivar lector de pantalla" : "Activar lector de pantalla"}
+              title={settings.screenReader ? "Desactivar lector de pantalla" : "Activar lector de pantalla"}
+              aria-pressed={settings.screenReader}
+              className={`w-full flex items-center justify-between px-3 py-2 rounded border focus:outline-none focus:ring-2 focus:ring-[#193DC0] disabled:opacity-40 disabled:cursor-not-allowed transition ${
+                settings.screenReader
+                  ? "bg-[#193DC0] text-white border-[#193DC0]"
+                  : "border-gray-300 hover:bg-gray-100"
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                <svg className={iconClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                  <path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor" stroke="none" />
+                  <path d="M16.5 8.5a5 5 0 0 1 0 7" />
+                  <path d="M19 6a8 8 0 0 1 0 12" />
+                </svg>
+                Leer en voz alta
+              </span>
+              <span className="text-xs opacity-80">{settings.screenReader ? "ON" : "OFF"}</span>
+            </button>
+            <p className="mt-2 text-xs text-gray-600">
+              {speechSupported
+                ? "Lee el texto del elemento sobre el que pasas el cursor o al que llegas con el tabulador."
+                : "Tu navegador no admite la síntesis de voz."}
+            </p>
           </div>
 
           {/* Restablecer */}
