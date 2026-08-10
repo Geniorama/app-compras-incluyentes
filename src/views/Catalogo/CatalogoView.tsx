@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { TextInput, Select, Spinner, Button } from 'flowbite-react';
 import { HiOutlineSearch, HiX, HiTag, HiOfficeBuilding, HiAdjustments, HiMail, HiRefresh } from 'react-icons/hi';
 import DashboardNavbar from '@/components/dashboard/Navbar';
@@ -16,6 +16,21 @@ interface Company {
   _id: string;
   nameCompany: string;
 }
+
+// Máximo de caracteres visibles en las tarjetas del catálogo
+const TITLE_MAX_LENGTH = 55;
+const DESCRIPTION_MAX_LENGTH = 120;
+
+// Cantidad de tarjetas que se agregan en cada carga del scroll infinito
+const PAGE_SIZE = 12;
+
+const truncateText = (text: string, maxLength: number): string => {
+  if (text.length <= maxLength) return text;
+  const cut = text.slice(0, maxLength);
+  const lastSpace = cut.lastIndexOf(' ');
+  // Cortar en la última palabra completa para evitar palabras partidas
+  return `${(lastSpace > maxLength * 0.6 ? cut.slice(0, lastSpace) : cut).trimEnd()}...`;
+};
 
 interface CatalogoViewProps {
   products: SanityProductDocument[];
@@ -41,6 +56,10 @@ export default function CatalogoView({ products: initialProducts, services: init
   const [companies, setCompanies] = useState(initialCompanies);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  // Paginación por scroll infinito
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
+
   type CompanyRef = { _id?: string; _ref?: string } | null | undefined;
   const getCompanyId = (companyObj: CompanyRef): string => {
     if (!companyObj) return '';
@@ -65,6 +84,34 @@ export default function CatalogoView({ products: initialProducts, services: init
   );
 
   const itemsToShow = type === 'product' ? filteredProducts : type === 'service' ? filteredServices : [...filteredProducts, ...filteredServices];
+
+  const visibleItems = itemsToShow.slice(0, visibleCount);
+  const hasMore = visibleCount < itemsToShow.length;
+
+  // Reiniciar la paginación cada vez que cambian los filtros o los datos del catálogo
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [searchTerm, category, type, company, products, services]);
+
+  // Scroll infinito: cargar el siguiente bloque cuando el centinela entra en pantalla
+  useEffect(() => {
+    const sentinel = loadMoreRef.current;
+    if (!sentinel || !hasMore) return;
+
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0].isIntersecting) {
+          setVisibleCount(current => current + PAGE_SIZE);
+        }
+      },
+      { rootMargin: '300px' }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+    // visibleCount en las dependencias: al reobservar tras cada carga, si el centinela
+    // sigue visible (pantallas altas) se dispara otra vez hasta llenar la vista
+  }, [hasMore, itemsToShow.length, visibleCount]);
 
   const handleSearch = () => {
     setSearchTerm(search);
@@ -305,13 +352,14 @@ export default function CatalogoView({ products: initialProducts, services: init
                   <Spinner size="xl" />
                 </div>
               ) : (
+                <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
                   {itemsToShow.length === 0 ? (
                     <div className="col-span-full text-center text-gray-500">No hay resultados.</div>
                   ) : (
-                    itemsToShow.map(item => (
-                      <div key={item._id} className="bg-white rounded-lg shadow-md overflow-hidden">
-                        <div className="relative h-48">
+                    visibleItems.map(item => (
+                      <div key={item._id} className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col h-full">
+                        <div className="relative h-48 shrink-0">
                           {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                           {isValidImage(item.images?.[0] as any) ? (
                             <img
@@ -331,10 +379,25 @@ export default function CatalogoView({ products: initialProducts, services: init
                             <span className="text-gray-400">Sin imagen</span>
                           </div>
                         </div>
-                        <div className="p-4">
-                          <h3 className="text-lg font-semibold mb-2">{item.name}</h3>
-                          <p className="text-gray-600 text-sm mb-2">{item.description || 'Sin descripción'}</p>
-                          
+                        <div className="p-4 flex flex-col flex-1">
+                          <h3 className="text-lg font-semibold mb-2" title={item.name}>
+                            {truncateText(item.name, TITLE_MAX_LENGTH)}
+                          </h3>
+                          <p className="text-gray-600 text-sm mb-2">
+                            {item.description ? truncateText(item.description, DESCRIPTION_MAX_LENGTH) : 'Sin descripción'}
+                            {item.company && (
+                              <>
+                                {' '}
+                                <a
+                                  href={`/empresas/${getCompanyId(item.company)}`}
+                                  className="text-blue-600 hover:text-blue-800 hover:underline font-medium whitespace-nowrap transition-colors"
+                                >
+                                  Ver más
+                                </a>
+                              </>
+                            )}
+                          </p>
+
                           {/* Categoría y Empresa */}
                           <div className="flex flex-col gap-1 mb-3">
                             {item.category && Array.isArray(item.category) && item.category.length > 0 && (
@@ -370,24 +433,43 @@ export default function CatalogoView({ products: initialProducts, services: init
                             <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">Activo</span>
                           </div>
 
-                          {/* Botón Contactar Empresa */}
-                          {item.company && !isUserCompany(getCompanyId(item.company)) && (
-                            <Button
-                              color="blue"
-                              size="sm"
-                              onClick={() => handleContactCompany(getCompanyId(item.company))}
-                              fullSized
-                              // className="w-full flex items-center justify-center gap-3"
-                            >
-                              <HiMail className="w-4 h-4 mr-2 mt-0.5" />
-                              Contactar empresa
-                            </Button>
-                          )}
+                          {/* Botón Contactar Empresa: anclado al fondo de la tarjeta */}
+                          <div className="mt-auto">
+                            {item.company && !isUserCompany(getCompanyId(item.company)) && (
+                              <Button
+                                color="blue"
+                                size="sm"
+                                onClick={() => handleContactCompany(getCompanyId(item.company))}
+                                fullSized
+                              >
+                                <HiMail className="w-4 h-4 mr-2 mt-0.5" />
+                                Contactar empresa
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     ))
                   )}
                 </div>
+
+                {/* Centinela de scroll infinito + respaldo manual */}
+                {itemsToShow.length > 0 && (
+                  <div ref={loadMoreRef} className="mt-8 flex flex-col items-center gap-3">
+                    <p className="text-sm text-gray-500">
+                      Mostrando {visibleItems.length} de {itemsToShow.length} resultados
+                    </p>
+                    {hasMore && (
+                      <>
+                        <Spinner size="md" />
+                        <Button color="light" size="sm" onClick={() => setVisibleCount(current => current + PAGE_SIZE)}>
+                          Cargar más
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                )}
+                </>
               )}
             </div>
           </div>
