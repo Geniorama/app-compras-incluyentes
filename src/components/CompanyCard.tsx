@@ -3,6 +3,7 @@
 
 import { Button } from 'flowbite-react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 
 interface SanityImage {
   _type: 'image';
@@ -55,6 +56,9 @@ const highlightText = (text: string, searchTerm: string) => {
 
 export default function CompanyCard({ _id, nameCompany, businessName, logo, companySize, searchTerm }: CompanyCardProps) {
   const router = useRouter();
+  const { user } = useAuth();
+  // El superadmin consulta el directorio, pero no contacta empresas.
+  const canContact = user?.role !== 'superadmin';
 
   // Función para obtener la URL de la imagen de Sanity
   const getImageUrl = (image: SanityImage) => {
@@ -132,14 +136,16 @@ export default function CompanyCard({ _id, nameCompany, businessName, logo, comp
         >
           Ver Empresa
         </Button>
-        <Button
-          color="light"
-          onClick={handleMessageClick}
-          size="sm"
-          className="flex-1 justify-center"
-        >
-          Enviar Mensaje
-        </Button>
+        {canContact && (
+          <Button
+            color="light"
+            onClick={handleMessageClick}
+            size="sm"
+            className="flex-1 justify-center"
+          >
+            Enviar Mensaje
+          </Button>
+        )}
       </div>
     </div>
   );

@@ -174,6 +174,9 @@ export default function CatalogoView({ products: initialProducts, services: init
     return user?.company?._id === companyId;
   };
 
+  // El superadmin consulta el catálogo, pero no contacta empresas.
+  const canContact = user?.role !== 'superadmin';
+
   const getCategoryImageUrl = (cat: SanityCategoryDocument): string | null => {
     if (cat.image && cat.image.asset) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -435,7 +438,7 @@ export default function CatalogoView({ products: initialProducts, services: init
 
                           {/* Botón Contactar Empresa: anclado al fondo de la tarjeta */}
                           <div className="mt-auto">
-                            {item.company && !isUserCompany(getCompanyId(item.company)) && (
+                            {canContact && item.company && !isUserCompany(getCompanyId(item.company)) && (
                               <Button
                                 color="blue"
                                 size="sm"

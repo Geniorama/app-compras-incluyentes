@@ -98,9 +98,11 @@ export default function EmpresaView({ company }: EmpresaViewProps) {
   const { user } = useAuth();
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  // El superadmin consulta el directorio, pero no contacta empresas ni guarda favoritos.
+  const canContact = !!user?.uid && user.role !== 'superadmin';
 
   useEffect(() => {
-    if (user?.uid) {
+    if (canContact && user?.uid) {
       fetch('/api/favorites', { headers: { 'x-user-id': user.uid } })
         .then(res => res.json())
         .then(data => {
@@ -110,10 +112,10 @@ export default function EmpresaView({ company }: EmpresaViewProps) {
         })
         .catch(() => {});
     }
-  }, [user?.uid]);
+  }, [user?.uid, canContact]);
 
   const handleToggleFavorite = async (userId: string) => {
-    if (!user?.uid) return;
+    if (!canContact || !user?.uid) return;
     setTogglingId(userId);
     const isFavorite = favoriteIds.includes(userId);
     try {
@@ -229,7 +231,7 @@ export default function EmpresaView({ company }: EmpresaViewProps) {
               <span className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-xs font-semibold uppercase">{typeDocumentCompany}: {numDocumentCompany}</span>
             </div>
             <div className="flex gap-2 mb-6">
-              {phone && (
+              {phone && canContact && (
                 <Button color="success" onClick={handleWhatsAppClick} className="rounded-full shadow">
                   <FaWhatsapp className="h-5 w-5" />
                 </Button>
@@ -294,9 +296,11 @@ export default function EmpresaView({ company }: EmpresaViewProps) {
                   <span>Sitio Web</span>
                 </Button>
               )}
-              <Button color='blue' onClick={handleContactCompany}>
-                Enviar mensaje
-              </Button>
+              {canContact && (
+                <Button color='blue' onClick={handleContactCompany}>
+                  Enviar mensaje
+                </Button>
+              )}
             </div>
           </div>
 
@@ -392,11 +396,10 @@ export default function EmpresaView({ company }: EmpresaViewProps) {
                   const userPhoneFormatted = teamMember.phone ? formatPhoneForWhatsApp(teamMember.phone) : '';
                   
                   const isFavorite = favoriteIds.includes(teamMember._id);
-                  const canAddFavorite = !!user?.uid;
 
                   return (
                     <div key={teamMember._id} className="relative flex flex-col items-center text-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                      {canAddFavorite && (
+                      {canContact && (
                         <button
                           type="button"
                           onClick={() => handleToggleFavorite(teamMember._id)}
@@ -428,7 +431,7 @@ export default function EmpresaView({ company }: EmpresaViewProps) {
                         <p className="text-sm text-gray-600 mb-3">{teamMember.position}</p>
                       )}
                       <div className="flex flex-col gap-2 w-full mt-2">
-                        {canAddFavorite && (
+                        {canContact && (
                           <Button
                             size="xs"
                             color="light"
@@ -439,7 +442,7 @@ export default function EmpresaView({ company }: EmpresaViewProps) {
                             Enviar mensaje
                           </Button>
                         )}
-                        {!teamMember.publicProfile && (
+                        {canContact && !teamMember.publicProfile && (
                           <>
                             {teamMember.email && (
                               <a
