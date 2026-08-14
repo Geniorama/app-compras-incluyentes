@@ -5,6 +5,7 @@ import { Table, Button, Spinner, Modal, TextInput, Label, Select, Alert } from '
 import { useAuth } from '@/context/AuthContext';
 import SuperadminSidebar from '@/components/superadmin/SuperadminSidebar';
 import SearchableSelect from '@/components/superadmin/SearchableSelect';
+import { Required, Optional, RequiredLegend } from '@/components/FieldMark';
 import { HiUser, HiOutlinePencil, HiOutlineTrash, HiOutlineSearch } from 'react-icons/hi';
 import toast from 'react-hot-toast';
 import { getDepartamentosOptions, getCiudadesOptionsByDepartamento } from '@/utils/departamentosCiudades';
@@ -508,8 +509,9 @@ export default function SuperadminUsersView() {
               onSubmit={selectedUser ? handleUpdate : handleCreate}
               className="flex flex-col gap-4"
             >
+              <RequiredLegend />
               <div>
-                <Label>Foto de perfil</Label>
+                <Label>Foto de perfil<Optional /></Label>
                 <div className="flex items-center gap-4 mt-2">
                   <div className="w-16 h-16 rounded-full flex items-center justify-center overflow-hidden bg-gray-100 border-2 border-gray-200 flex-shrink-0">
                     {photoPreview ? (
@@ -539,16 +541,16 @@ export default function SuperadminUsersView() {
               </div>
               <div className="flex gap-4">
                 <div className="flex-1">
-                  <Label htmlFor="firstName">Nombre</Label>
+                  <Label htmlFor="firstName">Nombre<Required /></Label>
                   <TextInput id="firstName" name="firstName" value={form.firstName} onChange={handleInputChange} required />
                 </div>
                 <div className="flex-1">
-                  <Label htmlFor="lastName">Apellido</Label>
+                  <Label htmlFor="lastName">Apellido<Required /></Label>
                   <TextInput id="lastName" name="lastName" value={form.lastName} onChange={handleInputChange} required />
                 </div>
               </div>
               <div>
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">Email<Required /></Label>
                 <TextInput
                   id="email"
                   name="email"
@@ -560,10 +562,11 @@ export default function SuperadminUsersView() {
                 />
               </div>
               <div>
-                <Label htmlFor="role">Rol</Label>
+                <Label htmlFor="role">Rol<Required /></Label>
                 <Select
                   id="role"
                   name="role"
+                  required
                   value={form.role}
                   onChange={(e) => {
                     const v = e.target.value;
@@ -578,7 +581,7 @@ export default function SuperadminUsersView() {
               </div>
               {form.role !== 'superadmin' && (
                 <div>
-                  <Label htmlFor="companyId">Empresa</Label>
+                  <Label htmlFor="companyId">Empresa<Required announce /></Label>
                   <SearchableSelect
                     id="companyId"
                     options={companyOptions}
@@ -591,7 +594,7 @@ export default function SuperadminUsersView() {
               )}
               {!selectedUser && form.role !== 'member' && (
                 <div>
-                  <Label htmlFor="password">Contraseña</Label>
+                  <Label htmlFor="password">Contraseña<Required /></Label>
                   <div className="flex gap-2">
                     <TextInput
                       id="password"
@@ -609,21 +612,21 @@ export default function SuperadminUsersView() {
                 </div>
               )}
               <div>
-                <Label htmlFor="phone">Teléfono</Label>
+                <Label htmlFor="phone">Teléfono<Optional /></Label>
                 <TextInput id="phone" name="phone" value={form.phone} onChange={handleInputChange} />
               </div>
               <div className="flex gap-4">
                 <div className="flex-1">
-                  <Label htmlFor="pronoun">Pronombre</Label>
+                  <Label htmlFor="pronoun">Pronombre<Optional /></Label>
                   <TextInput id="pronoun" name="pronoun" value={form.pronoun} onChange={handleInputChange} />
                 </div>
                 <div className="flex-1">
-                  <Label htmlFor="position">Cargo</Label>
+                  <Label htmlFor="position">Cargo<Optional /></Label>
                   <TextInput id="position" name="position" value={form.position} onChange={handleInputChange} />
                 </div>
               </div>
               <div>
-                <Label htmlFor="typeDocument">Tipo de documento</Label>
+                <Label htmlFor="typeDocument">Tipo de documento<Optional /></Label>
                 <Select id="typeDocument" name="typeDocument" value={form.typeDocument} onChange={handleInputChange}>
                   <option value="">Seleccionar...</option>
                   <option value="cc">CC</option>
@@ -631,11 +634,11 @@ export default function SuperadminUsersView() {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="numDocument">Número de documento</Label>
+                <Label htmlFor="numDocument">Número de documento<Optional /></Label>
                 <TextInput id="numDocument" name="numDocument" value={form.numDocument} onChange={handleInputChange} />
               </div>
               <div>
-                <Label htmlFor="country">País</Label>
+                <Label htmlFor="country">País<Optional /></Label>
                 <Select
                   id="country"
                   name="country"
@@ -654,7 +657,7 @@ export default function SuperadminUsersView() {
               {(form.country === 'CO' || form.country === 'MX') && (
                 <div className="flex gap-4">
                   <div className="flex-1">
-                    <Label htmlFor="department">{form.country === 'MX' ? 'Estado' : 'Departamento'}</Label>
+                    <Label htmlFor="department">{form.country === 'MX' ? 'Estado' : 'Departamento'}<Optional /></Label>
                     <Select
                       id="department"
                       name="department"
@@ -671,7 +674,7 @@ export default function SuperadminUsersView() {
                     </Select>
                   </div>
                   <div className="flex-1">
-                    <Label htmlFor="city">{form.country === 'MX' ? 'Municipio' : 'Ciudad'}</Label>
+                    <Label htmlFor="city">{form.country === 'MX' ? 'Municipio' : 'Ciudad'}<Optional /></Label>
                     <Select
                       id="city"
                       name="city"

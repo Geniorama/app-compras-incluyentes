@@ -19,6 +19,7 @@ import toast from "react-hot-toast";
 import { updateEmail, sendEmailVerification, getAuth } from "firebase/auth";
 import { FirebaseError } from "firebase/app";
 import DashboardSidebar from "@/components/DashboardSidebar";
+import { Required, Optional, RequiredLegend } from "@/components/FieldMark";
 import type { UserProfile, SanityImage, CompanyData } from "@/types";
 import { getCIIUOptions, getSectorFromCIIU } from "@/utils/ciiuOptions";
 import ReactSelect from "react-select";
@@ -870,7 +871,7 @@ export default function ProfileView({
 
     return (
       <div className="w-full md:w-1/2 px-2 space-y-1">
-        <Label htmlFor="email">Correo electrónico</Label>
+        <Label htmlFor="email">Correo electrónico<Required /></Label>
         <div className="space-y-1">
           <TextInput
             id="email"
@@ -1014,8 +1015,9 @@ export default function ProfileView({
               className="!p-4 data-[active=true]:!text-blue-600 data-[active=true]:!border-b-2 data-[active=true]:!border-blue-600"
             >
               <div className="mt-5">
+                <RequiredLegend className="mb-5" />
                 <div className="mb-8">
-                  <Label htmlFor="foto-perfil">Foto de perfil</Label>
+                  <Label htmlFor="foto-perfil">Foto de perfil<Required /></Label>
                   <div className="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-4 mt-2">
                     <div className="w-[80px] h-[80px] bg-gray-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-gray-200">
                       {photoUrl ? (
@@ -1054,7 +1056,7 @@ export default function ProfileView({
 
                 <div className="flex flex-col md:flex-row flex-wrap gap-y-4 -mx-2">
                   <div className="w-full md:w-1/2 px-2 space-y-1">
-                    <Label htmlFor="firstName">Nombre(s)</Label>
+                    <Label htmlFor="firstName">Nombre(s)<Required /></Label>
                     <TextInput
                       id="firstName"
                       placeholder="John"
@@ -1073,7 +1075,7 @@ export default function ProfileView({
                     />
                   </div>
                   <div className="w-full md:w-1/2 px-2 space-y-1">
-                    <Label htmlFor="lastName">Apellido(s)</Label>
+                    <Label htmlFor="lastName">Apellido(s)<Required /></Label>
                     <TextInput
                       id="lastName"
                       placeholder="Doe"
@@ -1091,7 +1093,7 @@ export default function ProfileView({
                   </div>
 
                   <div className="w-full md:w-1/2 px-2 space-y-1">
-                    <Label htmlFor="pronoun">Pronombre</Label>
+                    <Label htmlFor="pronoun">Pronombre<Optional /></Label>
                     <TextInput
                       id="pronoun"
                       placeholder="Él, Ella, Elle"
@@ -1108,7 +1110,7 @@ export default function ProfileView({
                     />
                   </div>
                   <div className="w-full md:w-1/2 px-2 space-y-1">
-                    <Label htmlFor="position">Cargo</Label>
+                    <Label htmlFor="position">Cargo<Required /></Label>
                     <TextInput
                       id="position"
                       placeholder="CEO"
@@ -1128,7 +1130,7 @@ export default function ProfileView({
                   {renderEmailField()}
 
                   <div className="w-full md:w-1/2 px-2 space-y-1">
-                    <Label htmlFor="phone">Número de teléfono</Label>
+                    <Label htmlFor="phone">Número de teléfono<Required /></Label>
                     <InternationalPhoneInput
                       id="phone"
                       name="phone"
@@ -1150,7 +1152,7 @@ export default function ProfileView({
                   </div>
 
                   <div className="w-full md:w-1/2 px-2 space-y-1">
-                    <Label htmlFor="typeDocument">Documento</Label>
+                    <Label htmlFor="typeDocument">Documento<Required /></Label>
                     <div className="flex items-center space-x-1">
                       <Select
                         id="typeDocument"
@@ -1193,7 +1195,7 @@ export default function ProfileView({
                   </div>
 
                   <div className="w-full md:w-1/2 px-2 space-y-1">
-                    <Label htmlFor="userCountry">País</Label>
+                    <Label htmlFor="userCountry">País<Required /></Label>
                     <Select
                       id="userCountry"
                       value={profile?.userCountry || ""}
@@ -1222,7 +1224,7 @@ export default function ProfileView({
                   {(profile?.userCountry === "CO" || profile?.userCountry === "MX") && (
                     <>
                       <div className="w-full md:w-1/2 px-2 space-y-1">
-                        <Label htmlFor="userDepartment">{profile?.userCountry === "MX" ? "Estado" : "Departamento"}</Label>
+                        <Label htmlFor="userDepartment">{profile?.userCountry === "MX" ? "Estado" : "Departamento"}<Required /></Label>
                         <Select
                           id="userDepartment"
                           value={profile?.userDepartment || ""}
@@ -1246,7 +1248,7 @@ export default function ProfileView({
                         </Select>
                       </div>
                       <div className="w-full md:w-1/2 px-2 space-y-1">
-                        <Label htmlFor="userCity">{profile?.userCountry === "MX" ? "Municipio" : "Ciudad"}</Label>
+                        <Label htmlFor="userCity">{profile?.userCountry === "MX" ? "Municipio" : "Ciudad"}<Required /></Label>
                         <Select
                           id="userCity"
                           value={profile?.userCity || ""}
@@ -1333,8 +1335,9 @@ export default function ProfileView({
               className="!p-4 data-[active=true]:!text-blue-600 data-[active=true]:!border-b-2 data-[active=true]:!border-blue-600"
             >
               <div className="mt-5">
+                <RequiredLegend className="mb-5" />
                 <div className="mb-8">
-                  <Label htmlFor="logo">Logo de la marca</Label>
+                  <Label htmlFor="logo">Logo de la marca<Required /></Label>
                   <div className="flex flex-col md:flex-row md:items-center md:space-x-4 space-y-3 md:space-y-0 mt-2">
                     <div className="w-[100px] h-[100px] bg-gray-200 flex items-center justify-center rounded-full min-w-[100px] overflow-hidden">
                       {logoUrl ? (
@@ -1381,7 +1384,7 @@ export default function ProfileView({
 
                 <div className="flex flex-col md:flex-row flex-wrap gap-y-4 -mx-2">
                   <div className="w-full md:w-1/2 px-2 space-y-1">
-                    <Label htmlFor="nameCompany">Nombre de la marca</Label>
+                    <Label htmlFor="nameCompany">Nombre de la marca<Required /></Label>
                     <TextInput
                       id="nameCompany"
                       placeholder="Nombre de la marca"
@@ -1401,7 +1404,7 @@ export default function ProfileView({
                     />
                   </div>
                   <div className="w-full md:w-1/2 px-2 space-y-1">
-                    <Label htmlFor="businessName">Razón social</Label>
+                    <Label htmlFor="businessName">Razón social<Required /></Label>
                     <TextInput
                       id="businessName"
                       placeholder="Razón social"
@@ -1422,7 +1425,7 @@ export default function ProfileView({
                   </div>
 
                   <div className="w-full px-2 space-y-1">
-                    <Label htmlFor="description">Descripción de la empresa</Label>
+                    <Label htmlFor="description">Descripción de la empresa<Optional /></Label>
                     <Textarea
                       id="description"
                       placeholder="Descripción general de la empresa, sus servicios, productos y valores."
@@ -1438,7 +1441,7 @@ export default function ProfileView({
                   </div>
 
                   <div className="w-full md:w-1/2 px-2 space-y-1">
-                    <Label htmlFor="typeDocumentCompany">Documento</Label>
+                    <Label htmlFor="typeDocumentCompany">Documento<Required /></Label>
                     <div className="flex items-center space-x-1">
                       <Select
                         id="typeDocumentCompany"
@@ -1484,7 +1487,7 @@ export default function ProfileView({
                   </div>
 
                   <div className="w-full md:w-1/2 px-2 space-y-1">
-                    <Label htmlFor="webSite">Página Web</Label>
+                    <Label htmlFor="webSite">Página Web<Required /></Label>
                     <TextInput
                       id="webSite"
                       type="url"
@@ -1505,7 +1508,7 @@ export default function ProfileView({
 
                   <div className="w-full md:w-1/2 px-2 space-y-1">
                     <Label htmlFor="annualRevenue">
-                      Ingresos anuales (en millones de pesos COP)
+                      Ingresos anuales (en millones de pesos COP)<Required />
                     </Label>
                     <input
                       type="text"
@@ -1526,7 +1529,7 @@ export default function ProfileView({
                   </div>
 
                   <div className="w-full md:w-1/2 px-2 space-y-1">
-                    <Label htmlFor="collaboratorsCount">Cantidad de colaboradores</Label>
+                    <Label htmlFor="collaboratorsCount">Cantidad de colaboradores<Optional /></Label>
                     <TextInput
                       type="number"
                       inputMode="numeric"
@@ -1542,7 +1545,7 @@ export default function ProfileView({
                   </div>
 
                   <div className="w-full md:w-1/2 px-2 space-y-1">
-                    <Label htmlFor="ciiu">Código CIIU</Label>
+                    <Label htmlFor="ciiu">Código CIIU<Required /></Label>
                     <Select
                       id="ciiu"
                       value={profile?.ciiu || ""}
@@ -1567,7 +1570,7 @@ export default function ProfileView({
                   </div>
 
                   <div className="w-full md:w-1/2 px-2 space-y-1">
-                    <Label htmlFor="addressCompany">Dirección</Label>
+                    <Label htmlFor="addressCompany">Dirección<Required /></Label>
                     <TextInput
                       id="addressCompany"
                       placeholder="Calle 123 # 45-67"
@@ -1588,7 +1591,7 @@ export default function ProfileView({
                   </div>
 
                   <div className="w-full md:w-1/2 px-2 space-y-1">
-                    <Label htmlFor="countries">Países donde opera la empresa</Label>
+                    <Label htmlFor="countries">Países donde opera la empresa<Required /></Label>
                     {isClient ? (
                       <ReactSelect
                         id="countries"
@@ -1621,7 +1624,7 @@ export default function ProfileView({
                   {((Array.isArray(profile?.countries) && (profile.countries.includes("CO") || profile.countries.includes("MX"))) || (profile?.country === "CO" || profile?.country === "MX")) && (
                     <>
                       <div className="w-full md:w-1/2 px-2 space-y-1">
-                        <Label htmlFor="country">País de la sede principal</Label>
+                        <Label htmlFor="country">País de la sede principal<Required /></Label>
                         <Select
                           id="country"
                           value={profile?.country || ""}
@@ -1646,7 +1649,7 @@ export default function ProfileView({
                         </Select>
                       </div>
                       <div className="w-full md:w-1/2 px-2 space-y-1">
-                        <Label htmlFor="department">{profile?.country === "MX" ? "Estado" : "Departamento"}</Label>
+                        <Label htmlFor="department">{profile?.country === "MX" ? "Estado" : "Departamento"}<Required /></Label>
                         <Select
                           id="department"
                           value={profile?.department || ""}
@@ -1671,7 +1674,7 @@ export default function ProfileView({
                         </Select>
                       </div>
                       <div className="w-full md:w-1/2 px-2 space-y-1">
-                        <Label htmlFor="city">{profile?.country === "MX" ? "Municipio" : "Ciudad"}</Label>
+                        <Label htmlFor="city">{profile?.country === "MX" ? "Municipio" : "Ciudad"}<Required /></Label>
                         <Select
                           id="city"
                           value={profile?.city || ""}
@@ -1713,7 +1716,7 @@ export default function ProfileView({
                   </div>
 
                   <div className="w-full md:w-1/2 px-2 space-y-1">
-                    <Label htmlFor="peopleGroup">¿El 50% de los accionistas de la empresa pertenece a algún grupo poblacional?</Label>
+                    <Label htmlFor="peopleGroup">¿El 50% de los accionistas de la empresa pertenece a algún grupo poblacional?<Required /></Label>
                     {isClient ? (
                       <ReactSelect
                         isMulti
@@ -1757,7 +1760,7 @@ export default function ProfileView({
 
                   {(Array.isArray(profile?.peopleGroup) ? profile.peopleGroup.includes("otro") : profile?.peopleGroup === "otro") && (
                     <div className="w-full md:w-1/2 px-2 space-y-1">
-                      <Label htmlFor="otherPeopleGroup">Especificar otro grupo poblacional</Label>
+                      <Label htmlFor="otherPeopleGroup">Especificar otro grupo poblacional<Required /></Label>
                       <TextInput
                         id="otherPeopleGroup"
                         value={profile?.otherPeopleGroup || ""}
@@ -1778,7 +1781,7 @@ export default function ProfileView({
 
                   <div className="w-full md:w-1/2 px-2 space-y-1">
                     <Label htmlFor="inclusionDEI">
-                      ¿La empresa está comprometida con la equidad e inclusión DEI?
+                      ¿La empresa está comprometida con la equidad e inclusión DEI?<Required />
                     </Label>
                     <Select
                       id="inclusionDEI"
@@ -1804,7 +1807,7 @@ export default function ProfileView({
                   <div className="w-full md:w-1/2 px-2 space-y-1">
                     <div className="flex items-center gap-2 mb-1">
                       <Label htmlFor="chamberOfCommerce">
-                        Cámara de comercio (PDF)
+                        Cámara de comercio (PDF)<Optional />
                       </Label>
                       {!profile?.chamberOfCommerce ? (
                         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
@@ -1873,7 +1876,7 @@ export default function ProfileView({
                   <div className="w-full md:w-1/2 px-2 space-y-1">
                     <div className="flex items-center gap-2 mb-1">
                       <Label htmlFor="taxIdentificationDocument">
-                        Documento Identificación Tributaria (PDF)
+                        Documento Identificación Tributaria (PDF)<Optional />
                       </Label>
                       {!profile?.taxIdentificationDocument ? (
                         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
