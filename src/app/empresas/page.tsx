@@ -1,10 +1,8 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
 import EmpresasView from '@/views/Empresas/EmpresasView';
 import { sanityClient } from '@/lib/sanity.client';
-import { useAuth } from '@/context/AuthContext';
 
 interface SanityImage {
   _type: 'image';
@@ -38,8 +36,6 @@ interface Company {
 }
 
 export default function EmpresasPage() {
-  const router = useRouter();
-  const { user } = useAuth();
   const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [country, setCountry] = useState('');
@@ -56,13 +52,6 @@ export default function EmpresasPage() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [totalResults, setTotalResults] = useState(0);
-
-  // Superadmin se redirige a su dashboard
-  useEffect(() => {
-    if (user?.role === 'superadmin') {
-      router.push('/superadmin');
-    }
-  }, [user?.role, router]);
 
   const fetchCompanies = useCallback(async () => {
     try {
