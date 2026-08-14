@@ -118,7 +118,7 @@ export async function POST(request: Request) {
     if (role === 'member' && !companyId) {
       return NextResponse.json({ message: 'La empresa es requerida para miembros' }, { status: 400 });
     }
-    if (role !== 'member' && role !== 'superadmin' && !password) {
+    if (role !== 'member' && !password) {
       return NextResponse.json({ message: 'La contraseña es requerida para este rol' }, { status: 400 });
     }
 
@@ -131,9 +131,6 @@ export async function POST(request: Request) {
 
     let firebaseUid: string | undefined;
     if (role !== 'member') {
-      if (!password) {
-        return NextResponse.json({ message: 'Contraseña requerida' }, { status: 400 });
-      }
       try {
         const firebaseUser = await createUserWithEmailAndPassword(auth, email, password);
         await sendEmailVerification(firebaseUser.user);

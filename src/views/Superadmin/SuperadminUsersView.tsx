@@ -561,14 +561,22 @@ export default function SuperadminUsersView() {
               </div>
               <div>
                 <Label htmlFor="role">Rol</Label>
-                <Select id="role" name="role" value={form.role} onChange={handleInputChange}>
+                <Select
+                  id="role"
+                  name="role"
+                  value={form.role}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setForm((f) => ({ ...f, role: v, companyId: v === 'superadmin' ? '' : f.companyId }));
+                  }}
+                >
                   <option value="user">Usuario</option>
                   <option value="admin">Administrador</option>
                   <option value="member">Miembro</option>
                   <option value="superadmin">Superadmin</option>
                 </Select>
               </div>
-              {(form.role !== 'superadmin' || !selectedUser) && (
+              {form.role !== 'superadmin' && (
                 <div>
                   <Label htmlFor="companyId">Empresa</Label>
                   <SearchableSelect
